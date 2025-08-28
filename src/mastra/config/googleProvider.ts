@@ -55,7 +55,7 @@ export const GEMINI_CONFIG = {
 
   // Embedding models with dimension support
   EMBEDDING_MODELS: {
-    TEXT_EMBEDDING_004: 'models/text-embedding-004', // 768 default, supports custom dimensions
+    TEXT_EMBEDDING_004: 'gemini-embedding-001', // supports custom dimensions
   },
 
   // Safety settings presets
@@ -311,12 +311,12 @@ export function createGeminiImageProvider(
 export function createGeminiEmbeddingModel(
   modelId: string = GEMINI_CONFIG.EMBEDDING_MODELS.TEXT_EMBEDDING_004,
   options: {
-    outputDimensionality?: 768; // Supported dimensions for text-embedding-004
+    outputDimensionality?: 1536;
     taskType?: 'SEMANTIC_SIMILARITY' | 'CLASSIFICATION' | 'CLUSTERING' | 'RETRIEVAL_DOCUMENT' | 'RETRIEVAL_QUERY' | 'QUESTION_ANSWERING' | 'FACT_VERIFICATION' | 'CODE_RETRIEVAL_QUERY';
   } = {}
 ) {
   const {
-    outputDimensionality = 768, // Default to 768 to match your setup
+    outputDimensionality = 1536, // Default to 1536 to match your setup
     taskType = 'SEMANTIC_SIMILARITY'
   } = options;
 
