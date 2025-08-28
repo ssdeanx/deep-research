@@ -8,7 +8,7 @@ import {
   upsertVectors,
   extractChunkMetadata,
   type ExtractParams
-} from '../memory/upstashMemory';
+} from '../memory/vector-store.ts';
 import { createGeminiEmbeddingModel } from '../config/googleProvider';
 import { embedMany } from 'ai';
 
