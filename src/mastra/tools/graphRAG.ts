@@ -21,7 +21,7 @@ import {
   VectorStoreError,
   ExtractParams,
   upstashVector
-} from '../memory/upstashMemory';
+} from '../config/libsql-storage';
 //import { pinecone } from '../pinecone';
 import { createGeminiEmbeddingModel } from '../config/googleProvider';
 import { embedMany } from 'ai';
@@ -212,7 +212,7 @@ export const graphRAGUpsertTool = createTool({
       if (validatedInput.createIndex) {
         const idxResult = await createVectorIndex(
           validatedInput.indexName,
-          768,
+          1536,
           'cosine'
         );
         if (!idxResult.success) {
@@ -302,8 +302,7 @@ export const graphRAGTool = createGraphRAGTool({
   indexName: 'training',
   model: createGeminiEmbeddingModel(),
   graphOptions: {
-    dimension: 768,
-    threshold: 0.7
+    dimension: 1536
   }
 });
 
@@ -355,19 +354,20 @@ export const graphRAGQueryTool = createTool({
       graphRAGContext.set('topK', topK);
       graphRAGContext.set('threshold', threshold);
       graphRAGContext.set('minScore', validatedInput.minScore);
-      graphRAGContext.set('dimension', 768);
+      graphRAGContext.set('dimension', 1536);
 
 
       // Execute the GraphRAG query
       const graphResult = await graphRAGTool.execute({
-        context: {
+        context:  {
           queryText: validatedInput.query,
           topK: validatedInput.topK,
           includeVector: validatedInput.includeVector,
           minScore: validatedInput.minScore,
           filter: validatedInput.filter, // Pass filter to graphRAGTool.execute
           // Pass the embedder and vectorStore to the underlying graphRAGTool
-          embedder: embedder,
+                    embedder,</search>
+</search_and_replace>
           vectorStore: upstashVectorClient,
         },
         runtimeContext: graphRAGContext

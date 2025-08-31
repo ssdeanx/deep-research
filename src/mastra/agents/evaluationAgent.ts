@@ -1,6 +1,6 @@
 import { Agent } from '@mastra/core/agent';
 import { createGemini25Provider } from '../config/googleProvider';
-
+import { createResearchMemory } from '../config/libsql-storage';
 
 export const evaluationAgent = new Agent({
   name: 'Evaluation Agent',
@@ -46,4 +46,5 @@ export const evaluationAgent = new Agent({
       // cachedContent: 'your-cache-id', // Uncomment if using explicit caching
       // Langfuse tracing configuration
     }),
+  memory: createResearchMemory(),
 });

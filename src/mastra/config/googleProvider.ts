@@ -27,8 +27,8 @@
  * });
  * ```
  */
-import {
-  google as baseGoogle,
+import { google as baseGoogle } from '@ai-sdk/google';
+import type {
   GoogleGenerativeAIProviderSettings,
   GoogleGenerativeAIProviderOptions,
   GoogleGenerativeAIProviderMetadata
@@ -448,14 +448,14 @@ export function createCacheManager(apiKey?: string): GoogleAICacheManager {
  *   300
  * );
  * ```
- * 
+ *
  * [EDIT: 2025-06-22] [BY: GitHub Copilot]
  */
 export async function createCachedContent(
   cacheManager: GoogleAICacheManager,
   modelId: GoogleModelCacheableId,
   contents: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }>,
-  ttlSeconds: number = 300
+  ttlSeconds = 300
 ): Promise<string> {
   try {
     logger.info('Creating cached content', { modelId, ttlSeconds, contentCount: contents.length });
@@ -464,11 +464,11 @@ export async function createCachedContent(
       contents,
       ttlSeconds
     });
-    
+
     if (!name) {
       throw new Error('Failed to create cached content: no name returned');
     }
-    
+
     logger.info('Cached content created successfully', { name, modelId });
     return name;
   } catch (error) {
@@ -497,7 +497,7 @@ export async function createCachedContent(
  *   }
  * );
  * ```
- * 
+ *
  * [EDIT: 2025-06-22] [BY: GitHub Copilot]
  */
 export const createCachedGoogleModel = async (
@@ -507,7 +507,7 @@ export const createCachedGoogleModel = async (
     cacheManager?: GoogleAICacheManager;
     cacheContents?: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }>;
     cacheTtlSeconds?: number;
-    
+
     // Standard options (preserving your existing function signature)
     useSearchGrounding?: boolean;
     dynamicRetrieval?: boolean;
@@ -547,7 +547,7 @@ export const createCachedGoogleModel = async (
  *   // Can use explicit caching with your models
  * }
  * ```
- * 
+ *
  * [EDIT: 2025-06-22] [BY: GitHub Copilot]
  */
 export function supportsExplicitCaching(modelId: string): modelId is GoogleModelCacheableId {
@@ -563,7 +563,7 @@ export function supportsExplicitCaching(modelId: string): modelId is GoogleModel
     'gemini-1.5-flash-001',
     'gemini-1.5-pro-001'
   ];
-  
+
   return cacheableModels.includes(modelId as GoogleModelCacheableId);
 }
 
@@ -582,7 +582,7 @@ export function supportsExplicitCaching(modelId: string): modelId is GoogleModel
  * const grounding = extractGroundingMetadata(providerMetadata);
  * console.log('Search queries:', grounding?.searchQueries);
  * ```
- * 
+ *
  * [EDIT: 2025-06-22] [BY: GitHub Copilot]
  */
 export function extractGroundingMetadata(providerMetadata?: Record<string, unknown>) {

@@ -29,7 +29,7 @@ import {
   queryVectors,
   type VectorQueryResult,
   type MetadataFilter,
-} from '../memory/upstashMemory';
+} from '../config/libsql-storage';
 import { createGeminiEmbeddingModel } from '../config/googleProvider';
 import type { UIMessage, CoreMessage } from 'ai';
 import { PinoLogger } from '@mastra/loggers';

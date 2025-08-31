@@ -8,7 +8,7 @@ import {
   upsertVectors,
   extractChunkMetadata,
   type ExtractParams
-} from '../memory/vector-store.ts';
+} from '../config/libsql-storage';
 import { createGeminiEmbeddingModel } from '../config/googleProvider';
 import { embedMany } from 'ai';
 
@@ -176,8 +176,8 @@ export interface ChunkerToolRuntimeContext {
  * });
  * ```
  *
- * @see {@link https://mastra.ai/en/examples/rag/chunking | Mastra Chunking Documentation}
- * @see {@link https://mastra.ai/en/reference/rag/extract-params | ExtractParams Reference}
+ * @see {@link https://maistra.ai/en/examples/rag/chunking | Maistra Chunking Documentation}
+ * @see {@link https://maistra.ai/en/reference/rag/extract-params | ExtractParams Reference}
  *
  * @version 2.0.0
  * @author Dean Machines RSC Project
@@ -423,7 +423,7 @@ export const chunkerTool = createTool({
           embeddingsCreated: embeddings.length,
           vectorsUpserted,
           indexName: validatedInput.vectorOptions?.indexName,
-          embeddingDimension: 768, // Assuming training profile always uses 768 dimensions
+          embeddingDimension: 1536, // Use correct dimension
           vectorProcessingTime: Date.now() - vectorStartTime
         };
 

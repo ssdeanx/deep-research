@@ -6,3 +6,5 @@ dist
 .env
 *.db
 *.db-*
+Example Upsert Embeddings  RAG  Mastra Docs.md
+Storage in Mastra  Mastra Docs.md
