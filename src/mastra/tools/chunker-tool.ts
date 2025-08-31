@@ -383,7 +383,7 @@ export const chunkerTool = createTool({
         if (validatedInput.vectorOptions?.upsertToVector) {
           const indexName = validatedInput.vectorOptions.indexName || 'training';
           logger.info('Upserting to vector store using training profile', {
-            indexName: indexName,
+            indexName,
             profileIndexName: indexName
           });
           // Prepare metadata for vector store
@@ -467,7 +467,7 @@ export const chunkerTool = createTool({
 
     } catch (error) {      logger.error('Document chunking failed', {
         error: error instanceof Error ? error.message : String(error),
-        context: context
+        context
       });
       throw new Error(`Document chunking failed: ${error instanceof Error ? error.message : String(error)}`);
     }

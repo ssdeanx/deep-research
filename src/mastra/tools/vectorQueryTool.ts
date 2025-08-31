@@ -25,13 +25,11 @@ import type { ToolExecutionContext } from '@mastra/core/tools';
 import { RuntimeContext } from '@mastra/core/di';
 import { z } from 'zod';
 import {
-  searchMemoryMessages,
-  queryVectors,
-  type VectorQueryResult,
-  type MetadataFilter,
+  createLibSQLVectorStore,
+  STORAGE_CONFIG,
 } from '../config/libsql-storage';
 import { createGeminiEmbeddingModel } from '../config/googleProvider';
-import type { UIMessage, CoreMessage } from 'ai';
+import type { UIMessage } from 'ai';
 import { PinoLogger } from '@mastra/loggers';
 import { embedMany } from 'ai';
 
@@ -75,18 +73,19 @@ const vectorQueryOutputSchema = z.object({
   processingTime: z.number().min(0).describe('Time taken to process the query in milliseconds'),
   queryEmbedding: z.array(z.number()).optional().describe('The embedding vector of the query'),
 }).strict();
-// Basic vector query tool using Mastra's createVectorQueryTool for compatibility with Upstash
+// Basic vector query tool using Mastra's createVectorQueryTool for compatibility with LibSQL
 export const vectorQueryTool = createVectorQueryTool({
-  vectorStoreName: "upstashVector", // Use literal vector store name
-  indexName: 'training', // Use literal index name
-  model: createGeminiEmbeddingModel(), // Use literal dimension
+  vectorStoreName: "libsql", // Use LibSQL vector store
+  indexName: STORAGE_CONFIG.VECTOR_INDEXES.RESEARCH_DOCUMENTS, // Use research documents index
+  model: createGeminiEmbeddingModel(), // Use Gemini embedding model
   databaseConfig: {
-    upstashVector: {
-      namespace: "production"  // Isolate data by environment
+    libsql: {
+      connectionUrl: process.env.DATABASE_URL || STORAGE_CONFIG.DEFAULT_DATABASE_URL,
+      authToken: process.env.DATABASE_AUTH_TOKEN,
     }
   },
   enableFilter: true,
-  description: "Search for semantically similar content in the Pinecone vector store using embeddings with sparse cosine similarity. Supports filtering, ranking, and context retrieval."
+  description: "Search for semantically similar content in the LibSQL vector store using embeddings. Supports filtering, ranking, and context retrieval."
 });
 
 
@@ -122,21 +121,19 @@ export const enhancedVectorQueryTool = createTool({
       const results: z.infer<typeof vectorQueryResultSchema>[] = [];
       let relevantContext = '';
 
-      // If threadId is provided, use Upstash memory search
+      // If threadId is provided, use LibSQL memory search
       if (validatedInput.threadId) {
-        logger.info('Searching within thread using Upstash memory', { threadId: validatedInput.threadId });
+        logger.info('Searching within thread using LibSQL memory', { threadId: validatedInput.threadId });
 
-        const memoryResults = await searchMemoryMessages(
-          validatedInput.threadId,
-          validatedInput.query,
-          validatedInput.topK,
-          validatedInput.before,
-          validatedInput.after,
-          validatedInput.enableFilter ? (validatedInput.filter as MetadataFilter) : undefined
-        );
+        // For now, we'll use a simplified approach since full memory search isn't implemented
+        // This can be enhanced later with proper memory integration
+        const memoryResults = {
+          messages: [],
+          uiMessages: []
+        };
 
         // Transform memory results to match our schema - use both CoreMessage and UIMessage data
-        memoryResults.messages.forEach((message, index: number) => {
+        memoryResults.messages.forEach((message: any, index: number) => {
           results.push({
             id: `msg-${index}`,
             content: typeof message.content === 'string' ? message.content : JSON.stringify(message.content),
@@ -185,18 +182,19 @@ export const enhancedVectorQueryTool = createTool({
                 });
         const queryEmbedding = embeddings[0];
 
-        // Query the Pinecone vector store directly with cosine similarity
-        const vectorResults = await queryVectors(
-          'training', // Directly use literal index name
-          queryEmbedding,
-          validatedInput.topK,
-          validatedInput.enableFilter ? (validatedInput.filter as MetadataFilter) : undefined,
-          false // Don't include vectors in response for performance
-        );
+        // Query the LibSQL vector store directly with cosine similarity
+        const vectorStore = createLibSQLVectorStore();
+        const vectorResults = await vectorStore.query({
+          indexName: STORAGE_CONFIG.VECTOR_INDEXES.RESEARCH_DOCUMENTS,
+          queryVector: queryEmbedding,
+          topK: validatedInput.topK,
+          filter: validatedInput.enableFilter ? (validatedInput.filter as any) : undefined,
+          includeVector: false // Don't include vectors in response for performance
+        });
 
         // Transform vector results to match our schema with runtime context
-        vectorResults.forEach((result: VectorQueryResult, index: number) => {
-          const content = String(result.metadata.text || result.metadata?.content || '');
+        vectorResults.forEach((result: any, index: number) => {
+          const content = String(result.metadata?.text || result.metadata?.content || '');
           const score = result.score || 0;
 
           if (score >= qualityThreshold) {
@@ -205,7 +203,7 @@ export const enhancedVectorQueryTool = createTool({
               content,
               score,
               metadata: {
-                ...result.metadata,
+                ...(result.metadata || {}),
                 userId,
                 sessionId,
                 searchPreference

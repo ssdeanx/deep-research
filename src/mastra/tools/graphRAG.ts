@@ -261,7 +261,6 @@ export const graphRAGUpsertTool = createTool({
       }
 
       const processingTime = Date.now() - startTime;
-      
       const result = {
         success: true,
         chunksProcessed: chunks.length,
@@ -366,8 +365,7 @@ export const graphRAGQueryTool = createTool({
           minScore: validatedInput.minScore,
           filter: validatedInput.filter, // Pass filter to graphRAGTool.execute
           // Pass the embedder and vectorStore to the underlying graphRAGTool
-                    embedder,</search>
-</search_and_replace>
+                    embedder,
           vectorStore: upstashVectorClient,
         },
         runtimeContext: graphRAGContext
