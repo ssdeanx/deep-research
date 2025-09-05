@@ -38,23 +38,20 @@ import { mastra } from './mastra';
 const mcpServer = new MCPServer({
   name: 'mastra-deep-research',
   version: '1.0.0',
-  capabilities: {
-    tools: true,
-    resources: true,
-    prompts: true
-  }
+  // Pass Mastra components directly to the server
+  agents: {
+    researchAgent: mastra.getAgent('researchAgent'),
+  },
+  workflows: {
+    researchWorkflow: mastra.getWorkflow('researchWorkflow'),
+  },
+  tools: {
+    webSearch: mastra.getTool('webSearch'),
+  },
 });
-
-// Register Mastra components with MCP
-mcpServer.registerAgent(mastra.getAgent('researchAgent'));
-mcpServer.registerWorkflow(mastra.getWorkflow('researchWorkflow'));
-mcpServer.registerTool(mastra.getTool('webSearch'));
 
 // Start MCP server
-await mcpServer.start({
-  transport: 'stdio', // or 'websocket', 'http'
-  port: 3001
-});
+await mcpServer.startStdio();
 ```
 
 ### Advanced MCP Server Configuration
@@ -107,30 +104,28 @@ const mcpServer = new MCPServer({
 
 ### Registering Tools with MCP
 
-```typescript
-// Register individual tools
-mcpServer.registerTool({
-  name: 'web_search',
-  description: 'Search the web for information',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      query: { type: 'string' },
-      limit: { type: 'number', default: 10 }
-    },
-    required: ['query']
-  },
-  handler: async (args) => {
-    return await mastra.getTool('webSearch').execute(args);
-  }
-});
+Tools, agents, and workflows are registered by passing them directly to the `MCPServer` constructor. The `MCPServer` automatically converts them into callable MCP tools.
 
-// Register tool collections
-mcpServer.registerToolset('research_tools', [
-  mastra.getTool('webSearch'),
-  mastra.getTool('vectorQuery'),
-  mastra.getTool('chunker')
-]);
+```typescript
+import { MCPServer } from '@mastra/mcp';
+import { mastra } from './mastra'; // Assuming mastra instance is available
+
+const mcpServer = new MCPServer({
+  name: 'your-server-name',
+  version: '1.0.0',
+  agents: {
+    // Your agents here
+    researchAgent: mastra.getAgent('researchAgent'),
+  },
+  workflows: {
+    // Your workflows here
+    researchWorkflow: mastra.getWorkflow('researchWorkflow'),
+  },
+  tools: {
+    // Your tools here
+    webSearchTool: mastra.getTool('webSearch'),
+  },
+});
 ```
 
 ### Tool Discovery
@@ -200,36 +195,23 @@ subscription.unsubscribe();
 ### Exposing Workflows as MCP Tools
 
 ```typescript
-// Convert workflow to MCP tool
-const researchWorkflowTool = {
-  name: 'run_research_workflow',
-  description: 'Execute a complete research workflow',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      query: { type: 'string' },
-      depth: {
-        type: 'string',
-        enum: ['shallow', 'medium', 'deep'],
-        default: 'medium'
-      },
-      includeSources: { type: 'boolean', default: true }
-    },
-    required: ['query']
+// Workflows are automatically exposed as MCP tools when registered with the MCPServer.
+// For example, a workflow with `id: 'research-workflow'` will be exposed as a tool named `run_research-workflow`.
+
+```typescript
+import { MCPServer } from '@mastra/mcp';
+import { mastra } from './mastra'; // Assuming mastra instance is available
+
+const mcpServer = new MCPServer({
+  name: 'your-server-name',
+  version: '1.0.0',
+  workflows: {
+    researchWorkflow: mastra.getWorkflow('researchWorkflow'),
   },
-  handler: async (args) => {
-    const workflow = mastra.getWorkflow('researchWorkflow');
-    const run = await workflow.createRunAsync();
+});
 
-    const result = await run.start({
-      inputData: args
-    });
-
-    return result;
-  }
-};
-
-mcpServer.registerTool(researchWorkflowTool);
+// To call this workflow as an MCP tool:
+// await mcpClient.callTool('run_research-workflow', { query: 'your research query' });
 ```
 
 ### Workflow State Management
@@ -644,11 +626,11 @@ const batchResult = await mcpClient.executeBatch(batchRequest);
 {
   "mcpServers": {
     "mastra-research": {
-      "command": "node",
-      "args": ["/path/to/mastra-mcp-server.js"],
+      "command": "npx",
+      "args": ["tsx", "src/mastra/mcp/server.ts"],
       "env": {
         "DATABASE_URL": "file:./deep-research.db",
-        "GOOGLE_AI_API_KEY": "your-key",
+        "GOOGLE_GENERATIVE_AI_API_KEY": "your-key",
         "EXA_API_KEY": "your-key"
       }
     }

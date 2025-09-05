@@ -20,7 +20,8 @@ import {
   createVectorIndex,
   VectorStoreError,
   ExtractParams,
-  upstashVector
+  upstashVector as libsqlVectorStoreInstance, // Renamed import
+  STORAGE_CONFIG // Import STORAGE_CONFIG
 } from '../config/libsql-storage';
 //import { pinecone } from '../pinecone';
 import { createGeminiEmbeddingModel } from '../config/googleProvider';
@@ -180,6 +181,7 @@ export const graphRAGUpsertTool = createTool({
           extractParams: validatedInput.extractParams, // Pass extractParams directly to chunkerTool context
         },
         runtimeContext,
+        tracingContext: runtimeContext?.get('tracingContext'), // Add tracingContext
       });
 
       const chunks = chunkerResult.chunks.map((chunk: { content: string; metadata: Record<string, unknown>; embedding?: number[] }) => ({
@@ -212,7 +214,7 @@ export const graphRAGUpsertTool = createTool({
       if (validatedInput.createIndex) {
         const idxResult = await createVectorIndex(
           validatedInput.indexName,
-          1536,
+          STORAGE_CONFIG.DEFAULT_DIMENSION, // Use STORAGE_CONFIG.DEFAULT_DIMENSION
           'cosine'
         );
         if (!idxResult.success) {
@@ -297,11 +299,11 @@ export const graphRAGUpsertTool = createTool({
  * GraphRAG query tool - Uses createGraphRAGTool with Upstash Vector store and sparse cosine similarity
  */
 export const graphRAGTool = createGraphRAGTool({
-  vectorStoreName: 'upstashVector',
+  vectorStoreName: 'libsqlVectorStoreInstance',
   indexName: 'training',
   model: createGeminiEmbeddingModel(),
   graphOptions: {
-    dimension: 1536
+    dimension: STORAGE_CONFIG.DEFAULT_DIMENSION // Use default dimension from config
   }
 });
 
@@ -333,7 +335,7 @@ export const graphRAGQueryTool = createTool({
 
       // Get the embedder
       const embedder = createGeminiEmbeddingModel();
-      const upstashVectorClient = upstashVector;
+      const vectorStoreClient = libsqlVectorStoreInstance; // Changed from upstashVector
 
       if (debug) {
         logger.info('Starting GraphRAG query', {
@@ -353,7 +355,7 @@ export const graphRAGQueryTool = createTool({
       graphRAGContext.set('topK', topK);
       graphRAGContext.set('threshold', threshold);
       graphRAGContext.set('minScore', validatedInput.minScore);
-      graphRAGContext.set('dimension', 1536);
+      graphRAGContext.set('dimension', STORAGE_CONFIG.DEFAULT_DIMENSION); // Use STORAGE_CONFIG.DEFAULT_DIMENSION
 
 
       // Execute the GraphRAG query
@@ -365,10 +367,11 @@ export const graphRAGQueryTool = createTool({
           minScore: validatedInput.minScore,
           filter: validatedInput.filter, // Pass filter to graphRAGTool.execute
           // Pass the embedder and vectorStore to the underlying graphRAGTool
-                    embedder,
-          vectorStore: upstashVectorClient,
+          embedder,
+          vectorStore: vectorStoreClient, // Changed from upstashVectorClient
         },
-        runtimeContext: graphRAGContext
+        runtimeContext: graphRAGContext,
+        tracingContext: runtimeContext?.get('tracingContext'), // Add tracingContext
       });
 
       const processingTime = Date.now() - startTime;
@@ -440,12 +443,11 @@ export const graphRAGQueryTool = createTool({
  */
 export const graphRAGRuntimeContext = new RuntimeContext<GraphRAGRuntimeContext>();
 
-// Set default runtime context values for Upstash Vector with sparse cosine similarity
+// Set default runtime context values for LibSQL Vector
 graphRAGRuntimeContext.set("indexName", 'training');
 graphRAGRuntimeContext.set("topK", 5);
 graphRAGRuntimeContext.set("threshold", 0.7);
 graphRAGRuntimeContext.set("minScore", 0.0);
-graphRAGRuntimeContext.set("dimension", 768);
+graphRAGRuntimeContext.set("dimension", STORAGE_CONFIG.DEFAULT_DIMENSION); // Use default dimension from config
 graphRAGRuntimeContext.set("category", "document");
-graphRAGRuntimeContext.set("debug", false);
 graphRAGRuntimeContext.set("debug", false);

@@ -6,12 +6,12 @@ The Mastra Deep Research System is an AI-powered research and analysis platform 
 
 ### Key Features
 
-- **Multi-Agent Architecture**: Specialized agents for research, reporting, evaluation, and content processing
-- **Web Search Integration**: Real-time web search with content summarization
-- **Vector Storage**: Semantic search and knowledge retrieval using embeddings
-- **Workflow Orchestration**: Automated research and report generation processes
-- **Memory Management**: Persistent conversation and research context
-- **Document Processing**: Advanced chunking and metadata extraction
+- **Multi-Agent Architecture**: Specialized agents and **vNext Agent Networks** for intelligent orchestration.
+- **Web Search Integration**: Real-time web search with content summarization.
+- **Vector Storage**: Semantic search and knowledge retrieval using embeddings.
+- **Workflow Orchestration**: Automated research and report generation processes, including human-in-the-loop capabilities.
+- **Memory Management**: Persistent conversation and research context across agents, workflows, and networks.
+- **Document Processing**: Advanced chunking and metadata extraction.
 
 ## Architecture Overview
 
@@ -550,6 +550,16 @@ const result = await researchAgent.generate([{
   role: 'user',
   content: 'Research quantum computing advancements'
 }]);
+```
+
+### vNext Agent Network Usage
+
+```typescript
+import { mastra } from './src/mastra';
+
+const complexResearchNetwork = mastra.getVNextNetwork('complex-research-network');
+const result = await complexResearchNetwork.loop('Research the impact of AI on healthcare and generate a report.', {});
+console.log(result);
 ```
 
 ### Tool Usage

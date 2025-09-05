@@ -26,6 +26,31 @@ This guide provides comprehensive patterns and best practices for integrating ex
 └─────────────────────────────────────┘
 ```
 
+### Mastra vNext Agent Networks
+
+The Mastra vNext Agent Network (`NewAgentNetwork`) provides a powerful integration pattern by orchestrating multiple specialized agents and workflows. This enables dynamic routing of tasks to the most appropriate component, effectively acting as an intelligent integration layer.
+
+```typescript
+import { NewAgentNetwork } from '@mastra/core/network/vNext';
+import { Agent } from '@mastra/core/agent';
+import { createWorkflow } from '@mastra/core/workflows';
+import { Memory } from '@mastra/memory';
+// ... other imports
+
+const myResearchAgent = new Agent({ /* ... */ });
+const myReportingWorkflow = createWorkflow({ /* ... */ }).commit();
+const myMemory = new Memory({ /* ... */ });
+
+const myNetwork = new NewAgentNetwork({
+  id: 'my-intelligent-network',
+  name: 'My Intelligent Network',
+  instructions: 'You are an intelligent orchestrator of research and reporting tasks.',
+  agents: { myResearchAgent },
+  workflows: { myReportingWorkflow },
+  memory: myMemory,
+});
+```
+
 ## Core Integration Patterns
 
 ### 1. Adapter Pattern for API Integration

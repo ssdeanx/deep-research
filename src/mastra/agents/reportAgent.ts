@@ -1,7 +1,8 @@
 import { Agent } from '@mastra/core/agent';
 import { createGemini25Provider } from '../config/googleProvider';
+import { createResearchMemory } from '../config/libsql-storage';
 
-
+const memory = createResearchMemory();
 export const reportAgent = new Agent({
   name: 'Report Agent',
   instructions: `You are an expert researcher. Today is ${new Date().toISOString()}. Follow these instructions when responding:
@@ -46,4 +47,5 @@ export const reportAgent = new Agent({
     // cachedContent: 'your-cache-id', // Uncomment if using explicit caching
     // Langfuse tracing configuration
   }),
+  memory: memory,
 });

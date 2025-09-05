@@ -7,6 +7,7 @@ import { reportAgent } from './agents/reportAgent';
 import { researchAgent } from './agents/researchAgent';
 import { webSummarizationAgent } from './agents/webSummarizationAgent';
 import { generateReportWorkflow } from './workflows/generateReportWorkflow';
+import { complexResearchNetwork } from './networks/complexResearchNetwork';
 
 export const mastra = new Mastra({
   storage: new LibSQLStore({
@@ -20,4 +21,7 @@ export const mastra = new Mastra({
     webSummarizationAgent,
   },
   workflows: { generateReportWorkflow, researchWorkflow },
+  vnext_networks: {
+    complexResearchNetwork,
+  },
 });

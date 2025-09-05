@@ -27,11 +27,13 @@ import { z } from 'zod';
 import {
   createLibSQLVectorStore,
   STORAGE_CONFIG,
+  searchMemoryMessages // Import searchMemoryMessages
 } from '../config/libsql-storage';
 import { createGeminiEmbeddingModel } from '../config/googleProvider';
 import type { UIMessage } from 'ai';
 import { PinoLogger } from '@mastra/loggers';
 import { embedMany } from 'ai';
+import { Memory } from '@mastra/memory'; // Import Memory
 
 // Define runtime context type for vector query tools
 export interface VectorQueryRuntimeContext {
@@ -95,14 +97,16 @@ export const enhancedVectorQueryTool = createTool({
   description: 'Advanced vector search with hybrid filtering, metadata search, and agent memory integration',
   inputSchema: vectorQueryInputSchema,
   outputSchema: vectorQueryOutputSchema,
-  execute: async ({ input, runtimeContext }: ToolExecutionContext<typeof vectorQueryInputSchema> & {
+  execute: async ({ input, runtimeContext, tracingContext, memory }: ToolExecutionContext<typeof vectorQueryInputSchema> & {
     input: z.infer<typeof vectorQueryInputSchema>;
     runtimeContext?: RuntimeContext<VectorQueryRuntimeContext>;
+    memory?: Memory; // Add memory to the execution context
   }): Promise<z.infer<typeof vectorQueryOutputSchema>> => {
     const startTime = Date.now();
     try {
       // Validate input
-      const validatedInput = vectorQueryInputSchema.parse(input);        // Get runtime context values for personalization
+      const validatedInput = vectorQueryInputSchema.parse(input);
+      // Get runtime context values for personalization
       const userId = (runtimeContext?.get('user-id') as string | undefined) ?? 'anonymous';
       const sessionId = (runtimeContext?.get('session-id') as string | undefined) ?? 'default';
       const searchPreference = (runtimeContext?.get('search-preference') as 'semantic' | 'hybrid' | 'metadata' | undefined) ?? 'semantic';
@@ -125,51 +129,48 @@ export const enhancedVectorQueryTool = createTool({
       if (validatedInput.threadId) {
         logger.info('Searching within thread using LibSQL memory', { threadId: validatedInput.threadId });
 
-        // For now, we'll use a simplified approach since full memory search isn't implemented
-        // This can be enhanced later with proper memory integration
-        const memoryResults = {
-          messages: [],
-          uiMessages: []
-        };
+        if (!memory) {
+          throw new Error("Memory instance is required for thread-specific searches.");
+        }
 
-        // Transform memory results to match our schema - use both CoreMessage and UIMessage data
-        memoryResults.messages.forEach((message: any, index: number) => {
+        const { messages, uiMessages } = await searchMemoryMessages(
+          memory,
+          validatedInput.threadId,
+          validatedInput.query,
+          validatedInput.topK
+        );
+
+        // Transform searchMemoryMessages results to match our schema
+        messages.forEach((message: any) => {
           results.push({
-            id: `msg-${index}`,
-            content: typeof message.content === 'string' ? message.content : JSON.stringify(message.content),
-            score: 1.0 - (index * 0.1), // Simulate decreasing relevance
+            id: message.id,
+            content: message.content,
+            score: 1.0, // searchMemoryMessages doesn't return score, assume perfect match
             metadata: {
               role: message.role,
-              threadId: validatedInput.threadId,
-              timestamp: new Date().toISOString(),
-              userId,
-              sessionId,
-              messageType: 'core'
+              threadId: message.threadId,
+              createdAt: message.createdAt,
+              // Add other relevant metadata from message if available
             },
-            threadId: validatedInput.threadId,
+            threadId: message.threadId,
           });
         });
 
-        // Also include UIMessage data for enhanced context
-        memoryResults.uiMessages.forEach((uiMessage: UIMessage, index: number) => {
+        uiMessages.forEach((uiMessage: UIMessage & { threadId?: string }) => { // Assert UIMessage can have threadId
           results.push({
-            id: `ui-msg-${index}`,
+            id: uiMessage.id,
             content: typeof uiMessage.content === 'string' ? uiMessage.content : JSON.stringify(uiMessage.content),
-            score: 1.0 - (index * 0.1), // Simulate decreasing relevance
+            score: 1.0, // searchMemoryMessages doesn't return score, assume perfect match
             metadata: {
               role: uiMessage.role,
-              threadId: validatedInput.threadId,
-              timestamp: new Date().toISOString(),
-              userId,
-              sessionId,
-              messageType: 'ui',
-              uiMessageId: uiMessage.id
+              threadId: uiMessage.threadId,
+              // Add other relevant metadata from uiMessage if available
             },
-            threadId: validatedInput.threadId,
+            threadId: uiMessage.threadId,
           });
         });
 
-        relevantContext = results.map(r => r.content).join('\n\n');
+        relevantContext = [...messages, ...uiMessages].map(m => m.content).join('\n\n');
 
       } else {
         // Use direct Pinecone vector store search with sparse cosine similarity
@@ -281,10 +282,13 @@ export const hybridVectorSearchTool = createTool({
   outputSchema: hybridOutputSchema,
   execute: async ({
     input,
-    runtimeContext
+    runtimeContext,
+    tracingContext, // Add tracingContext
+    memory // Pass memory
   }: ToolExecutionContext<typeof hybridInputSchema> & {
     input: HybridInput;
     runtimeContext?: RuntimeContext<VectorQueryRuntimeContext>;
+    memory?: Memory; // Add memory to the execution context
   }): Promise<HybridOutput> => {
     const startTime = Date.now();
     try {
@@ -318,7 +322,7 @@ export const hybridVectorSearchTool = createTool({
           enableFilter: validatedInput.enableFilter || false,
           filter: validatedInput.filter,
         },
-        context: {
+        context: { // Re-add context object as it's required by ToolExecutionContext
           query: validatedInput.query,
           topK: validatedInput.topK,
           minScore: validatedInput.minScore,
@@ -329,6 +333,8 @@ export const hybridVectorSearchTool = createTool({
           filter: validatedInput.filter,
         },
         runtimeContext,
+        tracingContext: runtimeContext?.get('tracingContext'), // Pass tracingContext
+        memory, // Pass memory to enhancedVectorQueryTool
       });
       // Transform basic results to match our hybrid scoring format
       const semanticResults = {
@@ -342,7 +348,7 @@ export const hybridVectorSearchTool = createTool({
         totalResults: basicResults.totalResults,
         processingTime: 0,
       };
-
+ 
       // Apply hybrid scoring if metadata query is provided
       const hybridScores: z.infer<typeof hybridScoreSchema>[] = [];
       if (validatedInput.metadataQuery) {
@@ -356,17 +362,17 @@ export const hybridVectorSearchTool = createTool({
             );
             metadataScore = matchingKeys.length / Object.keys(validatedInput.metadataQuery).length;
           }
-
+ 
           const combinedScore = (semanticScore * validatedInput.semanticWeight!) +
-                               (metadataScore * validatedInput.metadataWeight!);
-
+                                 (metadataScore * validatedInput.metadataWeight!);
+ 
           hybridScores.push({
             semanticScore,
             metadataScore,
             combinedScore,
           });
         });
-
+ 
         // Re-sort results by combined score
         const resultsWithScores = semanticResults.results.map((result: HybridVectorResult, index: number) => {
           // Defensive: Only copy safe keys from result.metadata to prevent prototype pollution
@@ -392,19 +398,19 @@ export const hybridVectorSearchTool = createTool({
             }
           };
         });
-
+ 
         resultsWithScores.sort((a: HybridVectorResult, b: HybridVectorResult) => b.score - a.score);
         semanticResults.results = resultsWithScores;
       }
-
+ 
       const processingTime = Date.now() - startTime;
-
+ 
       const output = {
         ...semanticResults,
         processingTime,
         hybridScores,
       };
-
+ 
       logger.info('Hybrid vector search completed', {
         totalResults: output.totalResults,
         processingTime,
@@ -412,9 +418,9 @@ export const hybridVectorSearchTool = createTool({
         userId,
         sessionId
       });
-
+ 
       return output;
-
+ 
     } catch (error) {
       logger.error('Hybrid vector search failed', {
         error: error instanceof Error ? error.message : String(error)
@@ -423,7 +429,7 @@ export const hybridVectorSearchTool = createTool({
     }
   }
 });
-
+ 
 /**
  * Runtime context for vector query tools to enable dynamic configuration
  * This allows CopilotKit frontend to configure tool behavior via headers
@@ -441,7 +447,7 @@ export const hybridVectorSearchTool = createTool({
  * ```
  */
 export const vectorQueryRuntimeContext = new RuntimeContext<VectorQueryRuntimeContext>();
-
+ 
 // Set default runtime context values
 vectorQueryRuntimeContext.set("user-id", "anonymous");
 vectorQueryRuntimeContext.set("session-id", "default");

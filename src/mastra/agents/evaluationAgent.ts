@@ -2,6 +2,8 @@ import { Agent } from '@mastra/core/agent';
 import { createGemini25Provider } from '../config/googleProvider';
 import { createResearchMemory } from '../config/libsql-storage';
 
+const memory = createResearchMemory();
+
 export const evaluationAgent = new Agent({
   name: 'Evaluation Agent',
   instructions: `You are an expert evaluation agent. Your task is to evaluate whether search results are relevant to a research query.
@@ -46,5 +48,5 @@ export const evaluationAgent = new Agent({
       // cachedContent: 'your-cache-id', // Uncomment if using explicit caching
       // Langfuse tracing configuration
     }),
-  memory: createResearchMemory(),
+  memory: memory,
 });

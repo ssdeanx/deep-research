@@ -1,10 +1,8 @@
-
 import { createTool } from '@mastra/core/tools';
 import type { ToolExecutionContext } from '@mastra/core/tools';
 import { RuntimeContext } from '@mastra/core/di';
 import { rerank, type RerankResult } from '@mastra/rag';
 import { createGemini25Provider } from '../config/googleProvider';
-//import { CoreMessage, UIMessage } from 'ai';
 import { vectorQueryTool } from './vectorQueryTool';
 import { PinoLogger } from '@mastra/loggers';
 import { z } from 'zod';
@@ -61,7 +59,7 @@ export const rerankTool = createTool({
   description: 'Search and rerank conversation messages using semantic similarity and configurable weights',
   inputSchema: rerankInputSchema,
   outputSchema: rerankOutputSchema,
-  execute: async ({ input, runtimeContext }: ToolExecutionContext<typeof rerankInputSchema> & {
+  execute: async ({ input, runtimeContext, tracingContext, memory }: ToolExecutionContext<typeof rerankInputSchema> & {
     input: z.infer<typeof rerankInputSchema>;
     runtimeContext?: RuntimeContext<RerankRuntimeContext>;
   }): Promise<z.infer<typeof rerankOutputSchema>> => {
@@ -93,9 +91,11 @@ export const rerankTool = createTool({
         context: {
           queryText: validatedInput.query,
           topK: validatedInput.topK,
-          indexName: validatedInput.indexName,
+          threadId: validatedInput.indexName, // Assuming indexName can be used as threadId for context
         },
         runtimeContext,
+        tracingContext, // Pass tracingContext
+        memory, // Pass memory
       });
 
       // If we have more results than needed, apply reranking
@@ -134,7 +134,7 @@ export const rerankTool = createTool({
         const rerankedMessages = rerankedResults.map((result) => {
           return {
             id: result.result.id,
-            content: result.result.metadata?.text,
+            content: result.result.metadata?.text || '', // Safely extract content
             role: 'assistant', // Assuming the reranked content is from the assistant
             metadata: result.result.metadata,
             score: result.score,

@@ -224,10 +224,6 @@ export async function upsertVectors(
   try {
     const vectorStore = createLibSQLVectorStore();
 
-    await vectorStore.createIndex({
-      indexName,
-      dimension: STORAGE_CONFIG.DEFAULT_DIMENSION,
-    });
 
     await vectorStore.upsert({
       indexName,
@@ -334,12 +330,12 @@ export async function queryVectors(
  * Search memory messages
  */
 export async function searchMemoryMessages(
+  memory: Memory,
   threadId: string,
   query: string,
   topK = 5
 ): Promise<{ messages: any[]; uiMessages: any[] }> {
   try {
-    const mastra = { getStorage: () => ({ getMessages: async () => [] }) };
     const embedder = createGeminiEmbeddingModel("gemini-embedding-001");
 
     const { embeddings } = await embedMany({
@@ -347,14 +343,29 @@ export async function searchMemoryMessages(
       model: embedder,
     });
 
-    const vectorResults = await searchSimilarContent(query, STORAGE_CONFIG.VECTOR_INDEXES.LEARNINGS, topK);
+    const recalled = await memory.query({
+      indexName: STORAGE_CONFIG.VECTOR_INDEXES.RESEARCH_DOCUMENTS,
+      queryVector: embeddings[0],
+      query: query,
+      threadId,
+      topK,
+      embedder,
+    } as any);
 
-    const messages = await getMessagesV2(mastra, threadId);
+    // memory.query can return different shapes; prefer .messages or .messagesV2, fallback to array if provided
+    const recalledMessagesArray: any[] =
+      Array.isArray((recalled as any).messages) ? (recalled as any).messages
+      : Array.isArray((recalled as any).messagesV2) ? (recalled as any).messagesV2
+      : Array.isArray(recalled) ? recalled
+      : [];
 
-    const relevantMessages = messages.filter((msg: any) => {
-      const content = msg.content || '';
-      return content.toLowerCase().includes(query.toLowerCase().split(' ')[0]);
-    }).slice(0, topK);
+    const relevantMessages = recalledMessagesArray.map((msg: any) => ({
+      id: msg.id,
+      role: msg.role ?? msg.sender ?? msg.roleName,
+      content: msg.content ?? msg.parts?.map((p: any) => p.text || p.content).join('') ?? '',
+      createdAt: msg.createdAt ?? msg.timestamp,
+      threadId: msg.threadId ?? msg.thread_id,
+    }));
 
     logger.info('Memory search completed', {
       threadId,
@@ -365,7 +376,7 @@ export async function searchMemoryMessages(
 
     return {
       messages: relevantMessages,
-      uiMessages: relevantMessages
+      uiMessages: relevantMessages // Assuming uiMessages are the same for now
     };
   } catch (error) {
     logger.error('Failed to search memory messages', {
@@ -398,27 +409,6 @@ export class VectorStoreError extends Error {
 export const upstashVector = createLibSQLVectorStore();
 
 /**
- * Get messages in V2 format
- */
-export const getMessagesV2 = async (mastra: any, threadId: string) => {
-  return await mastra.getStorage().getMessages({ threadId, format: 'v2' });
-};
-
-/**
- * Get messages in V1 format
- */
-export const getMessagesV1 = async (mastra: any, threadId: string) => {
-  return await mastra.getStorage().getMessages({ threadId, format: 'v1' });
-};
-
-/**
- * Get messages by IDs
- */
-export const getMessagesByIds = async (mastra: any, messageIds: string[]) => {
-  return await mastra.getStorage().getMessagesById({ messageIds });
-};
-
-/**
  * Convert V2 message format to simplified structure
  */
 export const simplifyMessages = (messages: any[]) => {
@@ -435,30 +425,39 @@ export const simplifyMessages = (messages: any[]) => {
 /**
  * Get or create user resource for working memory
  */
-export const getOrCreateUserResource = async (mastra: any, userId: string) => {
+export const getOrCreateUserResource = async (memory: Memory, userId: string) => {
   try {
-    const resources = await mastra.getStorage().getResources({ resourceId: userId });
+    const storage = memory.storage; // Already confirmed to be LibSQLStore type
 
-    if (resources && resources.length > 0) {
-      return resources[0];
+    let userResource = await storage.getResourceById({ resourceId: userId });
+
+    if (userResource) {
+      return userResource;
     }
 
-    await mastra.getStorage().createResource({
-      resourceId: userId,
-      workingMemory: `# User Research Context for ${userId}
+    await storage.saveResource({
+      resource: {
+        id: userId,
+        workingMemory: `# User Research Context for ${userId}
 - **Research Interests**: To be populated during conversations
 - **Preferred Sources**: To be populated during conversations
 - **Previous Research**: To be populated during conversations
 - **Contact Information**: User ID: ${userId}`,
-      metadata: {
-        createdAt: new Date().toISOString(),
-        preferences: {},
-        tags: ['research-user']
+        createdAt: new Date(), // Changed to Date object
+        updatedAt: new Date(), // Changed to Date object
+        metadata: {
+          resourceId: userId, // Keep resourceId in metadata for consistency/retrieval
+          preferences: {},
+          tags: ['research-user']
+        }
       }
     });
 
     logger.info('Created new user resource', { userId });
-    return await mastra.getStorage().getResources({ resourceId: userId })[0];
+
+    // Re-fetch the resource after creation to ensure it's fully populated and consistent
+    userResource = await storage.getResourceById({ resourceId: userId });
+    return userResource;
   } catch (error) {
     logger.error('Failed to get or create user resource', {
       userId,
@@ -471,14 +470,15 @@ export const getOrCreateUserResource = async (mastra: any, userId: string) => {
 /**
  * Update user working memory
  */
-export const updateUserWorkingMemory = async (mastra: any, userId: string, updates: Record<string, any>) => {
+export const updateUserWorkingMemory = async (memory: Memory, userId: string, updates: Record<string, any>) => {
   try {
-    await mastra.getStorage().updateResource({
+    await memory.storage?.updateResource({
       resourceId: userId,
       workingMemory: updates.workingMemory,
       metadata: {
         ...updates.metadata,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date(), // Moved updatedAt back into metadata
+        // resourceId: userId // This property is not needed here, as it's already resourceId
       }
     });
 

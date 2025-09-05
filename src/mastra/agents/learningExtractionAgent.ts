@@ -1,6 +1,8 @@
 import { Agent } from '@mastra/core/agent';
 import { createGemini25Provider } from '../config/googleProvider';
+import { createResearchMemory } from '../config/libsql-storage';
 
+const memory = createResearchMemory();
 export const learningExtractionAgent = new Agent({
   name: 'Learning Extraction Agent',
   instructions: `You are an expert at analyzing search results and extracting key insights. Your role is to:
@@ -37,4 +39,5 @@ export const learningExtractionAgent = new Agent({
       // cachedContent: 'your-cache-id', // Uncomment if using explicit caching
       // Langfuse tracing configuration
     }),
+  memory: memory,
 });

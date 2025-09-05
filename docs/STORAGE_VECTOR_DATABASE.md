@@ -111,10 +111,6 @@ export async function upsertVectors(
     const vectorStore = createLibSQLVectorStore();
 
     // Ensure index exists
-    await vectorStore.createIndex({
-      indexName,
-      dimension: STORAGE_CONFIG.DEFAULT_DIMENSION,
-    });
 
     // Upsert vectors
     await vectorStore.upsert({
@@ -178,13 +174,12 @@ export const createResearchMemory = () => {
       workingMemory: {
         enabled: true,
         template: `# User Research Context
-- **Research Interests**: Research topics and domains
-- **Preferred Sources**: Trusted websites, publications, or platforms
-- **Methodology Preferences**: Preferred research approaches or tools
-- **Previous Research**: Summary of completed research sessions
-- **Follow-up Questions**: Outstanding questions from previous research
-- **Knowledge Gaps**: Areas needing further investigation
-- **Contact Information**: Professional details for collaboration`,
+- **Current Research Topic**: The specific subject of the ongoing research.
+- **Key Findings (Current)**: Summary of important discoveries from the current research phase.
+- **Pending Questions**: Unanswered questions that require further investigation.
+- **Relevant Sources**: Links or references to documents, web pages, or other materials being used.
+- **Research Progress**: Current stage of the research (e.g., initial, follow-up, synthesis).
+- **User Feedback**: Any feedback or directives from the user regarding the research.`,
       },
       semanticRecall: {
         enabled: true,
@@ -209,13 +204,13 @@ export const createReportMemory = () => {
       workingMemory: {
         enabled: true,
         template: `# Report Generation Context
-- **Report Type**: Research summary, analysis, recommendations, etc.
-- **Target Audience**: Who will read this report
-- **Key Findings**: Important discoveries from research
-- **Structure Preferences**: Preferred report format and sections
-- **Citation Style**: Preferred citation format
-- **Previous Reports**: Summary of previously generated reports
-- **Client Requirements**: Specific requirements or constraints`,
+- **Report Goal**: The main objective or purpose of the report.
+- **Target Audience**: Who the report is for (e.g., technical experts, executives, general public).
+- **Key Data Points**: Critical information or statistics to include.
+- **Desired Tone**: The overall tone of the report (e.g., formal, informal, analytical, persuasive).
+- **Structure Requirements**: Specific sections, headings, or formatting needed.
+- **Call to Action**: Any specific actions the report should prompt.
+- **Reviewer Feedback**: Input from previous drafts or review cycles.`,
       },
       semanticRecall: {
         enabled: true,

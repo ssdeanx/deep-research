@@ -5,6 +5,8 @@ import { webSearchTool } from '../tools/webSearchTool';
 import { createGemini25Provider } from '../config/googleProvider';
 import { createResearchMemory } from '../config/libsql-storage';
 
+const memory = createResearchMemory();
+
 export const researchAgent = new Agent({
   name: 'Research Agent',
   instructions: `You are an expert research agent. Your goal is to research topics thoroughly by following this EXACT process:
@@ -57,5 +59,5 @@ export const researchAgent = new Agent({
     evaluateResultTool,
     extractLearningsTool,
   },
-  memory: createResearchMemory(),
+  memory: memory,
 });

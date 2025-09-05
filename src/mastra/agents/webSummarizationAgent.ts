@@ -1,5 +1,8 @@
 import { Agent } from '@mastra/core/agent';
 import { createGemini25Provider } from '../config/googleProvider';
+import { createResearchMemory } from '../config/libsql-storage';
+
+const memory = createResearchMemory();
 
 export const webSummarizationAgent = new Agent({
   name: 'Web Content Summarization Agent',
@@ -99,4 +102,5 @@ Always provide summaries that capture the core value of the web content without 
       // cachedContent: 'your-cache-id', // Uncomment if using explicit caching
       // Langfuse tracing configuration
     }),
+  memory: memory,
 });

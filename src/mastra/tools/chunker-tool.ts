@@ -1,3 +1,20 @@
+/**
+ * Chunker Tool - Production-ready implementation for Dean Machines RSC
+ *
+ * This module provides a comprehensive document chunking tool supporting multiple formats (text, HTML, Markdown, JSON, LaTeX, CSV, XML)
+ * with configurable strategies and runtime context integration. It integrates with LibSQL for vector storage.
+ *
+ * Key Features:
+ * - Multiple document types: text, HTML, markdown, JSON, LaTeX, CSV, XML
+ * - Multiple chunking strategies: recursive, sentence, paragraph, fixed, semantic
+ * - ExtractParams support for metadata extraction (title, summary, keywords, questions)
+ * - LibSQL Vector integration with Gemini embeddings (1536 dimensions)
+ * - Runtime context support for dynamic configuration
+ * - Comprehensive error handling and logging
+ *
+ * @author dm-mastra-training
+ * @version 2.0.0
+ */
 import { createTool } from '@mastra/core/tools';
 import { MDocument } from '@mastra/rag';
 import { z } from 'zod';
@@ -7,7 +24,8 @@ import { RuntimeContext } from '@mastra/core/runtime-context';
 import {
   upsertVectors,
   extractChunkMetadata,
-  type ExtractParams
+  type ExtractParams,
+  STORAGE_CONFIG // Import STORAGE_CONFIG
 } from '../config/libsql-storage';
 import { createGeminiEmbeddingModel } from '../config/googleProvider';
 import { embedMany } from 'ai';
@@ -135,7 +153,7 @@ export interface ChunkerToolRuntimeContext {
  * - Multiple document types: text, HTML, markdown, JSON, LaTeX, CSV, XML
  * - Multiple chunking strategies: recursive, sentence, paragraph, fixed, semantic
  * - ExtractParams support for metadata extraction (title, summary, keywords, questions)
- * - Upstash Vector integration with fastembed embeddings (384 dimensions)
+ * - LibSQL Vector integration with Gemini embeddings (1536 dimensions)
  * - Runtime context support for dynamic configuration
  * - Comprehensive error handling and logging
  *
@@ -423,7 +441,7 @@ export const chunkerTool = createTool({
           embeddingsCreated: embeddings.length,
           vectorsUpserted,
           indexName: validatedInput.vectorOptions?.indexName,
-          embeddingDimension: 1536, // Use correct dimension
+          embeddingDimension: STORAGE_CONFIG.DEFAULT_DIMENSION, // Use STORAGE_CONFIG.DEFAULT_DIMENSION
           vectorProcessingTime: Date.now() - vectorStartTime
         };
 
