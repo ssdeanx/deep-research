@@ -284,6 +284,151 @@ Research Workflow (loop until approved) → Process Results → Generate Report
 - Conditional execution based on approval status
 - Integrated report generation
 
+## Advanced Workflow Features
+
+### Workflow Control Flow
+
+The system leverages Mastra's advanced workflow control flow capabilities:
+
+#### Parallel Execution
+```typescript
+workflow.parallel([step1, step2])
+  .then(step3)
+  .commit();
+```
+
+#### Conditional Branching
+```typescript
+workflow.branch([
+  [async ({ inputData }) => inputData.value > 10, highValueStep],
+  [async ({ inputData }) => inputData.value <= 10, lowValueStep]
+])
+.commit();
+```
+
+#### Looping Constructs
+```typescript
+// Do-while loop
+workflow.dountil(step, condition);
+
+// Do-until loop
+workflow.dowhile(step, condition);
+
+// Foreach with concurrency control
+workflow.foreach(step, { concurrency: 2 });
+```
+
+#### Suspend & Resume
+```typescript
+const step = createStep({
+  suspendSchema: z.object({}),
+  resumeSchema: z.object({ extraData: z.string() }),
+  execute: async ({ suspend }) => {
+    await suspend({}); // Pause workflow
+    return { result: "resumed" };
+  }
+});
+```
+
+### Streaming and Real-time Updates
+
+#### Enhanced Streaming with streamVNext()
+```typescript
+// AI SDK v5 compatible streaming
+const stream = await agent.streamVNext("query", {
+  format: 'aisdk',
+  memory: { thread: "thread-123", resource: "user-456" }
+});
+
+// Real-time streaming with callbacks
+for await (const chunk of stream.textStream) {
+  console.log(chunk);
+}
+```
+
+#### Workflow Streaming
+```typescript
+const run = await workflow.createRunAsync();
+const result = await run.stream({
+  inputData: { query: "research topic" }
+});
+
+for await (const event of result.stream) {
+  console.log(event);
+}
+```
+
+### Inngest Integration for Production Workflows
+
+For production deployments, workflows can be integrated with Inngest:
+
+```typescript
+import { Inngest } from "inngest";
+import { init } from "@mastra/inngest";
+
+const inngest = new Inngest({ id: "mastra-workflows" });
+const { createWorkflow, createStep } = init(inngest);
+
+// Create production-ready workflow
+const productionWorkflow = createWorkflow({
+  id: "production-research-workflow",
+  // ... workflow definition
+});
+```
+
+### Advanced Memory Management
+
+#### Semantic Recall and Working Memory
+```typescript
+const agent = new Agent({
+  memory: {
+    options: {
+      lastMessages: 50,
+      semanticRecall: {
+        topK: 5,
+        messageRange: { before: 10, after: 5 },
+        scope: 'thread'
+      },
+      workingMemory: {
+        enabled: true,
+        maxSize: 1000
+      }
+    }
+  }
+});
+```
+
+#### Resource-scoped Memory
+```typescript
+// Memory persists across all threads for a user
+const memory = new Memory({
+  storage: new LibSQLStore({ connectionString }),
+  resource: "user-123"
+});
+```
+
+### Error Handling and Recovery
+
+#### Workflow Error Recovery
+```typescript
+workflow
+  .then(step1)
+  .catch(errorStep) // Handle errors gracefully
+  .finally(cleanupStep) // Always execute cleanup
+  .commit();
+```
+
+#### Agent Error Handling
+```typescript
+const agent = new Agent({
+  model: openai("gpt-4o"),
+  onError: async (error, context) => {
+    console.error("Agent error:", error);
+    // Implement retry logic or fallback behavior
+  }
+});
+```
+
 ## Configuration
 
 ### Google AI Provider (`googleProvider.ts`)
