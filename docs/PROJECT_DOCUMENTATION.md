@@ -51,7 +51,7 @@ The system follows a modular architecture with clear separation of concerns:
 
 ## Agents
 
-The system includes five specialized agents, each with distinct capabilities:
+The system includes six specialized agents, each with distinct capabilities:
 
 ### 1. Research Agent (`researchAgent.ts`)
 
@@ -74,7 +74,27 @@ The system includes five specialized agents, each with distinct capabilities:
 - `evaluateResultTool`: Relevance assessment
 - `extractLearningsTool`: Knowledge extraction
 
-### 2. Report Agent (`reportAgent.ts`)
+### 2. RAG Agent (`ragAgent.ts`)
+
+**Purpose**: Provides Retrieval-Augmented Generation capabilities for contextual responses.
+
+**Key Features**:
+- Semantic search across vectorized knowledge base
+- Context-aware response generation
+- Integration with LibSQL vector store
+- Enhanced accuracy through external knowledge retrieval
+
+**Configuration**:
+- Model: Gemini 2.5 Flash Lite
+- Vector Search: Enabled
+- Embedding Model: Gemini text-embedding-004
+- Safety Level: Off
+
+**Tools Used**:
+- `vectorQueryTool`: Semantic search and retrieval
+- `chunkerTool`: Document processing and chunking
+
+### 3. Report Agent (`reportAgent.ts`)
 
 **Purpose**: Generates comprehensive, well-structured reports from research data.
 
@@ -91,7 +111,23 @@ The system includes five specialized agents, each with distinct capabilities:
 - Structured Outputs: Enabled
 - Safety Level: Off
 
-### 3. Evaluation Agent (`evaluationAgent.ts`)
+### 4. Web Summarization Agent (`webSummarizationAgent.ts`)
+
+**Purpose**: Optimizes token usage by generating concise summaries of web content.
+
+**Key Features**:
+- Intelligent content extraction
+- Token-efficient summarization
+- Preservation of critical information
+- Structured summary outputs
+
+**Configuration**:
+- Model: Gemini 2.5 Flash Lite
+- Token Optimization: Enabled
+- Content Filtering: Enabled
+- Safety Level: Off
+
+### 5. Evaluation Agent (`evaluationAgent.ts`)
 
 **Purpose**: Assesses the relevance and quality of search results.
 
@@ -103,7 +139,7 @@ The system includes five specialized agents, each with distinct capabilities:
 
 **Integration**: Called by `evaluateResultTool` for automated assessment.
 
-### 4. Learning Extraction Agent (`learningExtractionAgent.ts`)
+### 6. Learning Extraction Agent (`learningExtractionAgent.ts`)
 
 **Purpose**: Extracts key insights and generates follow-up questions from content.
 

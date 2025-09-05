@@ -5,6 +5,32 @@
   </a>
   <h1>Deep Research Assistant + Graph RAG with Mastra 🚀🧠</h1>
 
+  <p align="center">
+    <a href="https://github.com/ssdeanx/deep-research/actions/workflows/ci.yml" target="_blank">
+      <img src="https://img.shields.io/github/actions/workflow/status/ssdeanx/deep-research/ci.yml?branch=develop&style=flat-square" alt="CI Status" />
+    </a>
+    <a href="https://github.com/ssdeanx/deep-research/blob/develop/LICENSE" target="_blank">
+      <img src="https://img.shields.io/github/license/ssdeanx/deep-research?style=flat-square" alt="License" />
+    </a>
+    <a href="https://github.com/ssdeanx/deep-research/releases" target="_blank">
+      <img src="https://img.shields.io/github/v/release/ssdeanx/deep-research?style=flat-square" alt="Release" />
+    </a>
+    <a href="https://github.com/ssdeanx/deep-research/stargazers" target="_blank">
+      <img src="https://img.shields.io/github/stars/ssdeanx/deep-research?style=flat-square" alt="Stars" />
+    </a>
+    <br />
+    <img src="https://img.shields.io/badge/Node.js-20.9+-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js" />
+    <img src="https://img.shields.io/badge/TypeScript-5.9+-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" />
+    <img src="https://img.shields.io/badge/Mastra-0.16+-FF6B35?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNCIgZmlsbD0iIzMzOTkzMyIvPgo8dGV4dCB4PSIxMiIgeT0iMTYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk08L3RleHQ+Cjwvc3ZnPg==" alt="Mastra" />
+    <img src="https://img.shields.io/badge/Google%20AI-FF6B35?style=flat-square&logo=google&logoColor=white" alt="Google AI" />
+    <img src="https://img.shields.io/badge/LibSQL-4479A1?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNCIgZmlsbD0iIzQ0NzlBMSIvPgo8dGV4dCB4PSIxMiIgeT0iMTYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkQ8L3RleHQ+Cjwvc3ZnPg==" alt="LibSQL" />
+    <br />
+    <img src="https://img.shields.io/badge/RAG-Enabled-FF6B35?style=flat-square" alt="RAG" />
+    <img src="https://img.shields.io/badge/Vector%20Search-Enabled-4479A1?style=flat-square" alt="Vector Search" />
+    <img src="https://img.shields.io/badge/Human--in--the--Loop-Enabled-4CAF50?style=flat-square" alt="Human-in-the-Loop" />
+    <img src="https://img.shields.io/badge/MCP-Integrated-9C27B0?style=flat-square" alt="MCP" />
+  </p>
+
   <p>
     **Beyond Basic Search: Intelligent, Autonomous Research & Reporting**
     <br />

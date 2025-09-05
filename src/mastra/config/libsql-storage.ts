@@ -160,6 +160,9 @@ export const createResearchMemory = () => {
 - **Knowledge Gaps**: Areas needing further investigation
 - **Contact Information**: Professional details for collaboration`,
       },
+      threads: {
+      generateTitle: true, // Enable automatic title generation
+      },
     },
   });
 };
@@ -183,6 +186,14 @@ export const createReportMemory = () => {
 - **Citation Style**: Preferred citation format
 - **Previous Reports**: Summary of previously generated reports
 - **Client Requirements**: Specific requirements or constraints`,
+      },
+//      semanticRecall: {
+//        topK: 3, // Retrieve 3 most similar messages
+//        messageRange: 2, // Include 2 messages before and after each match
+//        scope: 'resource', // Search across all threads for this user
+//      },
+      threads: {
+      generateTitle: true, // Enable automatic title generation
       },
     },
   });
@@ -346,7 +357,7 @@ export async function searchMemoryMessages(
     const recalled = await memory.query({
       indexName: STORAGE_CONFIG.VECTOR_INDEXES.RESEARCH_DOCUMENTS,
       queryVector: embeddings[0],
-      query: query,
+      query,
       threadId,
       topK,
       embedder,
