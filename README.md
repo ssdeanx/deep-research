@@ -1,5 +1,5 @@
 <div align="center">
-  <a href="https://github.com/your-username/your-repo-name">
+  <a href="https://github.com/ssdeanx/deep-research" target="_blank" rel="noopener noreferrer">
     <!-- Custom SVG Project Logo -->
     <svg width="180" height="180" viewBox="0 0 100 100" role="img" aria-labelledby="logo-title logo-desc">
       <title id="logo-title">Mastra Deep Research Assistant Logo</title>
@@ -58,7 +58,7 @@
     ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?style=for-the-badge&logo=typescript)
     ![Mastra Core](https://img.shields.io/badge/@mastra/core-0.15.x-purple?style=for-the-badge&logo=npm)
     ![Google AI SDK](https://img.shields.io/badge/@ai--sdk/google-1.2.x-red?style=for-the-badge&logo=google)
-    ![LibSQL](https://img.shields.io/badge/LibSQL-0.13.x-orange?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJDMjAuMDYgMiAyMiAyLjY1IDIyIDcuNjY2NjY2NjY2NjY2NjY2VjE2LjMzMzMzMzMzMzMzMzMzM0MyMiAxOS4zNSAyMC4wNiAyMiAxMiAyMkMzLjk0IDIyIDIgMjAuNzMzMzMzMzMzMzMzMzMzIDcuNjY2NjY2NjY2NjY2NjY2QzIgNC42NSAzLjk0IDIgMT twelveMloiIGZpbGw9IiNGRkZGRkYiLz4KPHBhdGggZD0iTTguMTggOC43MkwxMiAxMi41MkwxNS44MiA4.NzcuQzE1LjgzIDguNzIgMTYgOC44NSAxNiA5VjE1QzE2IDE1LjU1IDE1LjU1IDE2IDE1IDE2SjlDOC40NSAxNiA4IDkuNzggOC.xPIA4.NzcuQzguMTggOC43MiA4LjA2IDguNzcgOC.xPIA4.NzIWiIgZmlsbD0iI0ZGRkZGRiIvPgo8L3N2Zz4=)
+    ![LibSQL](https://img.shields.io/badge/LibSQL-0.13.x-orange?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJDMjAuMDYgMiAyMiAyLjY1IDIyIDcuNjY2NjY2NjY2NjY2NjY2VjE2LjMzMzMzMzMzMzMzMzMzM0MyMiAxOS4zNSAyMC4wNiAyMiAxMiAyMkMzLjk0IDIyIDIgMjAuNzMzMzMzMzMzMzMzMzMzIDcuNjY2NjY2NjY2NjY2NjY2QzIgNC42NSAzLjk0IDIgMT twelveMloiIGZpbGw9IiNGRkZGRkYiLz4KPHBhdGggZD0iTTguMTggOC43MkwxMiAxMi41MkwxNS.43MDUwNzM2MTYxNTE2NjY2NzY5VjE2LjMzMzMzMzMzMzMzMzMzM0MyMiAxOS4zNSAyMC4wNiAyMiAxMiAyMkMzLjk0IDIyIDIgMjAuNzMzMzMzMzMzMzMzMzMzIDcuNjY2NjY2NjY2NjY2NjY2QzIgNC42NSAzLjk0IDIgMT twelveMloiIGZpbGw9IiNGRkZGRkYiLz4KPHBhdGggZD0iTTguMTggOC43MkwxMiAxMi41MkwxNS44MiA4.NzcuQzE1LjgzIDguNzIgMTYgOC44NSAxNiA5VjE1QzE2IDE1LjU1IDE1LjU1IDE2IDE1IDE2SjlDOC40NSAxNiA4IDkuNzggOC.xPIA4.NzcuQzguMTggOC43MiA4LjA2IDguNzcgOC.xPIA4.NzIWiIgZmlsbD0iI0ZGRkZGRiIvPgo8L3N2Zz4=)
     ![Zod](https://img.shields.io/badge/Zod-3.x-blueviolet?style=for-the-badge&logo=zod)
     ![Exa.js](https://img.shields.io/badge/Exa.js-1.9.x-lightgrey?style=for-the-badge&logo=javascript)
   </p>
@@ -123,14 +123,13 @@ Our system leverages **Retrieval-Augmented Generation (RAG)** to provide highly 
 
 ```mermaid
 graph TD
-    A[User Query] --> B{Retrieve Info}
-    B --> C[Vector DB]
-    C --> D[Chunks]
-    D --> E[LLM Augmentation]
-    E --> F[Generate Response]
-    F --> G[Answer]
+    A[User Query] --> B{Retrieve Relevant Information}
+    B --> C[Vector Database]
+    C --> D[Document Chunks]
+    D -- Contextual Data --> E[LLM Augmentation]
+    E --> F[Generate Grounded Response]
+    F --> G[Answer to User]
 ```
-
 *   **User Query**: The process begins with a user's question or request.
 *   **Retrieve Relevant Information**: The system performs a semantic search within its vast vector database using the user's query. This retrieves document chunks most relevant to the query.
 *   **Vector Database**: Our system utilizes a high-performance vector database to store embeddings of all ingested knowledge (documents, web content, learnings, reports).
