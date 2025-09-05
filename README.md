@@ -1,48 +1,7 @@
 <div align="center">
   <a href="https://github.com/ssdeanx/deep-research" target="_blank" rel="noopener noreferrer">
     <!-- Custom SVG Project Logo -->
-    <svg width="180" height="180" viewBox="0 0 100 100" role="img" aria-labelledby="logo-title logo-desc">
-      <title id="logo-title">Mastra Deep Research Assistant Logo</title>
-      <desc id="logo-desc">An abstract logo representing a network of interconnected nodes within a hexagonal shape, symbolizing intelligent deep research and connection.</desc>
-      <defs>
-        <linearGradient id="diamondGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#444444" />
-          <stop offset="50%" stop-color="#000000" />
-          <stop offset="100%" stop-color="#444444" />
-        </linearGradient>
-      </defs>
-      <style>
-        .logo-background { fill: #000000; } /* True Black */
-        .logo-hexagon { fill: #333333; } /* Dark Gray */
-        .logo-central-circle { fill: #FFFFFF; } /* White */
-        .logo-nodes { fill: #00FF00; } /* Vibrant Green */
-        .logo-lines { stroke: #00FF00; stroke-width: 1.5; } /* Vibrant Green lines */
-        .animated-nodes {
-          transform-origin: 50% 50%;
-          animation: pulse-nodes 2s infinite alternate ease-in-out;
-        }
-        @keyframes pulse-nodes {
-          0% { transform: scale(1); opacity: 1; }
-          50% { transform: scale(1.05); opacity: 0.8; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-      </style>
-      <rect width="100" height="100" class="logo-background"/>
-      <path d="M50 10L90 30V70L50 90L10 70V30L50 10Z" class="logo-hexagon"/>
-      <circle cx="50" cy="50" r="20" class="logo-central-circle"/>
-      <g class="animated-nodes">
-        <path d="M50 25L65 50L50 75L35 50Z" fill="url(#diamondGradient)"/>
-        <path d="M50 25L65 50L50 75L35 50Z" stroke="#00FF00" stroke-width="2"/>
-        <circle cx="50" cy="30" r="1" class="logo-nodes"/>
-        <circle cx="60" cy="50" r="1" class="logo-nodes"/>
-        <circle cx="50" cy="70" r="1" class="logo-nodes"/>
-        <circle cx="40" cy="50" r="1" class="logo-nodes"/>
-        <line x1="50" y1="30" x2="60" y2="50" class="logo-lines"/>
-        <line x1="60" y1="50" x2="50" y2="70" class="logo-lines"/>
-        <line x1="50" y1="70" x2="40" y2="50" class="logo-lines"/>
-        <line x1="40" y1="50" x2="50" y2="30" class="logo-lines"/>
-      </g>
-    </svg>
+    <img src="https://raw.githubusercontent.com/ssdeanx/deep-research/main/docs/assets/logo.svg" alt="Project Logo" width="120" />
   </a>
   <h1>Deep Research Assistant + Graph RAG with Mastra 🚀🧠</h1>
 
@@ -51,18 +10,6 @@
     <br />
     An cutting-edge, human-in-the-loop AI system designed for advanced deep research, leveraging Mastra's powerful orchestration, agent, and network capabilities.
   </p>
-
-  <!-- Tech Badges -->
-  <p>
-    ![Node.js](https://img.shields.io/badge/Node.js-20.9+-green?style=for-the-badge&logo=node.js)
-    ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?style=for-the-badge&logo=typescript)
-    ![Mastra Core](https://img.shields.io/badge/@mastra/core-0.15.x-purple?style=for-the-badge&logo=npm)
-    ![Google AI SDK](https://img.shields.io/badge/@ai--sdk/google-1.2.x-red?style=for-the-badge&logo=google)
-    ![LibSQL](https://img.shields.io/badge/LibSQL-0.13.x-orange?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJDMjAuMDYgMiAyMiAyLjY1IDIyIDcuNjY2NjY2NjY2NjY2NjY2VjE2LjMzMzMzMzMzMzMzMzMzM0MyMiAxOS4zNSAyMC4wNiAyMiAxMiAyMkMzLjk0IDIyIDIgMjAuNzMzMzMzMzMzMzMzMzMzIDcuNjY2NjY2NjY2NjY2NjY2QzIgNC42NSAzLjk0IDIgMT twelveMloiIGZpbGw9IiNGRkZGRkYiLz4KPHBhdGggZD0iTTguMTggOC43MkwxMiAxMi41MkwxNS.43MDUwNzM2MTYxNTE2NjY2NzY5VjE2LjMzMzMzMzMzMzMzMzMzM0MyMiAxOS4zNSAyMC4wNiAyMiAxMiAyMkMzLjk0IDIyIDIgMjAuNzMzMzMzMzMzMzMzMzMzIDcuNjY2NjY2NjY2NjY2NjY2QzIgNC42NSAzLjk0IDIgMT twelveMloiIGZpbGw9IiNGRkZGRkYiLz4KPHBhdGggZD0iTTguMTggOC43MkwxMiAxMi41MkwxNS44MiA4.NzcuQzE1LjgzIDguNzIgMTYgOC44NSAxNiA5VjE1QzE2IDE1LjU1IDE1LjU1IDE2IDE1IDE2SjlDOC40NSAxNiA4IDkuNzggOC.xPIA4.NzcuQzguMTggOC43MiA4LjA2IDguNzcgOC.xPIA4.NzIWiIgZmlsbD0iI0ZGRkZGRiIvPgo8L3N2Zz4=)
-    ![Zod](https://img.shields.io/badge/Zod-3.x-blueviolet?style=for-the-badge&logo=zod)
-    ![Exa.js](https://img.shields.io/badge/Exa.js-1.9.x-lightgrey?style=for-the-badge&logo=javascript)
-  </p>
-</div>
 
 ---
 
