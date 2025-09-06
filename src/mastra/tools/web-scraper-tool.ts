@@ -75,10 +75,10 @@ export const webScraperTool = createTool({
 
     return webScraperOutputSchema.parse({
       url: scrapedUrl, // Use the captured scrapedUrl
-      extractedData: extractedData,
+      extractedData,
       rawContent: context.selector ? undefined : rawContent,
-      status: status,
-      errorMessage: errorMessage,
+      status,
+      errorMessage,
     });
   },
 });

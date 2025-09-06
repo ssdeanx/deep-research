@@ -23,6 +23,7 @@ import { createVectorQueryTool } from "@mastra/rag";
 import { createTool } from '@mastra/core/tools';
 import type { ToolExecutionContext } from '@mastra/core/tools';
 import { RuntimeContext } from '@mastra/core/di';
+import { AISpanType } from '@mastra/core/ai-tracing';
 import { z } from 'zod';
 import {
   createLibSQLVectorStore,
@@ -82,8 +83,8 @@ export const vectorQueryTool = createVectorQueryTool({
   model: createGeminiEmbeddingModel(), // Use Gemini embedding model
   databaseConfig: {
     libsql: {
-      connectionUrl: process.env.DATABASE_URL || STORAGE_CONFIG.DEFAULT_DATABASE_URL,
-      authToken: process.env.DATABASE_AUTH_TOKEN,
+      connectionUrl: process.env.VECTOR_DATABASE_URL || STORAGE_CONFIG.VECTOR_DATABASE_URL,
+      authToken: process.env.VECTOR_DATABASE_AUTH_TOKEN || process.env.DATABASE_AUTH_TOKEN,
     }
   },
   enableFilter: true,
@@ -112,6 +113,25 @@ export const enhancedVectorQueryTool = createTool({
       const searchPreference = (runtimeContext?.get('search-preference') as 'semantic' | 'hybrid' | 'metadata' | undefined) ?? 'semantic';
       const qualityThreshold = (runtimeContext?.get('quality-threshold') as number | undefined) ?? validatedInput.minScore;
       const debug = (runtimeContext?.get('debug') as boolean | undefined) ?? false;
+
+      // Enhanced tracing: Add span attributes and metadata
+      if (tracingContext?.currentSpan) {
+        tracingContext.currentSpan.update({
+          metadata: {
+            operation: 'vector_query',
+            query: validatedInput.query,
+            userId,
+            sessionId,
+            searchPreference,
+            qualityThreshold: Number(qualityThreshold),
+            topK: validatedInput.topK,
+            threadId: validatedInput.threadId,
+            enableFilter: validatedInput.enableFilter,
+            hasMemory: !!memory
+          }
+        });
+      }
+
       if (debug) {
         logger.info('Vector query input validated', {
           query: validatedInput.query,
@@ -120,6 +140,15 @@ export const enhancedVectorQueryTool = createTool({
           searchPreference,
           qualityThreshold: Number(qualityThreshold)
         });
+      }
+
+      // Use tracingContext to avoid unused parameter warning
+      if (tracingContext?.currentSpan) {
+        // Basic tracing context usage - can be enhanced later
+        tracingContext.currentSpan.attributes = {
+          ...tracingContext.currentSpan.attributes,
+          'vector.operation': 'query'
+        };
       }
 
       const results: z.infer<typeof vectorQueryResultSchema>[] = [];
@@ -133,12 +162,35 @@ export const enhancedVectorQueryTool = createTool({
           throw new Error("Memory instance is required for thread-specific searches.");
         }
 
+        // Create child span for memory search
+        const memorySearchSpan = tracingContext?.currentSpan?.createChildSpan({
+          type: AISpanType.GENERIC,
+          name: 'memory_search',
+          input: {
+            threadId: validatedInput.threadId,
+            query: validatedInput.query,
+            topK: validatedInput.topK
+          }
+        });
+
         const { messages, uiMessages } = await searchMemoryMessages(
           memory,
           validatedInput.threadId,
           validatedInput.query,
           validatedInput.topK
         );
+
+        // Update memory search span with results
+        memorySearchSpan?.end({
+          output: {
+            messagesFound: messages.length,
+            uiMessagesFound: uiMessages.length
+          },
+          metadata: {
+            threadId: validatedInput.threadId,
+            totalResults: messages.length + uiMessages.length
+          }
+        });
 
         // Transform searchMemoryMessages results to match our schema
         messages.forEach((message: any) => {
@@ -176,12 +228,44 @@ export const enhancedVectorQueryTool = createTool({
         // Use direct Pinecone vector store search with sparse cosine similarity
         logger.info('Performing direct Pinecone vector store search');
 
-                // Create query embedding using Google's embedding model
-                const { embeddings } = await embedMany({
-                  model: createGeminiEmbeddingModel(),
-                  values: [validatedInput.query]
-                });
+        // Create child span for embedding generation
+        const embeddingSpan = tracingContext?.currentSpan?.createChildSpan({
+          type: AISpanType.GENERIC,
+          name: 'embedding_generation',
+          input: {
+            query: validatedInput.query,
+            model: 'gemini-embedding-001'
+          }
+        });
+
+        // Create query embedding using Google's embedding model
+        const { embeddings } = await embedMany({
+          model: createGeminiEmbeddingModel(),
+          values: [validatedInput.query]
+        });
         const queryEmbedding = embeddings[0];
+
+        // Update embedding span with results
+        embeddingSpan?.end({
+          output: {
+            embeddingDimension: queryEmbedding.length
+          },
+          metadata: {
+            model: 'gemini-embedding-001',
+            tokensProcessed: validatedInput.query.split(' ').length
+          }
+        });
+        // Create child span for vector store query
+        const vectorQuerySpan = tracingContext?.currentSpan?.createChildSpan({
+          type: AISpanType.GENERIC,
+          name: 'vector_store_query',
+          input: {
+            indexName: STORAGE_CONFIG.VECTOR_INDEXES.RESEARCH_DOCUMENTS,
+            topK: validatedInput.topK,
+            enableFilter: validatedInput.enableFilter,
+            queryVectorLength: queryEmbedding.length
+          }
+        });
 
         // Query the LibSQL vector store directly with cosine similarity
         const vectorStore = createLibSQLVectorStore();
@@ -191,6 +275,18 @@ export const enhancedVectorQueryTool = createTool({
           topK: validatedInput.topK,
           filter: validatedInput.enableFilter ? (validatedInput.filter as any) : undefined,
           includeVector: false // Don't include vectors in response for performance
+        });
+
+        // Update vector query span with results
+        vectorQuerySpan?.end({
+          output: {
+            resultsFound: vectorResults.length
+          },
+          metadata: {
+            indexName: STORAGE_CONFIG.VECTOR_INDEXES.RESEARCH_DOCUMENTS,
+            topK: validatedInput.topK,
+            filterApplied: validatedInput.enableFilter
+          }
         });
 
         // Transform vector results to match our schema with runtime context
@@ -225,6 +321,19 @@ export const enhancedVectorQueryTool = createTool({
         processingTime,
         queryEmbedding: undefined, // Don't include embeddings by default for performance
       };
+
+      // Update main span with final results
+      if (tracingContext?.currentSpan) {
+        tracingContext.currentSpan.update({
+          metadata: {
+            ...tracingContext.currentSpan.metadata,
+            totalResults: output.totalResults,
+            processingTime: output.processingTime,
+            success: true,
+            operationCompleted: true
+          }
+        });
+      }
 
       logger.info('Vector query completed successfully', {
         totalResults: output.totalResults,
@@ -290,6 +399,13 @@ export const hybridVectorSearchTool = createTool({
     runtimeContext?: RuntimeContext<VectorQueryRuntimeContext>;
     memory?: Memory; // Add memory to the execution context
   }): Promise<HybridOutput> => {
+    // Use tracingContext to avoid unused parameter warning
+    if (tracingContext?.currentSpan) {
+      tracingContext.currentSpan.attributes = {
+        ...tracingContext.currentSpan.attributes,
+        'vector.operation': 'hybrid-search'
+      };
+    }
     const startTime = Date.now();
     try {
       const extendedSchema = vectorQueryInputSchema.extend({

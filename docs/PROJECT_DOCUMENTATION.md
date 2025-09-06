@@ -108,12 +108,20 @@ The system includes six specialized agents, each with distinct capabilities:
 - Contrarian viewpoints consideration
 - Citation and source validation
 - **Evaluation**: Integrated non-LLM based evaluation metrics (Content Similarity, Completeness, Textual Difference, Keyword Coverage, Tone Consistency) for quality assurance.
+- **Advanced Tracing**: Comprehensive observability with OpenTelemetry spans, performance metrics, and error tracking
 
 **Configuration**:
 - Model: Gemini 2.5 Flash Lite
 - Search Grounding: Enabled
 - Structured Outputs: Enabled
 - Safety Level: Off
+
+**Tracing Features**:
+- `AISpanType.AGENT_RUN` main execution span
+- Performance timing and success metrics
+- Error handling with detailed metadata
+- Runtime context integration
+- Child span creation for complex operations
 
 ### 4. Web Summarization Agent (`webSummarizationAgent.ts`)
 
@@ -161,7 +169,7 @@ The system includes six specialized agents, each with distinct capabilities:
 
 ## Tools
 
-The system provides 10 specialized tools for various research and processing tasks:
+The system provides 11 specialized tools for various research and processing tasks:
 
 ### 1. Web Search Tool (`webSearchTool.ts`)
 
@@ -254,6 +262,20 @@ The system provides 10 specialized tools for various research and processing tas
 
 **Purpose**: Semantic search and retrieval from vector stores.
 
+**Advanced Features**:
+- Hybrid search combining semantic similarity with metadata filtering
+- Runtime context support for personalized search preferences
+- Comprehensive tracing with multiple child spans for different operations
+- Memory integration for thread-specific searches
+- Performance monitoring and error tracking
+
+**Tracing Features**:
+- Main span with operation metadata and user context
+- Child spans for embedding generation, memory search, and vector store queries
+- Performance metrics and result counts
+- Error handling with detailed metadata
+- Runtime context integration for observability
+
 ### 6. Graph RAG Tool (`graphRAG.ts`)
 
 **Purpose**: Graph-based retrieval-augmented generation.
@@ -276,7 +298,7 @@ The system provides 10 specialized tools for various research and processing tas
 
 ## Workflows
 
-The system includes two main workflows for automated research processes:
+The system includes three main workflows for automated research processes:
 
 ### 1. Research Workflow (`researchWorkflow.ts`)
 
@@ -315,6 +337,34 @@ Research Workflow (loop until approved) → Process Results → Generate Report
 - Do-while loop for iterative research
 - Conditional execution based on approval status
 - Integrated report generation
+
+### 3. Comprehensive Research Workflow (`comprehensiveResearchWorkflow.ts`)
+
+**Purpose**: Advanced end-to-end research workflow with iterative learning, RAG processing, and comprehensive report generation.
+
+**Steps**:
+1. **Get User Query**: Interactive query collection with suspend/resume
+2. **Iterative Research Loop**: Multi-iteration research with evaluation and learning extraction
+3. **Consolidate Research Data**: Combine all research findings and learnings
+4. **Process and Retrieve**: RAG processing with chunking, embedding, and semantic retrieval
+5. **Synthesize Content**: Generate coherent summaries from refined context
+6. **Generate Final Report**: Create comprehensive report using Report Agent
+7. **Report Approval**: Human-in-the-loop approval checkpoint
+
+**Flow**:
+```
+User Query → Iterative Research (with evaluation) → Consolidate Data → RAG Processing → Synthesis → Report Generation → Approval
+```
+
+**Features**:
+- Advanced iterative research with up to 3 iterations
+- Integrated evaluation and learning extraction per search result
+- RAG pipeline with dedicated vector index (`comprehensive_research_data`)
+- Semantic reranking for improved retrieval quality
+- Comprehensive content synthesis and report generation
+- Human-in-the-loop approval for final reports
+- Parallel processing with controlled concurrency
+- Robust error handling and logging throughout
 
 ## Advanced Workflow Features
 
@@ -481,18 +531,25 @@ const agent = new Agent({
 ### Storage Configuration (`libsql-storage.ts`)
 
 **Features**:
-- LibSQL database integration
-- Vector store with multiple indexes
+- LibSQL database integration with file-based storage
+- Separate vector database configuration for optimal performance
 - Automatic table creation (Mastra-managed)
 - Embedding utilities with Gemini integration
 - Health checks and monitoring
 - Memory configuration for agents
+- Enhanced tracing context support
+
+**Database Configuration**:
+- Main storage: `file:./deep-research.db`
+- Vector storage: `file:./vector-store.db`
+- Support for Turso cloud databases with auth tokens
 
 **Vector Indexes**:
 - `research_documents`: Research content storage
 - `web_content`: Web-scraped content
 - `learnings`: Extracted insights
 - `reports`: Generated reports
+- `comprehensive_research_data`: Dedicated index for comprehensive workflow
 
 ## Storage and Memory
 
@@ -517,6 +574,54 @@ const agent = new Agent({
 - 100 message history
 - Top 10 semantic recall results
 - Report generation context template
+
+## Advanced Tracing and Observability
+
+The system implements comprehensive tracing and observability features using OpenTelemetry and Mastra's tracing framework:
+
+### Agent Tracing Features
+
+#### Report Agent Tracing
+- **Main Execution Span**: `AISpanType.AGENT_RUN` for overall agent execution
+- **Performance Metrics**: Processing time, success/failure status, message counts
+- **Error Handling**: Detailed error metadata and stack traces
+- **Runtime Context**: User and session information tracking
+- **Child Spans**: For complex operations within agent execution
+
+#### Vector Query Tool Tracing
+- **Multi-level Spans**: Main span with child spans for different operations
+- **Embedding Generation**: Separate span for Gemini embedding creation
+- **Memory Search**: Dedicated span for LibSQL memory queries
+- **Vector Store Queries**: Span for direct vector database operations
+- **Performance Tracking**: Query execution time, result counts, similarity scores
+- **User Context**: Personalized search preferences and session tracking
+
+### Tracing Architecture
+
+#### Span Types Used
+- `AISpanType.AGENT_RUN`: Main agent execution spans
+- `AISpanType.GENERIC`: Tool operations and utility functions
+- Custom spans for specific operations (memory search, embedding generation, etc.)
+
+#### Metadata Captured
+- **Operation Details**: Query parameters, user context, session information
+- **Performance Metrics**: Processing time, result counts, success rates
+- **Error Information**: Error messages, stack traces, failure points
+- **Business Context**: Thread IDs, user preferences, search parameters
+
+#### Integration Points
+- **Runtime Context**: Dynamic configuration via headers and context
+- **Memory Integration**: Thread-specific search tracking
+- **Error Recovery**: Comprehensive error handling and recovery mechanisms
+- **Performance Monitoring**: Real-time metrics and observability
+
+### Benefits
+
+1. **Debugging**: Detailed execution traces for troubleshooting
+2. **Performance Monitoring**: Real-time metrics and bottleneck identification
+3. **User Experience**: Personalized search and context tracking
+4. **Error Recovery**: Comprehensive error handling and recovery mechanisms
+5. **Observability**: Full system visibility for maintenance and optimization
 
 ## Component Interactions
 
@@ -632,12 +737,16 @@ const results = await webSearch.execute({
 ### Required Environment Variables
 
 ```bash
-# Database
-DATABASE_URL="file:./deep-research.db"
-DATABASE_AUTH_TOKEN=""  # For Turso cloud
+# Database Configuration
+DATABASE_URL="file:./deep-research.db"  # Main storage database
+DATABASE_AUTH_TOKEN=""  # For Turso cloud (leave empty for local)
+
+# Vector Database Configuration
+VECTOR_DATABASE_URL="file:./vector-store.db"  # Separate vector database
+# VECTOR_DATABASE_AUTH_TOKEN=""  # For remote vector databases
 
 # AI Providers
-GOOGLE_GENERATIVE_AI_API_KEY="your-api-key"
+GOOGLE_GENERATIVE_AI_API_KEY="your-google-api-key"
 
 # Search
 EXA_API_KEY="your-exa-api-key"

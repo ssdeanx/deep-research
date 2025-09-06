@@ -122,7 +122,7 @@ Autonomous AI entities designed for specific research and analytical tasks. Each
 
 *   **`ragAgent`**: Specializes in Retrieval-Augmented Generation (RAG), seamlessly blending internal knowledge from vector stores with LLM capabilities for accurate and contextual responses.
 *   **`researchAgent`**: Conducts multi-phase web research, intelligently breaking down complex queries, performing targeted web searches via `webSearchTool`, evaluating result relevance with `evaluateResultTool`, and extracting key learnings using `extractLearningsTool`.
-*   **`reportAgent`**: An expert in synthesizing complex research data into comprehensive, well-structured, and presentable reports, often leveraging markdown for rich formatting.
+*   **`reportAgent`**: An expert in synthesizing complex research data into comprehensive, well-structured, and presentable reports, often leveraging markdown for rich formatting. Features advanced tracing with OpenTelemetry spans and performance metrics.
 *   **`webSummarizationAgent`**: Focuses on optimizing token usage by generating concise and informative summaries of extensive web content, ensuring critical information is retained.
 *   **`evaluationAgent`**: Assesses the relevance and quality of search results and extracted information, providing crucial feedback for research refinement.
 *   **`learningExtractionAgent`**: Extracts critical insights and generates intelligent follow-up questions from diverse content sources, helping to identify knowledge gaps.
@@ -132,12 +132,13 @@ Orchestrated sequences of steps, enabling complex, multi-stage processes with bu
 
 *   **`researchWorkflow`**: Guides users through an interactive research process, from initial query formulation to data collection and preliminary analysis. It includes suspend/resume points for human feedback and approval.
 *   **`generateReportWorkflow`**: Manages the end-to-end process of iterative research and report generation, incorporating user approvals, agent collaboration, and conditional logic to produce final reports.
+*   **`comprehensiveResearchWorkflow`**: Advanced end-to-end workflow combining iterative research, RAG processing, content synthesis, and comprehensive report generation with human-in-the-loop approval.
 
 ### **Tools 🔧**
 Reusable, atomic functions that agents and workflows can invoke to interact with external systems or perform specific data operations. Tools extend the capabilities of the AI system, connecting it to the real world.
 
 *   **`webSearchTool`**: Performs intelligent web searches using the Exa API, efficiently retrieving and often summarizing web content.
-*   **`vectorQueryTool`**: Executes semantic searches and retrieves relevant content from configured vector stores based on query embeddings.
+*   **`vectorQueryTool`**: Executes semantic searches and retrieves relevant content from configured vector stores based on query embeddings. Features advanced tracing with multiple child spans for comprehensive observability.
 *   **`chunkerTool`**: Provides advanced document chunking across various formats (text, HTML, PDF, etc.), enabling efficient processing for vector embeddings and RAG.
 *   **`graphRAGTool`**: Facilitates graph-based Retrieval-Augmented Generation, exploring relationships within structured knowledge graphs.
 *   **`rerankTool`**: Optimizes search results by re-ranking them based on multiple relevance criteria, improving the quality of retrieved information.
@@ -257,11 +258,21 @@ gantt
 
 ### Required Environment Variables 🔑
 
-Create a `.env` file in the project root with your API keys:
+Create a `.env` file in the project root with your API keys and database configuration:
 
 ```bash
+# Database Configuration
+DATABASE_URL="file:./deep-research.db"  # Main storage database
+DATABASE_AUTH_TOKEN=""  # For Turso cloud (leave empty for local)
+
+# Vector Database Configuration
+VECTOR_DATABASE_URL="file:./vector-store.db"  # Separate vector database
+
+# AI Providers
 GOOGLE_GENERATIVE_AI_API_KEY="your-google-api-key" # Essential for AI model inference
-EXA_API_KEY="your-exa-api-key"                     # Powers intelligent web search capabilities
+
+# Search
+EXA_API_KEY="your-exa-api-key"  # Powers intelligent web search capabilities
 ```
 
 ### Core Project Dependencies 📦

@@ -3,6 +3,7 @@ import { Memory } from "@mastra/memory";
 import { createGeminiEmbeddingModel } from "./googleProvider";
 import { embedMany } from "ai";
 import { PinoLogger } from "@mastra/loggers";
+import { AISpanType } from '@mastra/core/ai-tracing';
 
 const logger = new PinoLogger({ name: 'libsql-storage', level: 'info' });
 
@@ -13,6 +14,7 @@ const logger = new PinoLogger({ name: 'libsql-storage', level: 'info' });
 export const STORAGE_CONFIG = {
   DEFAULT_DIMENSION: 1536, // Gemini embedding-001 dimension
   DEFAULT_DATABASE_URL: "file:./deep-research.db",
+  VECTOR_DATABASE_URL: "file:./vector-store.db", // Separate database for vector operations
   VECTOR_INDEXES: {
     RESEARCH_DOCUMENTS: "research_documents",
     WEB_CONTENT: "web_content",
@@ -24,8 +26,19 @@ export const STORAGE_CONFIG = {
 /**
  * LibSQL Storage Configuration
  */
-export const createLibSQLStore = () => {
+export const createLibSQLStore = (tracingContext?: { currentSpan?: any }) => {
+  const startTime = Date.now();
   const databaseUrl = process.env.DATABASE_URL || STORAGE_CONFIG.DEFAULT_DATABASE_URL;
+
+  // Create child span for storage initialization
+  const initSpan = tracingContext?.currentSpan?.createChildSpan({
+    type: AISpanType.GENERIC,
+    name: 'libsql_store_init',
+    input: {
+      databaseUrl: databaseUrl.replace(/authToken=[^&]*/, 'authToken=***'), // Mask auth token
+      hasAuthToken: !!process.env.DATABASE_AUTH_TOKEN
+    }
+  });
 
   try {
     const store = new LibSQLStore({
@@ -33,12 +46,45 @@ export const createLibSQLStore = () => {
       authToken: process.env.DATABASE_AUTH_TOKEN,
     });
 
-    logger.info('LibSQL storage initialized successfully', { databaseUrl });
+    const processingTime = Date.now() - startTime;
+
+    // Update span with success
+    initSpan?.end({
+      output: {
+        success: true,
+        processingTime
+      },
+      metadata: {
+        databaseUrl: databaseUrl.replace(/authToken=[^&]*/, 'authToken=***'),
+        operation: 'store_initialization'
+      }
+    });
+
+    logger.info('LibSQL storage initialized successfully', {
+      databaseUrl: databaseUrl.replace(/authToken=[^&]*/, 'authToken=***'),
+      processingTime
+    });
     return store;
   } catch (error) {
+    const processingTime = Date.now() - startTime;
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    // Update span with error
+    initSpan?.end({
+      output: {
+        success: false,
+        processingTime
+      },
+      metadata: {
+        error: errorMessage,
+        operation: 'store_initialization'
+      }
+    });
+
     logger.error('Failed to initialize LibSQL storage', {
-      databaseUrl,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      databaseUrl: databaseUrl.replace(/authToken=[^&]*/, 'authToken=***'),
+      error: errorMessage,
+      processingTime
     });
     throw error;
   }
@@ -47,21 +93,65 @@ export const createLibSQLStore = () => {
 /**
  * LibSQL Vector Store Configuration
  */
-export const createLibSQLVectorStore = () => {
-  const databaseUrl = process.env.DATABASE_URL || STORAGE_CONFIG.DEFAULT_DATABASE_URL;
+export const createLibSQLVectorStore = (tracingContext?: { currentSpan?: any }) => {
+  const startTime = Date.now();
+  const databaseUrl = process.env.VECTOR_DATABASE_URL || STORAGE_CONFIG.VECTOR_DATABASE_URL;
+
+  // Create child span for vector store initialization
+  const initSpan = tracingContext?.currentSpan?.createChildSpan({
+    type: AISpanType.GENERIC,
+    name: 'libsql_vector_store_init',
+    input: {
+      databaseUrl: databaseUrl.replace(/authToken=[^&]*/, 'authToken=***'), // Mask auth token
+      hasAuthToken: !!(process.env.VECTOR_DATABASE_AUTH_TOKEN || process.env.DATABASE_AUTH_TOKEN)
+    }
+  });
 
   try {
     const vectorStore = new LibSQLVector({
       connectionUrl: databaseUrl,
-      authToken: process.env.DATABASE_AUTH_TOKEN,
+      authToken: process.env.VECTOR_DATABASE_AUTH_TOKEN || process.env.DATABASE_AUTH_TOKEN,
     });
 
-    logger.info('LibSQL vector store initialized successfully', { databaseUrl });
+    const processingTime = Date.now() - startTime;
+
+    // Update span with success
+    initSpan?.end({
+      output: {
+        success: true,
+        processingTime
+      },
+      metadata: {
+        databaseUrl: databaseUrl.replace(/authToken=[^&]*/, 'authToken=***'),
+        operation: 'vector_store_initialization'
+      }
+    });
+
+    logger.info('LibSQL vector store initialized successfully', {
+      databaseUrl: databaseUrl.replace(/authToken=[^&]*/, 'authToken=***'),
+      processingTime
+    });
     return vectorStore;
   } catch (error) {
+    const processingTime = Date.now() - startTime;
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    // Update span with error
+    initSpan?.end({
+      output: {
+        success: false,
+        processingTime
+      },
+      metadata: {
+        error: errorMessage,
+        operation: 'vector_store_initialization'
+      }
+    });
+
     logger.error('Failed to initialize LibSQL vector store', {
-      databaseUrl,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      databaseUrl: databaseUrl.replace(/authToken=[^&]*/, 'authToken=***'),
+      error: errorMessage,
+      processingTime
     });
     throw error;
   }
@@ -111,15 +201,49 @@ export const initializeVectorIndexes = async () => {
 export const searchSimilarContent = async (
   query: string,
   indexName: string,
-  topK = 5
+  topK = 5,
+  tracingContext?: { currentSpan?: any }
 ) => {
-  const vectorStore = createLibSQLVectorStore();
-  const embedder = createGeminiEmbeddingModel("gemini-embedding-001");
+  const startTime = Date.now();
+
+  // Create child span for vector search
+  const searchSpan = tracingContext?.currentSpan?.createChildSpan({
+    type: AISpanType.GENERIC,
+    name: 'vector_search',
+    input: {
+      query: query.substring(0, 100) + (query.length > 100 ? '...' : ''), // Truncate for span
+      indexName,
+      topK
+    }
+  });
 
   try {
+    const vectorStore = createLibSQLVectorStore(tracingContext);
+    const embedder = createGeminiEmbeddingModel("gemini-embedding-001");
+
+    // Create child span for embedding generation
+    const embedSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.GENERIC,
+      name: 'embedding_generation',
+      input: {
+        queryLength: query.length,
+        model: 'gemini-embedding-001'
+      }
+    });
+
     const { embeddings } = await embedMany({
       values: [query],
       model: embedder,
+    });
+
+    embedSpan?.end({
+      output: {
+        embeddingDimension: embeddings[0].length
+      },
+      metadata: {
+        model: 'gemini-embedding-001',
+        tokensProcessed: query.split(' ').length
+      }
     });
 
     const results = await vectorStore.query({
@@ -128,13 +252,51 @@ export const searchSimilarContent = async (
       topK,
     });
 
-    logger.info('Vector search completed', { query, indexName, topK, resultsCount: results.length });
+    const processingTime = Date.now() - startTime;
+
+    // Update main search span with results
+    searchSpan?.end({
+      output: {
+        resultsFound: results.length,
+        processingTime
+      },
+      metadata: {
+        indexName,
+        topK,
+        avgScore: results.length > 0 ? results.reduce((sum: number, r: any) => sum + (r.score || 0), 0) / results.length : 0
+      }
+    });
+
+    logger.info('Vector search completed', {
+      query: query.substring(0, 50) + (query.length > 50 ? '...' : ''),
+      indexName,
+      topK,
+      resultsCount: results.length,
+      processingTime
+    });
     return results;
   } catch (error) {
+    const processingTime = Date.now() - startTime;
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    // Update span with error
+    searchSpan?.end({
+      output: {
+        success: false,
+        processingTime
+      },
+      metadata: {
+        error: errorMessage,
+        indexName,
+        topK
+      }
+    });
+
     logger.error('Failed to search similar content', {
-      query,
+      query: query.substring(0, 50) + (query.length > 50 ? '...' : ''),
       indexName,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: errorMessage,
+      processingTime
     });
     throw error;
   }
