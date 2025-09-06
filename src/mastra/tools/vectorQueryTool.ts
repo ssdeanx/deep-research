@@ -162,6 +162,11 @@ export const enhancedVectorQueryTool = createTool({
           throw new Error("Memory instance is required for thread-specific searches.");
         }
 
+        // Determine recall params based on context (thread for research, resource for report)
+        const recallParams = runtimeContext?.get('useReport')
+          ? { topK: 10, messageRange: 3, scope: 'resource' as const }
+          : { topK: 5, messageRange: 2, scope: 'thread' as const };
+
         // Create child span for memory search
         const memorySearchSpan = tracingContext?.currentSpan?.createChildSpan({
           type: AISpanType.GENERIC,
@@ -169,7 +174,8 @@ export const enhancedVectorQueryTool = createTool({
           input: {
             threadId: validatedInput.threadId,
             query: validatedInput.query,
-            topK: validatedInput.topK
+            topK: validatedInput.topK,
+            recallParams
           }
         });
 
@@ -225,8 +231,8 @@ export const enhancedVectorQueryTool = createTool({
         relevantContext = [...messages, ...uiMessages].map(m => m.content).join('\n\n');
 
       } else {
-        // Use direct Pinecone vector store search with sparse cosine similarity
-        logger.info('Performing direct Pinecone vector store search');
+        // Use direct LibSQL vector store search with cosine similarity
+        logger.info('Performing direct LibSQL vector store search');
 
         // Create child span for embedding generation
         const embeddingSpan = tracingContext?.currentSpan?.createChildSpan({
@@ -267,13 +273,18 @@ export const enhancedVectorQueryTool = createTool({
           }
         });
 
+        // Determine index based on context
+        let searchIndex: string = STORAGE_CONFIG.VECTOR_INDEXES.RESEARCH_DOCUMENTS;
+        if (runtimeContext?.get('useReport')) {
+          searchIndex = STORAGE_CONFIG.VECTOR_INDEXES.REPORTS;
+        }
         // Query the LibSQL vector store directly with cosine similarity
-        const vectorStore = createLibSQLVectorStore();
+        const vectorStore = createLibSQLVectorStore(tracingContext);
         const vectorResults = await vectorStore.query({
-          indexName: STORAGE_CONFIG.VECTOR_INDEXES.RESEARCH_DOCUMENTS,
+          indexName: searchIndex,
           queryVector: queryEmbedding,
           topK: validatedInput.topK,
-          filter: validatedInput.enableFilter ? (validatedInput.filter as any) : undefined,
+          filter: validatedInput.enableFilter ? validatedInput.filter : undefined,
           includeVector: false // Don't include vectors in response for performance
         });
 
@@ -289,8 +300,8 @@ export const enhancedVectorQueryTool = createTool({
           }
         });
 
-        // Transform vector results to match our schema with runtime context
-        vectorResults.forEach((result: any, index: number) => {
+        // Transform vector results to match our schema with runtime context, minimizing 'any' usage
+        vectorResults.forEach((result: { id?: string; score?: number; metadata?: Record<string, unknown> }, index: number) => {
           const content = String(result.metadata?.text || result.metadata?.content || '');
           const score = result.score || 0;
 
@@ -304,7 +315,7 @@ export const enhancedVectorQueryTool = createTool({
                 userId,
                 sessionId,
                 searchPreference
-              },
+              } as Record<string, unknown>,
             });
           }
         });

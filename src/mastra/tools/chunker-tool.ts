@@ -21,6 +21,7 @@ import { z } from 'zod';
 import { generateId } from 'ai';
 import { PinoLogger } from '@mastra/loggers';
 import { RuntimeContext } from '@mastra/core/runtime-context';
+import { AISpanType } from '@mastra/core/ai-tracing';
 import {
   upsertVectors,
   extractChunkMetadata,
@@ -66,8 +67,8 @@ const chunkerInputSchema = z.object({
   includeStats: z.boolean().default(true).describe('Whether to include chunking statistics'),
   vectorOptions: z.object({
     createEmbeddings: z.boolean().default(false).describe('Whether to create embeddings for chunks'),
-    upsertToVector: z.boolean().default(false).describe('Whether to upsert chunks to Pinecone vector store'),
-    indexName: z.string().default('training').describe('Vector index name for upserting'),
+    upsertToVector: z.boolean().default(false).describe('Whether to upsert chunks to LibSQL vector store'),
+    indexName: z.string().default(STORAGE_CONFIG.VECTOR_INDEXES.RESEARCH_DOCUMENTS).describe('Vector index name for upserting'),
     createIndex: z.boolean().default(true).describe('Whether to create the vector index if it does not exist'),
   }).optional().describe('Vector store integration options'),
   extractParams: z.object({
@@ -206,7 +207,7 @@ export const chunkerTool = createTool({
   description: 'Advanced document chunking tool supporting multiple formats (text, HTML, Markdown, JSON, LaTeX, CSV, XML) with configurable strategies and runtime context integration',
   inputSchema: chunkerInputSchema,
   outputSchema: chunkerOutputSchema,
-  execute: async ({ context, runtimeContext }) => {
+  execute: async ({ context, runtimeContext, tracingContext }) => {
     const startTime = Date.now();
 
     try {
@@ -377,6 +378,16 @@ export const chunkerTool = createTool({
       const vectorStartTime = Date.now();
 
       if (validatedInput.vectorOptions?.createEmbeddings || validatedInput.vectorOptions?.upsertToVector) {
+        // Conditional tracing span for vector processing if tracing is enabled
+        const vectorProcessingSpan = tracingContext?.currentSpan ? tracingContext.currentSpan.createChildSpan({
+          type: AISpanType.GENERIC,
+          name: 'vector_processing',
+          input: {
+            createEmbeddings: validatedInput.vectorOptions?.createEmbeddings,
+            upsertToVector: validatedInput.vectorOptions?.upsertToVector,
+            chunkCount: chunks.length
+          }
+        } as any) : undefined;
         logger.info('Starting vector processing for chunks', {
           createEmbeddings: validatedInput.vectorOptions?.createEmbeddings,
           upsertToVector: validatedInput.vectorOptions?.upsertToVector,
@@ -399,8 +410,12 @@ export const chunkerTool = createTool({
 
         // Upsert to vector store if requested
         if (validatedInput.vectorOptions?.upsertToVector) {
-          const indexName = validatedInput.vectorOptions.indexName || 'training';
-          logger.info('Upserting to vector store using training profile', {
+          let indexName = validatedInput.vectorOptions.indexName || STORAGE_CONFIG.VECTOR_INDEXES.RESEARCH_DOCUMENTS;
+          // Conditional for report context
+          if (runtimeContext?.get('useReport') || validatedInput.document.metadata?.useReport) {
+            indexName = STORAGE_CONFIG.VECTOR_INDEXES.REPORTS;
+          }
+          logger.info('Upserting to vector store', {
             indexName,
             profileIndexName: indexName
           });
@@ -435,6 +450,20 @@ export const chunkerTool = createTool({
               error: upsertResult.error
             });
           }
+        }
+
+        // End tracing span if enabled
+        if (vectorProcessingSpan) {
+          vectorProcessingSpan.end({
+            output: {
+              embeddingsCreated: embeddings.length,
+              vectorsUpserted,
+              processingTime: Date.now() - vectorStartTime
+            },
+            metadata: {
+              operation: 'vector_processing'
+            }
+          });
         }
 
         vectorStats = {

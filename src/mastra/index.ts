@@ -7,6 +7,7 @@ import { reportAgent } from './agents/reportAgent';
 import { researchAgent } from './agents/researchAgent';
 import { webSummarizationAgent } from './agents/webSummarizationAgent';
 import { generateReportWorkflow } from './workflows/generateReportWorkflow';
+//import { comprehensiveResearchWorkflow } from './workflows/comprehensiveResearchWorkflow';
 import { complexResearchNetwork } from './networks/complexResearchNetwork';
 import { ragAgent } from './agents/ragAgent';
 

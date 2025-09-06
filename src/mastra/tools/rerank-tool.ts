@@ -1,11 +1,13 @@
 import { createTool } from '@mastra/core/tools';
 import type { ToolExecutionContext } from '@mastra/core/tools';
 import { RuntimeContext } from '@mastra/core/di';
+import { AISpanType } from '@mastra/core/ai-tracing';
 import { rerank, type RerankResult } from '@mastra/rag';
 import { createGemini25Provider } from '../config/googleProvider';
 import { vectorQueryTool } from './vectorQueryTool';
 import { PinoLogger } from '@mastra/loggers';
 import { z } from 'zod';
+import { STORAGE_CONFIG } from '../config/libsql-storage';
 
 const logger = new PinoLogger({ name: 'RerankTool', level: 'info' });
 
@@ -25,7 +27,7 @@ export interface RerankRuntimeContext {
 
 // Input and output schemas
 const rerankInputSchema = z.object({
-  indexName: z.string().optional().describe('Vector store index name'),
+  indexName: z.string().optional().describe('Vector store index name (defaults to RESEARCH_DOCUMENTS)'),
   query: z.string().min(1).describe('Query string for semantic search and reranking'),
   topK: z.number().int().positive().default(10).describe('Number of initial results to retrieve before reranking'),
   finalK: z.number().int().positive().default(3).describe('Final number of results after reranking'),
@@ -62,6 +64,7 @@ export const rerankTool = createTool({
   execute: async ({ input, runtimeContext, tracingContext, memory }: ToolExecutionContext<typeof rerankInputSchema> & {
     input: z.infer<typeof rerankInputSchema>;
     runtimeContext?: RuntimeContext<RerankRuntimeContext>;
+    tracingContext?: any;
   }): Promise<z.infer<typeof rerankOutputSchema>> => {
     const startTime = Date.now();
 
@@ -86,12 +89,27 @@ export const rerankTool = createTool({
         });
       }
 
+      // Determine index based on context
+      let searchIndex = validatedInput.indexName || STORAGE_CONFIG.VECTOR_INDEXES.RESEARCH_DOCUMENTS;
+      if (runtimeContext?.get('useReport')) {
+        searchIndex = STORAGE_CONFIG.VECTOR_INDEXES.REPORTS;
+      }
+      // Conditional tracing span for initial query if tracing is enabled
+      const initialQuerySpan = tracingContext?.currentSpan ? tracingContext.currentSpan.createChildSpan({
+        type: AISpanType.GENERIC,
+        name: 'rerank_initial_query',
+        input: {
+          query: validatedInput.query,
+          indexName: searchIndex,
+          topK: validatedInput.topK
+        }
+      } as any) : undefined;
       // First, get more results than needed for reranking using the vectorQueryTool
       const initialResults = await vectorQueryTool.execute({
         context: {
           queryText: validatedInput.query,
           topK: validatedInput.topK,
-          threadId: validatedInput.indexName, // Assuming indexName can be used as threadId for context
+          threadId: searchIndex, // Use determined index as threadId for context
         },
         runtimeContext,
         tracingContext, // Pass tracingContext
@@ -102,6 +120,16 @@ export const rerankTool = createTool({
       if (initialResults.results.length > validatedInput.finalK) {
         const model = createGemini25Provider(modelPreference);
 
+        // End initial query span if enabled
+        if (initialQuerySpan) {
+          initialQuerySpan.end({
+            output: {
+              resultsFound: initialResults.results.length,
+              processingTime: Date.now() - startTime
+            },
+            metadata: { operation: 'rerank_initial_query' }
+          });
+        }
         // Convert vector query results to the format expected by rerank function
         const queryResults = initialResults.results.map((result: { id: string; score: number; metadata: Record<string, unknown>; content: string; }, index: number) => ({
           id: result.id,
@@ -154,6 +182,27 @@ export const rerankTool = createTool({
           userId,
           sessionId
         };
+        // Conditional tracing span for reranking if tracing is enabled
+        const rerankSpan = tracingContext?.currentSpan ? tracingContext.currentSpan.createChildSpan({
+          type: AISpanType.GENERIC,
+          name: 'rerank_operation',
+          input: {
+            initialCount: initialResults.results.length,
+            finalK: validatedInput.finalK,
+            model: modelPreference
+          }
+        } as any) : undefined;
+
+        if (rerankSpan) {
+          rerankSpan.end({
+            output: {
+              finalCount: rerankedResults.length,
+              averageScore: rerankMetadata.averageRelevanceScore,
+              processingTime: Date.now() - startTime
+            },
+            metadata: { operation: 'rerank_operation' }
+          });
+        }
 
         if (debug) {
           logger.info('Reranked search completed', {

@@ -4,6 +4,33 @@ import { createGeminiEmbeddingModel } from "./googleProvider";
 import { embedMany } from "ai";
 import { PinoLogger } from "@mastra/loggers";
 import { AISpanType } from '@mastra/core/ai-tracing';
+import type { RuntimeContext } from '@mastra/core/runtime-context';
+import type { UIMessage, Message } from 'ai';
+
+export interface TracingSpanInput {
+  type: AISpanType;
+  name: string;
+  input?: Record<string, unknown>;
+}
+
+export interface SpanEndInput {
+  output?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+}
+
+export interface SemanticRecallConfig {
+  topK: number;
+  messageRange: number | { before: number; after: number };
+  scope: 'thread' | 'resource';
+}
+
+export interface QueryResult {
+  id: string;
+  score: number;
+  metadata: Record<string, unknown>;
+  document?: string;
+  vector?: number[];
+}
 
 const logger = new PinoLogger({ name: 'libsql-storage', level: 'info' });
 
@@ -26,7 +53,7 @@ export const STORAGE_CONFIG = {
 /**
  * LibSQL Storage Configuration
  */
-export const createLibSQLStore = (tracingContext?: { currentSpan?: any }) => {
+export const createLibSQLStore = (tracingContext?: { context?: unknown; runtimeContext?: RuntimeContext; currentSpan?: { createChildSpan(input: TracingSpanInput): { end(options: SpanEndInput): void } } }) => {
   const startTime = Date.now();
   const databaseUrl = process.env.DATABASE_URL || STORAGE_CONFIG.DEFAULT_DATABASE_URL;
 
@@ -38,7 +65,7 @@ export const createLibSQLStore = (tracingContext?: { currentSpan?: any }) => {
       databaseUrl: databaseUrl.replace(/authToken=[^&]*/, 'authToken=***'), // Mask auth token
       hasAuthToken: !!process.env.DATABASE_AUTH_TOKEN
     }
-  });
+  } as TracingSpanInput);
 
   try {
     const store = new LibSQLStore({
@@ -93,7 +120,7 @@ export const createLibSQLStore = (tracingContext?: { currentSpan?: any }) => {
 /**
  * LibSQL Vector Store Configuration
  */
-export const createLibSQLVectorStore = (tracingContext?: { currentSpan?: any }) => {
+export const createLibSQLVectorStore = (tracingContext?: { context?: unknown; runtimeContext?: RuntimeContext; currentSpan?: { createChildSpan(input: TracingSpanInput): { end(options: SpanEndInput): void } } }) => {
   const startTime = Date.now();
   const databaseUrl = process.env.VECTOR_DATABASE_URL || STORAGE_CONFIG.VECTOR_DATABASE_URL;
 
@@ -105,7 +132,7 @@ export const createLibSQLVectorStore = (tracingContext?: { currentSpan?: any }) 
       databaseUrl: databaseUrl.replace(/authToken=[^&]*/, 'authToken=***'), // Mask auth token
       hasAuthToken: !!(process.env.VECTOR_DATABASE_AUTH_TOKEN || process.env.DATABASE_AUTH_TOKEN)
     }
-  });
+  } as TracingSpanInput);
 
   try {
     const vectorStore = new LibSQLVector({
@@ -202,7 +229,7 @@ export const searchSimilarContent = async (
   query: string,
   indexName: string,
   topK = 5,
-  tracingContext?: { currentSpan?: any }
+  tracingContext?: { currentSpan?: { createChildSpan(input: TracingSpanInput): { end(options: SpanEndInput): void } } }
 ) => {
   const startTime = Date.now();
 
@@ -215,7 +242,7 @@ export const searchSimilarContent = async (
       indexName,
       topK
     }
-  });
+  } as TracingSpanInput);
 
   try {
     const vectorStore = createLibSQLVectorStore(tracingContext);
@@ -229,16 +256,31 @@ export const searchSimilarContent = async (
         queryLength: query.length,
         model: 'gemini-embedding-001'
       }
-    });
+    } as TracingSpanInput);
 
-    const { embeddings } = await embedMany({
-      values: [query],
-      model: embedder,
-    });
+    // Call embedMany and normalize its result so we always have an embeddings array to use
+        // Define a narrow type for possible embedMany return shapes and a runtime guard
+        type EmbedManyResult = number[][] | { embeddings?: number[][] } | unknown;
+        const embedResult = await embedMany({
+          values: [query],
+          model: embedder,
+        }) as EmbedManyResult;
+
+    function isNumberMatrix(value: unknown): value is number[][] {
+      return Array.isArray(value) && value.every(
+        row => Array.isArray(row) && row.every(cell => typeof cell === 'number')
+      );
+    }
+
+    const embeddings: number[][] = isNumberMatrix(embedResult)
+      ? embedResult
+      : (isNumberMatrix((embedResult as { embeddings?: unknown })?.embeddings)
+        ? (embedResult as { embeddings: number[][] }).embeddings
+        : []);
 
     embedSpan?.end({
       output: {
-        embeddingDimension: embeddings[0].length
+        embeddingDimension: Array.isArray(embeddings) && embeddings[0] ? embeddings[0].length : 0
       },
       metadata: {
         model: 'gemini-embedding-001',
@@ -250,22 +292,22 @@ export const searchSimilarContent = async (
       indexName,
       queryVector: embeddings[0],
       topK,
-    });
+    }) as QueryResult[];
 
     const processingTime = Date.now() - startTime;
 
     // Update main search span with results
-    searchSpan?.end({
-      output: {
-        resultsFound: results.length,
-        processingTime
-      },
-      metadata: {
-        indexName,
-        topK,
-        avgScore: results.length > 0 ? results.reduce((sum: number, r: any) => sum + (r.score || 0), 0) / results.length : 0
-      }
-    });
+        searchSpan?.end({
+          output: {
+            resultsFound: results.length,
+            processingTime
+          },
+          metadata: {
+            indexName,
+            topK,
+            avgScore: results.length > 0 ? results.reduce((sum: number, r: QueryResult) => sum + (r.score ?? 0), 0) / results.length : 0
+          }
+        });
 
     logger.info('Vector search completed', {
       query: query.substring(0, 50) + (query.length > 50 ? '...' : ''),
@@ -309,6 +351,7 @@ export const createResearchMemory = () => {
   return new Memory({
     storage: createLibSQLStore(),
     vector: createLibSQLVectorStore(),
+    embedder: createGeminiEmbeddingModel("gemini-embedding-001"),
     options: {
       lastMessages: 50,
       workingMemory: {
@@ -321,6 +364,11 @@ export const createResearchMemory = () => {
 - **Follow-up Questions**: Outstanding questions from previous research
 - **Knowledge Gaps**: Areas needing further investigation
 - **Contact Information**: Professional details for collaboration`,
+      },
+      semanticRecall: {
+        topK: 5,
+        messageRange: 2,
+        scope: 'thread',
       },
       threads: {
       generateTitle: true, // Enable automatic title generation
@@ -336,6 +384,7 @@ export const createReportMemory = () => {
   return new Memory({
     storage: createLibSQLStore(),
     vector: createLibSQLVectorStore(),
+    embedder: createGeminiEmbeddingModel("gemini-embedding-001"),
     options: {
       lastMessages: 100,
       workingMemory: {
@@ -349,11 +398,11 @@ export const createReportMemory = () => {
 - **Previous Reports**: Summary of previously generated reports
 - **Client Requirements**: Specific requirements or constraints`,
       },
-//      semanticRecall: {
-//        topK: 3, // Retrieve 3 most similar messages
-//        messageRange: 2, // Include 2 messages before and after each match
-//        scope: 'resource', // Search across all threads for this user
-//      },
+      semanticRecall: {
+        topK: 10,
+        messageRange: 3,
+        scope: 'resource',
+      },
       threads: {
       generateTitle: true, // Enable automatic title generation
       },
@@ -392,11 +441,24 @@ export async function upsertVectors(
   indexName: string,
   vectors: number[][],
   metadata: Array<Record<string, unknown>>,
-  ids: string[]
+  ids: string[],
+  tracingContext?: { context?: unknown; runtimeContext?: RuntimeContext; currentSpan?: { createChildSpan(input: TracingSpanInput): { end(options: SpanEndInput): void } } }
 ): Promise<{ success: boolean; count?: number; error?: string }> {
-  try {
-    const vectorStore = createLibSQLVectorStore();
+  const startTime = Date.now();
 
+  // Create child span for upsert operation
+  const upsertSpan = tracingContext?.currentSpan?.createChildSpan({
+    type: AISpanType.GENERIC,
+    name: 'upsert_vectors',
+    input: {
+      indexName,
+      vectorCount: vectors.length,
+      idsLength: ids.length
+    }
+  } as TracingSpanInput);
+
+  try {
+    const vectorStore = createLibSQLVectorStore(tracingContext);
 
     await vectorStore.upsert({
       indexName,
@@ -405,51 +467,139 @@ export async function upsertVectors(
       ids,
     });
 
+    const processingTime = Date.now() - startTime;
+
+    // Update span with success
+    upsertSpan?.end({
+      output: {
+        success: true,
+        count: vectors.length,
+        processingTime
+      },
+      metadata: {
+        operation: 'upsert_vectors',
+        indexName
+      }
+    });
+
     logger.info('Vectors upserted successfully', {
       indexName,
-      count: vectors.length
+      count: vectors.length,
+      processingTime
     });
 
     return { success: true, count: vectors.length };
   } catch (error) {
+    const processingTime = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    // Update span with error
+    upsertSpan?.end({
+      output: {
+        success: false,
+        processingTime
+      },
+      metadata: {
+        error: errorMessage,
+        operation: 'upsert_vectors',
+        indexName,
+        vectorCount: vectors.length
+      }
+    });
+
     logger.error('Failed to upsert vectors', {
       indexName,
       count: vectors.length,
-      error: errorMessage
+      error: errorMessage,
+      processingTime
     });
 
-    return { success: false, error: errorMessage };
+    throw new VectorStoreError(errorMessage, 'upsert_vectors', {
+      indexName,
+      vectorCount: vectors.length,
+      idsLength: ids.length
+    });
   }
 }
-
 /**
  * Create vector index
  */
 export async function createVectorIndex(
   indexName: string,
   dimension = STORAGE_CONFIG.DEFAULT_DIMENSION,
-  metric: 'cosine' | 'euclidean' | 'dotproduct' = 'cosine'
+  metric: 'cosine' | 'euclidean' | 'dotproduct' = 'cosine',
+  tracingContext?: { currentSpan?: { createChildSpan(input: TracingSpanInput): { end(options: SpanEndInput): void } } }
 ): Promise<{ success: boolean; error?: string }> {
+  const startTime = Date.now();
+
+  // Create child span for index creation
+  const indexSpan = tracingContext?.currentSpan?.createChildSpan({
+    type: AISpanType.GENERIC,
+    name: 'create_vector_index',
+    input: {
+      indexName,
+      dimension,
+      metric
+    }
+  } as TracingSpanInput);
+
   try {
-    const vectorStore = createLibSQLVectorStore();
+    const vectorStore = createLibSQLVectorStore(tracingContext);
     await vectorStore.createIndex({
       indexName,
       dimension,
       metric,
     });
 
-    logger.info('Vector index created successfully', { indexName, dimension, metric });
+    const processingTime = Date.now() - startTime;
+
+    // Update span with success
+    indexSpan?.end({
+      output: {
+        success: true,
+        processingTime
+      },
+      metadata: {
+        operation: 'create_vector_index',
+        indexName,
+        dimension,
+        metric
+      }
+    });
+
+    logger.info('Vector index created successfully', { indexName, dimension, metric, processingTime });
     return { success: true };
   } catch (error) {
+    const processingTime = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    // Update span with error
+    indexSpan?.end({
+      output: {
+        success: false,
+        processingTime
+      },
+      metadata: {
+        error: errorMessage,
+        operation: 'create_vector_index',
+        indexName,
+        dimension,
+        metric
+      }
+    });
+
     logger.error('Failed to create vector index', {
       indexName,
       dimension,
-      error: errorMessage
+      error: errorMessage,
+      processingTime
     });
 
-    return { success: false, error: errorMessage };
+    throw new VectorStoreError(errorMessage, 'create_vector_index', {
+      indexName,
+      dimension,
+      metric
+    });
   }
 }
 
@@ -460,42 +610,93 @@ export async function queryVectors(
   indexName: string,
   queryVector: number[],
   topK = 5,
-  filter?: Record<string, unknown>,
-  includeVector = false
-): Promise<Array<{
-  id: string;
-  score: number;
-  metadata: Record<string, unknown>;
-}>> {
+  filter?: Parameters<LibSQLVector['query']>[0]['filter'],
+  includeVector = false,
+  tracingContext?: { context?: unknown; runtimeContext?: RuntimeContext; currentSpan?: { createChildSpan(input: TracingSpanInput): { end(options: SpanEndInput): void } } }
+): Promise<QueryResult[]> {
+  const startTime = Date.now();
+
+  // Create child span for query operation
+  const querySpan = tracingContext?.currentSpan?.createChildSpan({
+    type: AISpanType.GENERIC,
+    name: 'query_vectors',
+    input: {
+      indexName,
+      queryVectorDimension: queryVector.length,
+      topK,
+      hasFilter: !!filter,
+      includeVector
+    }
+  } as TracingSpanInput);
+
   try {
-    const vectorStore = createLibSQLVectorStore();
+    const vectorStore = createLibSQLVectorStore(tracingContext);
     const results = await vectorStore.query({
       indexName,
       queryVector,
       topK,
-      filter: filter as any,
+      filter,
       includeVector,
+    }) as QueryResult[];
+
+    const processingTime = Date.now() - startTime;
+
+    // Update span with success
+    querySpan?.end({
+      output: {
+        resultsCount: results.length,
+        processingTime
+      },
+      metadata: {
+        operation: 'query_vectors',
+        indexName,
+        topK
+      }
     });
 
     logger.info('Vector query completed successfully', {
       indexName,
       topK,
-      resultsCount: results.length
+      resultsCount: results.length,
+      processingTime
     });
 
     return results.map(result => ({
       id: result.id,
       score: result.score,
       metadata: result.metadata || {}
-    }));
+    })) as QueryResult[];
   } catch (error) {
+    const processingTime = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    // Update span with error
+    querySpan?.end({
+      output: {
+        success: false,
+        processingTime
+      },
+      metadata: {
+        error: errorMessage,
+        operation: 'query_vectors',
+        indexName,
+        topK
+      }
+    });
+
     logger.error('Failed to query vectors', {
       indexName,
       topK,
-      error: errorMessage
+      error: errorMessage,
+      processingTime
     });
-    throw error;
+
+    throw new VectorStoreError(errorMessage, 'query_vectors', {
+      indexName,
+      topK,
+      hasFilter: !!filter,
+      includeVector
+    });
   }
 }
 
@@ -507,38 +708,72 @@ export async function searchMemoryMessages(
   threadId: string,
   query: string,
   topK = 5
-): Promise<{ messages: any[]; uiMessages: any[] }> {
+): Promise<{ messages: Message[]; uiMessages: UIMessage[] }> {
   try {
     const embedder = createGeminiEmbeddingModel("gemini-embedding-001");
 
-    const { embeddings } = await embedMany({
+    await embedMany({
       values: [query],
       model: embedder,
     });
 
     const recalled = await memory.query({
-      indexName: STORAGE_CONFIG.VECTOR_INDEXES.RESEARCH_DOCUMENTS,
-      queryVector: embeddings[0],
-      query,
       threadId,
-      topK,
-      embedder,
-    } as any);
+      selectBy: {
+        vectorSearchString: query,
+      },
+      threadConfig: {
+        semanticRecall: {
+          topK,
+          messageRange: 2,
+          scope: 'thread',
+        },
+      },
+    }) as { messages?: unknown[]; uiMessages?: unknown[]; };
 
     // memory.query can return different shapes; prefer .messages or .messagesV2, fallback to array if provided
-    const recalledMessagesArray: any[] =
-      Array.isArray((recalled as any).messages) ? (recalled as any).messages
-      : Array.isArray((recalled as any).messagesV2) ? (recalled as any).messagesV2
-      : Array.isArray(recalled) ? recalled
+    const recalledMessagesArray: unknown[] =
+      Array.isArray((recalled as { messages?: unknown[] }).messages) ? (recalled as { messages: unknown[] }).messages
+      : Array.isArray((recalled as { messagesV2?: unknown[] }).messagesV2) ? (recalled as { messagesV2: unknown[] }).messagesV2
+      : Array.isArray(recalled) ? recalled as unknown[]
       : [];
 
-    const relevantMessages = recalledMessagesArray.map((msg: any) => ({
-      id: msg.id,
-      role: msg.role ?? msg.sender ?? msg.roleName,
-      content: msg.content ?? msg.parts?.map((p: any) => p.text || p.content).join('') ?? '',
-      createdAt: msg.createdAt ?? msg.timestamp,
-      threadId: msg.threadId ?? msg.thread_id,
-    }));
+    const normalizeRole = (r?: string): Message['role'] => {
+      if (!r) {
+        return 'user';
+      }
+      const s = String(r).toLowerCase();
+      if (s === 'system') {
+        return 'system';
+      }
+      if (s === 'assistant' || s === 'bot') {
+        return 'assistant';
+      }
+      if (s === 'data') {
+        return 'data';
+      }
+      if (s === 'user' || s === 'human') {
+        return 'user';
+      }
+      return 'user';
+    };
+
+    const relevantMessages = recalledMessagesArray.map((msg: unknown, idx: number) => {
+      const msgObj = msg as { id?: string; role?: string; sender?: string; roleName?: string; content?: string; parts?: { text?: string; content?: string }[]; createdAt?: string; timestamp?: string; threadId?: string; thread_id?: string };
+      const safeId = msgObj.id ?? `${threadId ?? 'unknown'}-msg-${idx}-${Date.now()}`;
+      const role = normalizeRole(msgObj.role ?? msgObj.sender ?? msgObj.roleName);
+      const content = msgObj.content ?? (msgObj.parts?.map((p: { text?: string; content?: string }) => p.text || p.content).join('') ?? '');
+      const createdAtRaw = msgObj.createdAt ?? msgObj.timestamp;
+      const createdAt = createdAtRaw ? new Date(createdAtRaw) : undefined;
+      const thread = msgObj.threadId ?? msgObj.thread_id;
+      return {
+        id: safeId,
+        role,
+        content,
+        createdAt,
+        threadId: thread,
+      } as Message;
+    });
 
     logger.info('Memory search completed', {
       threadId,
@@ -547,9 +782,19 @@ export async function searchMemoryMessages(
       foundMessages: relevantMessages.length
     });
 
+    const uiMessages = relevantMessages.map((m) => {
+      return {
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        createdAt: m.createdAt,
+        threadId: (m as any).threadId,
+      } as unknown as UIMessage;
+    });
+
     return {
       messages: relevantMessages,
-      uiMessages: relevantMessages // Assuming uiMessages are the same for now
+      uiMessages
     };
   } catch (error) {
     logger.error('Failed to search memory messages', {
@@ -584,14 +829,29 @@ export const upstashVector = createLibSQLVectorStore();
 /**
  * Convert V2 message format to simplified structure
  */
-export const simplifyMessages = (messages: any[]) => {
+interface MessagePart {
+  text?: string;
+  content?: string;
+}
+
+interface MessageV2 {
+  id?: string;
+  role?: string;
+  content?: string;
+  parts?: MessagePart[];
+  createdAt?: string;
+  thread_id?: string;
+  format?: string;
+}
+
+export const simplifyMessages = (messages: MessageV2[]) => {
   return messages.map(msg => ({
     id: msg.id,
     role: msg.role,
-    content: msg.content || msg.parts?.map((part: any) => part.text || part.content).join('') || '',
+    content: msg.content ?? (msg.parts?.map((part) => part.text ?? part.content).join('') ?? ''),
     createdAt: msg.createdAt,
     threadId: msg.thread_id,
-    format: msg.format || 'v2'
+    format: msg.format ?? 'v2'
   }));
 };
 
@@ -600,7 +860,7 @@ export const simplifyMessages = (messages: any[]) => {
  */
 export const getOrCreateUserResource = async (memory: Memory, userId: string) => {
   try {
-    const storage = memory.storage; // Already confirmed to be LibSQLStore type
+    const {storage} = memory; // Already confirmed to be LibSQLStore type
 
     let userResource = await storage.getResourceById({ resourceId: userId });
 
@@ -643,13 +903,13 @@ export const getOrCreateUserResource = async (memory: Memory, userId: string) =>
 /**
  * Update user working memory
  */
-export const updateUserWorkingMemory = async (memory: Memory, userId: string, updates: Record<string, any>) => {
+export const updateUserWorkingMemory = async (memory: Memory, userId: string, updates: { workingMemory: string; metadata?: Record<string, unknown> } & Record<string, unknown>) => {
   try {
     await memory.storage?.updateResource({
       resourceId: userId,
-      workingMemory: updates.workingMemory,
+      workingMemory: updates.workingMemory as string,
       metadata: {
-        ...updates.metadata,
+        ... (updates.metadata as Record<string, unknown>),
         updatedAt: new Date(), // Moved updatedAt back into metadata
         // resourceId: userId // This property is not needed here, as it's already resourceId
       }
@@ -757,13 +1017,18 @@ export function extractChunkMetadata(
 /**
  * Storage health check
  */
-export const performStorageHealthCheck = async () => {
+export const performStorageHealthCheck = async (context: 'research' | 'report' = 'research') => {
   const results = {
     storage: false,
     vectorStore: false,
     indexes: {} as Record<string, boolean>,
     errors: [] as string[]
   };
+
+  // Decision logic for index selection based on context
+  const relevantIndexes = context === 'research'
+    ? [STORAGE_CONFIG.VECTOR_INDEXES.RESEARCH_DOCUMENTS, STORAGE_CONFIG.VECTOR_INDEXES.LEARNINGS]
+    : [STORAGE_CONFIG.VECTOR_INDEXES.REPORTS, STORAGE_CONFIG.VECTOR_INDEXES.WEB_CONTENT];
 
   try {
     createLibSQLStore();
@@ -781,8 +1046,7 @@ export const performStorageHealthCheck = async () => {
     results.errors.push(`Vector store check failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 
-  const indexesToCheck = Object.values(STORAGE_CONFIG.VECTOR_INDEXES);
-  for (const indexName of indexesToCheck) {
+  for (const indexName of relevantIndexes) {
     try {
       const vectorStore = createLibSQLVectorStore();
       await vectorStore.query({
@@ -801,8 +1065,15 @@ export const performStorageHealthCheck = async () => {
 
   logger.info('Storage health check completed', {
     overallHealth,
+    context,
+    relevantIndexes,
     results,
     errorCount: results.errors.length
+  });
+
+  // MCP integration: Log for mastraDocs reference
+  logger.info('For storage documentation, refer to mastraDocs path: reference/storage/', {
+    context
   });
 
   return {
@@ -814,24 +1085,25 @@ export const performStorageHealthCheck = async () => {
 /**
  * Initialize complete storage system
  */
-export const initializeStorageSystem = async () => {
+export const initializeStorageSystem = async (context: 'research' | 'report' = 'research') => {
   try {
-    logger.info('Initializing complete storage system...');
+    logger.info('Initializing complete storage system...', { context });
 
     await initializeVectorIndexes();
 
-    const healthCheck = await performStorageHealthCheck();
+    const healthCheck = await performStorageHealthCheck(context);
 
     if (healthCheck.healthy) {
-      logger.info('Storage system initialized successfully');
+      logger.info('Storage system initialized successfully', { context });
       return { success: true, healthCheck };
     } else {
-      logger.warn('Storage system initialized with issues', { healthCheck });
+      logger.warn('Storage system initialized with issues', { healthCheck, context });
       return { success: false, healthCheck };
     }
   } catch (error) {
     logger.error('Failed to initialize storage system', {
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
+      context
     });
     throw error;
   }

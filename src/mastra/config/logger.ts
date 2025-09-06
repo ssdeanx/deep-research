@@ -29,7 +29,7 @@ const logToFile = (message: string, data?: Record<string, unknown>) => {
 };
 
 export const logWorkflowStart = (workflowId: string, input: Record<string, unknown>) => {
-  const message: string = `🚀 Starting workflow: ${workflowId}`;
+  const message = `🚀 Starting workflow: ${workflowId}`;
   const data: { workflowId: string; input: Record<string, unknown>; timestamp: any; } = {
     workflowId,
     input,
@@ -40,7 +40,7 @@ export const logWorkflowStart = (workflowId: string, input: Record<string, unkno
 };
 
 export const logWorkflowEnd = (workflowId: string, output: Record<string, unknown>, duration: number) => {
-  const message: string = `✅ Workflow completed: ${workflowId}`;
+  const message = `✅ Workflow completed: ${workflowId}`;
   const data: { workflowId: string; output: Record<string, unknown>; duration: string; timestamp: any; } = {
     workflowId,
     output,
@@ -52,7 +52,7 @@ export const logWorkflowEnd = (workflowId: string, output: Record<string, unknow
 };
 
 export const logStepStart = (stepId: string, input: Record<string, unknown>) => {
-  const message: string = `📋 Starting step: ${stepId}`;
+  const message = `📋 Starting step: ${stepId}`;
   const data: { stepId: string; input: Record<string, unknown>; timestamp: any; } = {
     stepId,
     input,
@@ -63,7 +63,7 @@ export const logStepStart = (stepId: string, input: Record<string, unknown>) => 
 };
 
 export const logStepEnd = (stepId: string, output: Record<string, unknown>, duration: number) => {
-  const message: string = `✓ Step completed: ${stepId}`;
+  const message = `✓ Step completed: ${stepId}`;
   const data: { stepId: string; output: Record<string, unknown>; duration: string; timestamp: any; } = {
     stepId,
     output,
@@ -75,7 +75,7 @@ export const logStepEnd = (stepId: string, output: Record<string, unknown>, dura
 };
 
 export const logToolExecution = (toolId: string, input: Record<string, unknown>, output?: Record<string, unknown>) => {
-  const message: string = `🔧 Tool execution: ${toolId}`;
+  const message = `🔧 Tool execution: ${toolId}`;
   const data: { toolId: string; input: Record<string, unknown>; output: any; timestamp: any; } = {
     toolId,
     input,
@@ -87,7 +87,7 @@ export const logToolExecution = (toolId: string, input: Record<string, unknown>,
 };
 
 export const logAgentActivity = (agentId: string, action: string, details: Record<string, unknown>) => {
-  const message: string = `🤖 Agent activity: ${agentId} - ${action}`;
+  const message = `🤖 Agent activity: ${agentId} - ${action}`;
   const data: { agentId: string; action: string; details: Record<string, unknown>; timestamp: any; } = {
     agentId,
     action,
@@ -99,7 +99,7 @@ export const logAgentActivity = (agentId: string, action: string, details: Recor
 };
 
 export const logError = (component: string, error: Error | unknown, context?: Record<string, unknown>) => {
-  const message: string = `❌ Error in ${component}`;
+  const message = `❌ Error in ${component}`;
   const data: { component: string; error: any; stack: any; context: any; timestamp: any; } = {
     component,
     error: error instanceof Error ? error.message : String(error),
@@ -112,7 +112,7 @@ export const logError = (component: string, error: Error | unknown, context?: Re
 };
 
 export const logProgress = (message: string, progress: number, total: number) => {
-  const logMessage: string = `📊 Progress: ${message} (${progress}/${total})`;
+  const logMessage = `📊 Progress: ${message} (${progress}/${total})`;
   const data: { message: string; progress: number; total: number; percentage: any; timestamp: any; } = {
     message,
     progress,
