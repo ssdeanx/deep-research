@@ -4,6 +4,7 @@ import { extractLearningsTool } from '../tools/extractLearningsTool';
 import { webSearchTool } from '../tools/webSearchTool';
 import { createGemini25Provider } from '../config/googleProvider';
 import { createResearchMemory } from '../config/libsql-storage';
+import { ContentSimilarityMetric, CompletenessMetric, TextualDifferenceMetric, KeywordCoverageMetric, ToneConsistencyMetric } from "@mastra/evals/nlp";
 
 const memory = createResearchMemory();
 
@@ -43,21 +44,28 @@ export const researchAgent = new Agent({
 
   Use all the tools available to you systematically and stop after the follow-up phase.
   `,
-  model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17', {
-    responseModalities: ["TEXT"],
-    thinkingConfig: {
-      thinkingBudget: -1,
-      includeThoughts: false,
-    },
-    useSearchGrounding: true,
-    dynamicRetrieval: true,
-    safetyLevel: 'OFF',
-    structuredOutputs: true,
-  }),
-  tools: {
-    webSearchTool,
-    evaluateResultTool,
-    extractLearningsTool,
-  },
-  memory: memory,
+ evals: {
+   contentSimilarity: new ContentSimilarityMetric({ ignoreCase: true, ignoreWhitespace: true }),
+   completeness: new CompletenessMetric(),
+   textualDifference: new TextualDifferenceMetric(),
+   keywordCoverage: new KeywordCoverageMetric(), // Keywords will be provided at runtime for evaluation
+   toneConsistency: new ToneConsistencyMetric(),
+ },
+ model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17', {
+   responseModalities: ["TEXT"],
+   thinkingConfig: {
+     thinkingBudget: -1,
+     includeThoughts: false,
+   },
+   useSearchGrounding: true,
+   dynamicRetrieval: true,
+   safetyLevel: 'OFF',
+   structuredOutputs: true,
+ }),
+ tools: {
+   webSearchTool,
+   evaluateResultTool,
+   extractLearningsTool,
+ },
+ memory,
 });

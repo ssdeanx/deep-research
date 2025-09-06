@@ -11,6 +11,7 @@ import { webScraperTool } from '../tools/web-scraper-tool';
 import { webSearchTool } from '../tools/webSearchTool';
 import { createGemini25Provider } from '../config/googleProvider';
 import { createResearchMemory } from '../config/libsql-storage';
+import { ContentSimilarityMetric, CompletenessMetric, TextualDifferenceMetric, KeywordCoverageMetric, ToneConsistencyMetric } from "@mastra/evals/nlp";
 
 const memory = createResearchMemory();
 
@@ -44,6 +45,13 @@ Your capabilities:
 - Suggest follow-up questions or additional research if needed
 
 Remember: Your knowledge comes from both your training data and the information you can retrieve from the vector store. Always leverage both for comprehensive answers.`,
+  evals: {
+    contentSimilarity: new ContentSimilarityMetric({ ignoreCase: true, ignoreWhitespace: true }),
+    completeness: new CompletenessMetric(),
+    textualDifference: new TextualDifferenceMetric(),
+    keywordCoverage: new KeywordCoverageMetric(), // Keywords will be provided at runtime for evaluation
+    toneConsistency: new ToneConsistencyMetric(),
+  },
   model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17', {
     responseModalities: ["TEXT"],
     thinkingConfig: {
@@ -72,5 +80,5 @@ Remember: Your knowledge comes from both your training data and the information 
     webScraperTool,
     webSearchTool,
   },
-  memory: memory,
+  memory,
 });

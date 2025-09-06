@@ -1,6 +1,7 @@
 import { Agent } from '@mastra/core/agent';
 import { createGemini25Provider } from '../config/googleProvider';
 import { createResearchMemory } from '../config/libsql-storage';
+import { ContentSimilarityMetric, CompletenessMetric, TextualDifferenceMetric, KeywordCoverageMetric, ToneConsistencyMetric } from "@mastra/evals/nlp";
 
 const memory = createResearchMemory();
 export const reportAgent = new Agent({
@@ -27,6 +28,13 @@ export const reportAgent = new Agent({
 
   Structure your reports with clear sections, headings, and focus on synthesizing the information
   into a cohesive narrative rather than simply listing facts.`,
+  evals: {
+    contentSimilarity: new ContentSimilarityMetric({ ignoreCase: true, ignoreWhitespace: true }),
+    completeness: new CompletenessMetric(),
+    textualDifference: new TextualDifferenceMetric(),
+    keywordCoverage: new KeywordCoverageMetric(), // Keywords will be provided at runtime for evaluation
+    toneConsistency: new ToneConsistencyMetric(),
+  },
   model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17', {
     // Response modalities - what types of content the model can generate
     responseModalities: ["TEXT"], // Can also include "IMAGE" for image generation
@@ -47,5 +55,5 @@ export const reportAgent = new Agent({
     // cachedContent: 'your-cache-id', // Uncomment if using explicit caching
     // Langfuse tracing configuration
   }),
-  memory: memory,
+  memory,
 });

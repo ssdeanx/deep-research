@@ -904,6 +904,12 @@ class IntegrationTestSuite {
     return { passed, failed, results };
   }
 
+  // Agent Evals for Integration Testing
+  // Agent evaluation metrics can be integrated into these tests to automatically assess
+  // the quality of responses from agents that interact with external APIs, ensuring
+  // data consistency, completeness, and adherence to expected formats.
+  // This enhances the overall reliability of integrated components.
+
   private async testApiConnectivity() {
     // Test basic API connectivity
     const services = this.registry.listServices();

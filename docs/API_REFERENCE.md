@@ -94,8 +94,9 @@ class Agent {
 ```
 
 #### AgentConfig
-
 ```typescript
+import { BaseMetric } from "@mastra/evals"; // Import BaseMetric for evals property
+
 interface AgentConfig {
   name: string;
   description?: string;
@@ -111,6 +112,7 @@ interface AgentConfig {
   circuitBreaker?: CircuitBreakerConfig;
   maxRetries?: number;
   timeout?: number;
+  evals?: Record<string, BaseMetric<any>>; // Add evals property
 }
 ```
 

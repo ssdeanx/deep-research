@@ -37,6 +37,9 @@ npx mastra workflow:list
 
 **Possible Causes & Solutions:**
 
+**Using Evals for Diagnosis:**
+Agent evaluation metrics (evals) can be invaluable for diagnosing issues related to agent output quality. By integrating evals, you can automatically assess if responses meet expected criteria for content similarity, completeness, keyword coverage, and tone consistency. This helps pinpoint whether an agent's "empty or null" response is truly a failure, or if it's producing output that simply doesn't meet quality standards.
+
 **Cause 1: Model API Key Issues**
 ```typescript
 // Check API key configuration
@@ -635,6 +638,9 @@ const loggedAgent = new Agent({
       }
     }, 'Agent execution failed');
 
+    // Logging eval results can provide valuable insights into agent behavior and output quality.
+    // Consider logging scores and reasons from configured evals during error scenarios.
+
     return { action: 'fail' };
   }
 });
@@ -737,6 +743,7 @@ console.log('Performance stats:', profiler.getStats('agent-generation'));
 | `Tool execution failed` | Add try-catch blocks, implement fallbacks |
 | `Workflow suspended unexpectedly` | Add logging, check suspend conditions |
 | `Invalid API key` | Verify environment variables, check key format |
+| `Low Eval Score` | Review agent instructions, adjust eval parameters, refine input data. |
 
 ## Getting Help
 

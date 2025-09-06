@@ -917,7 +917,7 @@ const processedResults = await batchProcessor.processBatches(
 );
 ```
 
-## Network Optimization
+<h2>Network Optimization</h2>
 
 ### Connection Pooling and Reuse
 
@@ -1075,7 +1075,7 @@ const tlsOptions = {
 };
 ```
 
-## Performance Testing and Benchmarking
+<h2>Performance Testing and Benchmarking</h2>
 
 ### Automated Performance Testing
 
@@ -1196,6 +1196,11 @@ class PerformanceTestSuite {
       avgResponseTime: (Date.now() - startTime) / concurrentRequests
     };
   }
+
+  // Agent Evals for Performance Testing
+  // Agent evaluation metrics can be integrated into performance tests to assess
+  // the impact of optimizations on output quality, ensuring that performance
+  // gains do not come at the cost of reduced accuracy or relevance.
 
   private generateReport() {
     console.log('\n=== Performance Test Report ===');

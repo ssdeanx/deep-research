@@ -12,6 +12,7 @@ The Mastra Deep Research System is an AI-powered research and analysis platform 
 - **Workflow Orchestration**: Automated research and report generation processes, including human-in-the-loop capabilities.
 - **Memory Management**: Persistent conversation and research context across agents, workflows, and networks.
 - **Document Processing**: Advanced chunking and metadata extraction.
+- **Evaluation Capabilities**: Integrated non-LLM based evaluation metrics for quality assurance of agent outputs.
 
 ## Architecture Overview
 
@@ -62,6 +63,7 @@ The system includes six specialized agents, each with distinct capabilities:
 - Phase 2: Follow-up research based on extracted learnings
 - Prevents infinite loops by limiting follow-up depth
 - Structured JSON output with queries, results, and learnings
+- **Evaluation**: Integrated non-LLM based evaluation metrics (Content Similarity, Completeness, Textual Difference, Keyword Coverage, Tone Consistency) for quality assurance.
 
 **Configuration**:
 - Model: Gemini 2.5 Flash Lite
@@ -83,6 +85,7 @@ The system includes six specialized agents, each with distinct capabilities:
 - Context-aware response generation
 - Integration with LibSQL vector store
 - Enhanced accuracy through external knowledge retrieval
+- **Evaluation**: Integrated non-LLM based evaluation metrics (Content Similarity, Completeness, Textual Difference, Keyword Coverage, Tone Consistency) for quality assurance.
 
 **Configuration**:
 - Model: Gemini 2.5 Flash Lite
@@ -104,6 +107,7 @@ The system includes six specialized agents, each with distinct capabilities:
 - Proactive recommendations
 - Contrarian viewpoints consideration
 - Citation and source validation
+- **Evaluation**: Integrated non-LLM based evaluation metrics (Content Similarity, Completeness, Textual Difference, Keyword Coverage, Tone Consistency) for quality assurance.
 
 **Configuration**:
 - Model: Gemini 2.5 Flash Lite
@@ -120,6 +124,7 @@ The system includes six specialized agents, each with distinct capabilities:
 - Token-efficient summarization
 - Preservation of critical information
 - Structured summary outputs
+- **Evaluation**: Integrated non-LLM based evaluation metrics (Content Similarity, Completeness, Textual Difference, Keyword Coverage, Tone Consistency) for quality assurance.
 
 **Configuration**:
 - Model: Gemini 2.5 Flash Lite
@@ -136,6 +141,7 @@ The system includes six specialized agents, each with distinct capabilities:
 - Detailed reasoning for decisions
 - URL deduplication
 - Structured JSON responses
+- **Evaluation**: Integrated non-LLM based evaluation metrics (Content Similarity, Completeness, Textual Difference, Keyword Coverage, Tone Consistency) for quality assurance.
 
 **Integration**: Called by `evaluateResultTool` for automated assessment.
 
@@ -148,20 +154,10 @@ The system includes six specialized agents, each with distinct capabilities:
 - Up to 1 follow-up question generation
 - Source attribution
 - Structured extraction format
+- **Evaluation**: Integrated non-LLM based evaluation metrics (Content Similarity, Completeness, Textual Difference, Keyword Coverage, Tone Consistency) for quality assurance.
 
 **Integration**: Called by `extractLearningsTool` for knowledge mining.
 
-### 5. Web Summarization Agent (`webSummarizationAgent.ts`)
-
-**Purpose**: Creates concise summaries of web content to manage token limits.
-
-**Key Features**:
-- 80-95% content reduction
-- Structured summary format (Main Topic, Key Insights, Context)
-- Token efficiency optimization
-- Quality preservation
-
-**Integration**: Called by `webSearchTool` for content processing.
 
 ## Tools
 

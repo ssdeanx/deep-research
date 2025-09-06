@@ -994,7 +994,7 @@ const createOptimizedParallelWorkflow = (
 
 - **Documentation**: Document workflow purpose, inputs, outputs, and behavior
 - **Versioning**: Use versioning for workflow changes
-- **Testing**: Implement comprehensive tests for workflow logic
+- **Testing**: Implement comprehensive tests for workflow logic, including integration of agent evals to ensure quality of outputs.
 - **Logging**: Add detailed logging for debugging and monitoring
 
 ### 4. Security Considerations

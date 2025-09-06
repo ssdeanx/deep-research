@@ -1,0 +1,632 @@
+import { createWorkflow, createStep } from '@mastra/core/workflows';
+import { z } from 'zod';
+import { researchAgent } from '../agents/researchAgent';
+import { ragAgent } from '../agents/ragAgent';
+import { reportAgent } from '../agents/reportAgent';
+import { evaluationAgent } from '../agents/evaluationAgent';
+import { learningExtractionAgent } from '../agents/learningExtractionAgent';
+import { webSummarizationAgent } from '../agents/webSummarizationAgent';
+import { logger } from '../config/logger';
+
+// --- Step 1: Get User Query ---
+const getUserQueryStep = createStep({
+  id: 'get-user-query',
+  inputSchema: z.object({}),
+  outputSchema: z.object({
+    query: z.string(),
+  }),
+  resumeSchema: z.object({
+    query: z.string(),
+  }),
+  suspendSchema: z.object({
+    message: z.object({
+      query: z.string(),
+    }),
+  }),
+  execute: async ({ resumeData, suspend }) => {
+    if (resumeData) {
+      return {
+        ...resumeData,
+        query: resumeData.query || '',
+      };
+    }
+
+    await suspend({
+      message: {
+        query: 'What would you like to research?',
+      },
+    });
+
+    return {
+      query: '',
+    };
+  },
+});
+
+// --- Step 2: Conduct Web Research ---
+const conductWebResearchStep = createStep({
+  id: 'conduct-web-research',
+  inputSchema: z.object({
+    query: z.string(),
+  }),
+  outputSchema: z.object({
+    searchResults: z.array(z.object({
+      title: z.string(),
+      url: z.string(),
+      content: z.string(),
+    })),
+    learnings: z.array(z.object({
+      learning: z.string(),
+      followUpQuestions: z.array(z.string()),
+      source: z.string(),
+    })),
+    completedQueries: z.array(z.string()),
+  }),
+  execute: async ({ inputData }) => { // Removed 'mastra' as it's unused
+    const { query } = inputData;
+    logger.info(`Starting web research for query: ${query}`);
+
+    try {
+      const result = await researchAgent.generate(
+        [
+          {
+            role: 'user',
+            content: `Research the following topic thoroughly using the two-phase process: "${query}".
+            Phase 1: Search for 2-3 initial queries about this topic
+            Phase 2: Search for follow-up questions from the learnings (then STOP)
+            Return findings in JSON format with queries, searchResults, learnings, completedQueries, and phase.`,
+          },
+        ],
+        {
+          experimental_output: z.object({
+            queries: z.array(z.string()),
+            searchResults: z.array(
+              z.object({
+                title: z.string(),
+                url: z.string(),
+                relevance: z.string().optional(), // relevance is sometimes missing
+                content: z.string(),
+              }),
+            ),
+            learnings: z.array(
+              z.object({
+                learning: z.string(),
+                followUpQuestions: z.array(z.string()),
+                source: z.string(),
+              }),
+            ),
+            completedQueries: z.array(z.string()),
+            phase: z.string().optional(),
+          }),
+        },
+      );
+
+      // Check if result.object is defined before accessing its properties
+      if (!result.object) {
+        logger.warn(`researchAgent.generate did not return an object for query: ${query}`);
+        return {
+          searchResults: [],
+          learnings: [],
+          completedQueries: [],
+        };
+      }
+
+      logger.info(`Web research completed for query: ${query}`);
+      return {
+        searchResults: result.object.searchResults,
+        learnings: result.object.learnings,
+        completedQueries: result.object.completedQueries,
+      };
+    } catch (error: any) {
+      logger.error('Error in conductWebResearchStep', { error: error.message, stack: error.stack });
+      return {
+        searchResults: [],
+        learnings: [],
+        completedQueries: [],
+      };
+    }
+  },
+});
+
+// --- Step 3: Evaluate and Extract Learnings from a single search result ---
+const evaluateAndExtractStep = createStep({
+  id: 'evaluate-and-extract',
+  inputSchema: z.object({
+    query: z.string(),
+    searchResult: z.object({
+      title: z.string(),
+      url: z.string(),
+      content: z.string(),
+    }),
+  }),
+  outputSchema: z.object({
+    isRelevant: z.boolean(),
+    reason: z.string(),
+    learning: z.string().optional(),
+    followUpQuestions: z.array(z.string()).optional(),
+    processedUrl: z.string(),
+  }),
+  execute: async ({ inputData }) => {
+    const { query, searchResult } = inputData;
+    logger.info(`Evaluating and extracting from search result: ${searchResult.url}`);
+
+    try {
+      // Evaluate relevance
+      const evaluationResult = await evaluationAgent.generate(
+        [
+          {
+            role: 'user',
+            content: `Evaluate whether this search result is relevant to the query: "${query}".
+            Search result: Title: ${searchResult.title}, URL: ${searchResult.url}, Content snippet: ${searchResult.content.substring(0, 500)}...
+            Respond with JSON { isRelevant: boolean, reason: string }`,
+          },
+        ],
+        {
+          experimental_output: z.object({
+            isRelevant: z.boolean(),
+            reason: z.string(),
+          }),
+        },
+      );
+
+      // Check if evaluationResult.object is defined
+      if (!evaluationResult.object) {
+        logger.warn(`evaluationAgent.generate did not return an object for search result: ${searchResult.url}`);
+        return {
+          isRelevant: false,
+          reason: 'Evaluation agent did not return a valid object.',
+          processedUrl: searchResult.url,
+        };
+      }
+
+      if (!evaluationResult.object.isRelevant) {
+        logger.info(`Search result not relevant: ${searchResult.url}`);
+        return {
+          isRelevant: false,
+          reason: evaluationResult.object.reason,
+          processedUrl: searchResult.url,
+        };
+      }
+
+      // Extract learnings if relevant
+      const extractionResult = await learningExtractionAgent.generate(
+        [
+          {
+            role: 'user',
+            content: `The user is researching "${query}". Extract a key learning and generate up to 1 follow-up question from this search result:
+            Title: ${searchResult.title}, URL: ${searchResult.url}, Content: ${searchResult.content.substring(0, 1500)}...
+            Respond with JSON { learning: string, followUpQuestions: string[] }`,
+          },
+        ],
+        {
+          experimental_output: z.object({
+            learning: z.string(),
+            followUpQuestions: z.array(z.string()).max(1),
+          }),
+        },
+      );
+
+      // Check if extractionResult.object is defined
+      if (!extractionResult.object) {
+        logger.warn(`learningExtractionAgent.generate did not return an object for search result: ${searchResult.url}`);
+        return {
+          isRelevant: true, // Still relevant, just no learning extracted
+          reason: 'Extraction agent did not return a valid object.',
+          learning: undefined,
+          followUpQuestions: undefined,
+          processedUrl: searchResult.url,
+        };
+      }
+
+      logger.info(`Extracted learning from: ${searchResult.url}`);
+      return {
+        isRelevant: true,
+        reason: evaluationResult.object.reason,
+        learning: extractionResult.object.learning,
+        followUpQuestions: extractionResult.object.followUpQuestions,
+        processedUrl: searchResult.url,
+      };
+    } catch (error: any) {
+      logger.error('Error in evaluateAndExtractStep', { error: error.message, stack: error.stack });
+      return {
+        isRelevant: false,
+        reason: `Error during evaluation or extraction: ${error.message}`,
+        processedUrl: searchResult.url,
+      };
+    }
+  },
+});
+
+// --- Step 4: Consolidate Research Data ---
+const consolidateResearchDataStep = createStep({
+  id: 'consolidate-research-data',
+  inputSchema: z.object({
+    allLearnings: z.array(z.object({
+      learning: z.string(),
+      followUpQuestions: z.array(z.string()),
+      source: z.string(),
+    })),
+    allRelevantContent: z.array(z.object({
+      title: z.string(),
+      url: z.string(),
+      content: z.string(),
+    })),
+    originalQuery: z.string(),
+  }),
+  outputSchema: z.object({
+    consolidatedText: z.string(),
+    allFollowUpQuestions: z.array(z.string()),
+    originalQuery: z.string(),
+  }),
+  execute: async ({ inputData }) => {
+    const { allLearnings, allRelevantContent, originalQuery } = inputData;
+    logger.info('Consolidating research data.');
+
+    const combinedLearnings = allLearnings.map(l => l.learning).join('\n\n');
+    const combinedContent = allRelevantContent.map(c => `Title: ${c.title}\nURL: ${c.url}\nContent: ${c.content}`).join('\n\n---\n\n');
+    const allFollowUpQuestions = allLearnings.flatMap(l => l.followUpQuestions);
+
+    const consolidatedText = `Original Query: ${originalQuery}\n\nLearnings:\n${combinedLearnings}\n\nRelevant Content:\n${combinedContent}`;
+
+    logger.info('Research data consolidated.');
+    return {
+      consolidatedText,
+      allFollowUpQuestions,
+      originalQuery,
+    };
+  },
+});
+
+// --- Step 5: Process with RAG and Retrieve ---
+const processAndRetrieveStep = createStep({
+  id: 'process-and-retrieve',
+  inputSchema: z.object({
+    consolidatedText: z.string(),
+    originalQuery: z.string(),
+  }),
+  outputSchema: z.object({
+    refinedContext: z.string(),
+  }),
+  execute: async ({ inputData, runtimeContext, tracingContext }) => { // Removed 'mastra' as it's unused
+    const { consolidatedText, originalQuery } = inputData;
+    logger.info('Starting RAG processing and retrieval.');
+
+    try {
+      // Chunk and upsert the consolidated research data
+      const chunkingResult = await ragAgent.tools.chunkerTool.execute({
+        context: {
+          document: {
+            content: consolidatedText,
+            type: 'text',
+            title: `Consolidated Research for: ${originalQuery}`,
+            source: 'comprehensive-workflow',
+          },
+          vectorOptions: {
+            createEmbeddings: true,
+            upsertToVector: true,
+            indexName: 'comprehensive_research_data', // Use a dedicated index for this workflow's data
+            createIndex: true,
+          },
+          outputFormat: 'detailed',
+          includeStats: true,
+        },
+        runtimeContext,
+        tracingContext,
+      });
+
+      logger.info(`Chunked and upserted ${chunkingResult.chunks.length} chunks to comprehensive_research_data index.`);
+
+      // Retrieve relevant information using rerankTool (which internally uses vectorQueryTool)
+            const rerankedResults = await ragAgent.tools.rerankTool.execute({
+              input: {
+                query: originalQuery,
+                topK: 10, // Initial retrieval count for reranking
+                finalK: 5, // Final number of results after reranking
+                // Required weights for reranking behavior
+                semanticWeight: 0.7,
+                vectorWeight: 0.3,
+                positionWeight: 0.0,
+                // Target the same index used for upserts
+                indexName: 'comprehensive_research_data',
+              },
+              context: { // Provide all required context properties matching the tool schema
+                query: originalQuery, // The query is part of the context for the tool
+                topK: 10,
+                finalK: 5,
+                semanticWeight: 0.7,
+                vectorWeight: 0.3,
+                positionWeight: 0.0,
+                indexName: 'comprehensive_research_data',
+              },
+              runtimeContext,
+              tracingContext,
+            });
+
+      const refinedContext = (rerankedResults.messages as Array<{ content: string }>).map((m) => m.content).join('\n\n');
+
+      logger.info('RAG processing and retrieval complete.');
+      return {
+        refinedContext,
+      };
+    } catch (error: any) {
+      logger.error('Error in processAndRetrieveStep:', { error: error.message, stack: error.stack });
+      return {
+        refinedContext: `Error during RAG processing: ${error.message}`,
+      };
+    }
+  },
+});
+
+// --- Step 6: Synthesize Final Content ---
+const synthesizeFinalContentStep = createStep({
+  id: 'synthesize-final-content',
+  inputSchema: z.object({
+    refinedContext: z.string(),
+    originalQuery: z.string(),
+  }),
+  outputSchema: z.object({
+    finalSynthesizedContent: z.string(),
+  }),
+  execute: async ({ inputData }) => { // Removed 'mastra' as it's unused
+    const { refinedContext, originalQuery } = inputData;
+    logger.info('Synthesizing final content.');
+
+    try {
+      const summaryResponse = await webSummarizationAgent.generate([
+        {
+          role: 'user',
+          content: `Synthesize the following refined context into a comprehensive and coherent summary, directly addressing the original query: "${originalQuery}".
+          Refined Context: ${refinedContext}`,
+        },
+      ]);
+      logger.info('Final content synthesized.');
+      return {
+        finalSynthesizedContent: summaryResponse.text,
+      };
+    } catch (error: any) {
+      logger.error('Error in synthesizeFinalContentStep:', { error: error.message, stack: error.stack });
+      return {
+        finalSynthesizedContent: `Error during content synthesis: ${error.message}`,
+      };
+    }
+  },
+});
+
+// --- Step 7: Generate Final Report ---
+const generateFinalReportStep = createStep({
+  id: 'generate-final-report',
+  inputSchema: z.object({
+    finalSynthesizedContent: z.string(),
+    originalQuery: z.string(),
+  }),
+  outputSchema: z.object({
+    report: z.string(),
+  }),
+  execute: async ({ inputData }) => { // Removed 'mastra' as it's unused
+    const { finalSynthesizedContent, originalQuery } = inputData;
+    logger.info('Generating final report.');
+
+    try {
+      const report = await reportAgent.generate([
+        {
+          role: 'user',
+          content: `Generate a comprehensive report based on the following synthesized content, addressing the original research query: "${originalQuery}".
+          Content: ${finalSynthesizedContent}`,
+        },
+      ]);
+      logger.info('Final report generated.');
+      return { report: report.text };
+    } catch (error: any) {
+      logger.error('Error generating final report:', { error: error.message, stack: error.stack });
+      return { report: `Error generating report: ${error.message}` };
+    }
+  },
+});
+
+// --- Step 8: Report Approval (Human-in-the-Loop) ---
+const reportApprovalStep = createStep({
+  id: 'report-approval',
+  inputSchema: z.object({
+    report: z.string(),
+  }),
+  outputSchema: z.object({
+    approved: z.boolean(),
+    finalReport: z.string(),
+  }),
+  resumeSchema: z.object({
+    approved: z.boolean(),
+  }),
+  suspendSchema: z.object({
+    message: z.string(),
+    reportPreview: z.string(),
+  }),
+  execute: async ({ inputData, resumeData, suspend }) => {
+    const { report } = inputData;
+    const { approved } = resumeData ?? {};
+
+    if (approved === undefined) {
+      logger.info('Suspending for report approval.');
+      await suspend({
+        message: 'Review the generated report. Do you approve it? (true/false)',
+        reportPreview: report.substring(0, 1000) + '...', // Provide a preview
+      });
+      return { approved: false, finalReport: report }; // Return initial state
+    }
+
+    logger.info(`Report approval received: ${approved}`);
+    return {
+      approved, // Use shorthand
+      finalReport: report,
+    };
+  },
+});
+
+// --- Nested Iterative Research Loop Workflow ---
+let _currentIterationCount: number;
+const iterativeResearchLoopWorkflow: any = createWorkflow({
+  id: 'iterative-research-loop',
+  inputSchema: z.object({
+    query: z.string(),
+    iterationCount: z.number().optional(),
+    allLearnings: z.array(z.any()).optional(),
+    allRelevantContent: z.array(z.any()).optional(),
+    currentFollowUpQuestions: z.array(z.string()).optional(),
+  }),
+  outputSchema: z.object({
+    allLearnings: z.array(z.any()),
+    allRelevantContent: z.array(z.any()),
+    newFollowUpQuestions: z.array(z.string()),
+    iterationCount: z.number(),
+  }),
+  steps: [conductWebResearchStep, evaluateAndExtractStep], // Declare steps used within the nested workflow
+})
+  .map(async ({ inputData }) => {
+    const { query, iterationCount = 0, allLearnings = [], allRelevantContent = [], currentFollowUpQuestions = [] } = inputData;
+    const newIterationCount = iterationCount + 1;
+    _currentIterationCount = newIterationCount;
+
+    // If this is a follow-up iteration, use the new questions
+    const researchQuery = newIterationCount > 1 && currentFollowUpQuestions.length > 0
+      ? currentFollowUpQuestions.join(' OR ')
+      : query;
+
+    logger.info(`Starting iterative research iteration ${newIterationCount} with query: ${researchQuery}`);
+
+    return {
+      query: researchQuery,
+      allLearnings,
+      allRelevantContent,
+      iterationCount: newIterationCount,
+      currentFollowUpQuestions,
+    };
+  })
+  .then(conductWebResearchStep)
+  .map(async ({ inputData }) => {
+    return inputData.searchResults; // Pass searchResults array to foreach
+  })
+  .foreach(evaluateAndExtractStep, { concurrency: 1 })
+  .map(async ({ getStepResult }) => {
+    const iterationLearnings: Array<{ learning: string; followUpQuestions: string[]; source: string }> =
+      getStepResult(conductWebResearchStep).learnings;
+    const iterationSearchResults: Array<{ title: string; url: string; content: string }> =
+      getStepResult(conductWebResearchStep).searchResults;
+
+    // Evaluation results produced by evaluateAndExtractStep (one per search result in the foreach)
+    const _rawEvaluateResults = getStepResult(evaluateAndExtractStep);
+    type EvaluateResultType = {
+      isRelevant: boolean;
+      reason?: string;
+      learning?: string;
+      followUpQuestions?: string[];
+      processedUrl?: string; // Corrected: Added processedUrl here
+    };
+    const evaluateResults: Array<EvaluateResultType> = (Array.isArray(_rawEvaluateResults) ? _rawEvaluateResults : [_rawEvaluateResults]) as Array<EvaluateResultType>;
+
+    const relevantLearnings: Array<{ learning: string; followUpQuestions: string[]; source: string }> = [];
+    const relevantContent: Array<{ title: string; url: string; content: string }> = [];
+    const newFollowUpQuestions: string[] = [];
+
+    for (const evalResult of evaluateResults) {
+      if (evalResult.isRelevant && evalResult.processedUrl) {
+        const originalSearchResult = iterationSearchResults.find(sr => sr.url === evalResult.processedUrl);
+        if (originalSearchResult) {
+          relevantContent.push(originalSearchResult);
+        }
+
+        const originalLearning = iterationLearnings.find(l => l.source === evalResult.processedUrl);
+        if (originalLearning) {
+          relevantLearnings.push(originalLearning);
+          newFollowUpQuestions.push(...(originalLearning.followUpQuestions || []));
+        }
+      }
+    }
+
+    return {
+      allLearnings: relevantLearnings,
+      allRelevantContent: relevantContent,
+      newFollowUpQuestions,
+      iterationCount: _currentIterationCount, // Corrected: Use _currentIterationCount
+    };
+  })
+  .commit();
+
+
+// --- Comprehensive Research Workflow Definition ---
+export const comprehensiveResearchWorkflow = createWorkflow({
+  id: 'comprehensive-research-workflow',
+  inputSchema: z.object({}),
+  outputSchema: z.object({
+    finalReport: z.string(),
+    approved: z.boolean(),
+  }),
+  steps: [
+    getUserQueryStep,
+    iterativeResearchLoopWorkflow, // Reference the nested workflow here
+    consolidateResearchDataStep,
+    processAndRetrieveStep,
+    synthesizeFinalContentStep,
+    generateFinalReportStep,
+    reportApprovalStep,
+  ],
+});
+
+// --- Workflow Control Flow ---
+comprehensiveResearchWorkflow
+  .then(getUserQueryStep)
+  .dowhile(
+    iterativeResearchLoopWorkflow, // Use the named nested workflow
+    async ({ inputData }) => {
+      const MAX_ITERATIONS = 3;
+      const hasNewFollowUpQuestions = inputData.newFollowUpQuestions && inputData.newFollowUpQuestions.length > 0;
+      const notMaxIterations = inputData.iterationCount < MAX_ITERATIONS;
+
+      logger.info(`Loop condition check: hasNewFollowUpQuestions=${hasNewFollowUpQuestions}, notMaxIterations=${notMaxIterations}`);
+      return hasNewFollowUpQuestions && notMaxIterations;
+    }
+  )
+  .map(async ({ getStepResult }) => {
+    const overallLearnings = getStepResult(iterativeResearchLoopWorkflow).allLearnings;
+    const overallRelevantContent = getStepResult(iterativeResearchLoopWorkflow).allRelevantContent;
+    const originalQuery = getStepResult(getUserQueryStep as any).query;
+
+    return {
+      allLearnings: overallLearnings,
+      allRelevantContent: overallRelevantContent,
+      originalQuery,
+    };
+  })
+  .then(consolidateResearchDataStep)
+  .map(async ({ inputData }) => { // inputData now contains output of consolidateResearchDataStep
+    const { consolidatedText, originalQuery } = inputData;
+    return {
+      consolidatedText,
+      originalQuery,
+    };
+  })
+  .then(processAndRetrieveStep)
+  .map(async ({ inputData, getStepResult }) => { // inputData now contains output of processAndRetrieveStep
+    const { refinedContext } = inputData;
+    const originalQuery = getStepResult(getUserQueryStep as any).query;
+    return {
+      refinedContext,
+      originalQuery,
+    };
+  })
+  .then(synthesizeFinalContentStep)
+  .map(async ({ inputData, getStepResult }) => { // inputData now contains output of synthesizeFinalContentStep
+    const { finalSynthesizedContent } = inputData;
+    const originalQuery = getStepResult(getUserQueryStep as any).query;
+    return {
+      finalSynthesizedContent,
+      originalQuery,
+    };
+  })
+  .then(generateFinalReportStep)
+  .map(async ({ inputData }) => { // inputData now contains output of generateFinalReportStep
+    const { report } = inputData;
+    return {
+      report,
+    };
+  })
+  .then(reportApprovalStep)
+  .commit();

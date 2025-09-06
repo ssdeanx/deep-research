@@ -1,6 +1,7 @@
 import { Agent } from '@mastra/core/agent';
 import { createGemini25Provider } from '../config/googleProvider';
 import { createResearchMemory } from '../config/libsql-storage';
+import { ContentSimilarityMetric, CompletenessMetric, TextualDifferenceMetric, KeywordCoverageMetric, ToneConsistencyMetric } from "@mastra/evals/nlp";
 
 const memory = createResearchMemory();
 export const learningExtractionAgent = new Agent({
@@ -19,6 +20,13 @@ export const learningExtractionAgent = new Agent({
   - Consider the original research query context when extracting insights
 
   3. Generate 1 relevant follow-up question that would deepen the research`,
+  evals: {
+    contentSimilarity: new ContentSimilarityMetric({ ignoreCase: true, ignoreWhitespace: true }),
+    completeness: new CompletenessMetric(),
+    textualDifference: new TextualDifferenceMetric(),
+    keywordCoverage: new KeywordCoverageMetric(), // Keywords will be provided at runtime for evaluation
+    toneConsistency: new ToneConsistencyMetric(),
+  },
   model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17', {
       // Response modalities - what types of content the model can generate
       responseModalities: ["TEXT"], // Can also include "IMAGE" for image generation
@@ -39,5 +47,5 @@ export const learningExtractionAgent = new Agent({
       // cachedContent: 'your-cache-id', // Uncomment if using explicit caching
       // Langfuse tracing configuration
     }),
-  memory: memory,
+  memory,
 });

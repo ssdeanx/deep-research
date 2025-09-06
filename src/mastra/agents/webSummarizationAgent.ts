@@ -1,6 +1,7 @@
 import { Agent } from '@mastra/core/agent';
 import { createGemini25Provider } from '../config/googleProvider';
 import { createResearchMemory } from '../config/libsql-storage';
+import { ContentSimilarityMetric, CompletenessMetric, TextualDifferenceMetric, KeywordCoverageMetric, ToneConsistencyMetric } from "@mastra/evals/nlp";
 
 const memory = createResearchMemory();
 
@@ -82,25 +83,32 @@ Format your summaries with:
 
 Always provide summaries that capture the core value of the web content without losing critical details.
   `,
-  model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17', {
-      // Response modalities - what types of content the model can generate
-      responseModalities: ["TEXT"], // Can also include "IMAGE" for image generation
-      // Thinking configuration for enhanced reasoning
-      thinkingConfig: {
-        thinkingBudget: 0, // -1 = dynamic budget, 0 = disabled, 1-24576 = fixed budget
-        includeThoughts: false, // Include reasoning process in response for debugging
-      },
-      // Search grounding for real-time information access
-      useSearchGrounding: true, // Enable Google Search integration for current events
-      // Dynamic retrieval configuration
-      dynamicRetrieval: true, // Let model decide when to use search grounding
-      // Safety settings level
-      safetyLevel: 'OFF', // Options: 'STRICT', 'MODERATE', 'PERMISSIVE', 'OFF'
-      // Structured outputs for better tool integration
-      structuredOutputs: true, // Enable structured JSON responses
-      // Cached content for cost optimization (if you have cached content)
-      // cachedContent: 'your-cache-id', // Uncomment if using explicit caching
-      // Langfuse tracing configuration
-    }),
-  memory: memory,
+ evals: {
+   contentSimilarity: new ContentSimilarityMetric({ ignoreCase: true, ignoreWhitespace: true }),
+   completeness: new CompletenessMetric(),
+   textualDifference: new TextualDifferenceMetric(),
+   keywordCoverage: new KeywordCoverageMetric(), // Keywords will be provided at runtime for evaluation
+   toneConsistency: new ToneConsistencyMetric(),
+ },
+ model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17', {
+     // Response modalities - what types of content the model can generate
+     responseModalities: ["TEXT"], // Can also include "IMAGE" for image generation
+     // Thinking configuration for enhanced reasoning
+     thinkingConfig: {
+       thinkingBudget: 0, // -1 = dynamic budget, 0 = disabled, 1-24576 = fixed budget
+       includeThoughts: false, // Include reasoning process in response for debugging
+     },
+     // Search grounding for real-time information access
+     useSearchGrounding: true, // Enable Google Search integration for current events
+     // Dynamic retrieval configuration
+     dynamicRetrieval: true, // Let model decide when to use search grounding
+     // Safety settings level
+     safetyLevel: 'OFF', // Options: 'STRICT', 'MODERATE', 'PERMISSIVE', 'OFF'
+     // Structured outputs for better tool integration
+     structuredOutputs: true, // Enable structured JSON responses
+     // Cached content for cost optimization (if you have cached content)
+     // cachedContent: 'your-cache-id', // Uncomment if using explicit caching
+     // Langfuse tracing configuration
+   }),
+ memory,
 });
