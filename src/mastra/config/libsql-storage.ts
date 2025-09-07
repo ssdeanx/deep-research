@@ -19,6 +19,7 @@ import {
   BayesianBeliefProcessor,
   HierarchicalMemoryProcessor
 } from "./memory-processors";
+import { RegisteredLogger } from "@mastra/core/logger";
 
 export interface TracingSpanInput {
   type: AISpanType;
@@ -386,20 +387,21 @@ export const createResearchMemory = () => {
       threads: {
       generateTitle: true, // Enable automatic title generation
       },
-    },
-    processors: [
+        },
+        processors: [
       new PersonalizationProcessor({ preferences: ['researcher'] }),
       new TokenLimiterProcessor({ maxTokens: 1000000 }),
       new CircuitBreakerProcessor({ failureThreshold: 0.5 }),
-      new CitationExtractorProcessor({ component: logger as any, name: 'citation-extractor' }),
-      new ErrorCorrectionProcessor({ component: logger as any, name: 'error-correction' }),
+      new CitationExtractorProcessor({ component: logger as unknown as RegisteredLogger, name: 'citation-extractor' }),
+      new ErrorCorrectionProcessor({ component: logger as unknown as RegisteredLogger, name: 'error-correction' }),
       new KnowledgeGraphProcessor(),
       new UncertaintyQuantificationProcessor(),
-      new TemporalReasoningProcessor(),
-      new MultiPerspectiveProcessor(),
+      new TemporalReasoningProcessor({ timeWindowHours: 24 }),
       new BayesianBeliefProcessor(),
-      new HierarchicalMemoryProcessor()
+      new HierarchicalMemoryProcessor({ threshold: 0.7 }),   // Add the new processor
+      new MultiPerspectiveProcessor({ viewpoints: ['researcher', 'analyst', 'programmer', 'designer', 'developer', 'manager', 'product_owner', 'stakeholder', 'user', 'customer'] }),
     ],
+    // ...
   });
 };
 
