@@ -366,7 +366,7 @@ export const createResearchMemory = () => {
     vector: createLibSQLVectorStore(),
     embedder: createGeminiEmbeddingModel("gemini-embedding-001"),
     options: {
-      lastMessages: 50,
+      lastMessages: 500,
       workingMemory: {
         enabled: true,
         template: `# User Research Context
@@ -380,7 +380,7 @@ export const createResearchMemory = () => {
       },
       semanticRecall: {
         topK: 5,
-        messageRange: 2,
+        messageRange: 3,
         scope: 'thread',
       },
       threads: {
