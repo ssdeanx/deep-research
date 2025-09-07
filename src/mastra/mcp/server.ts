@@ -20,21 +20,26 @@ import {
   webScraperTool,
   webSearchTool,
 } from '../tools/index';
+import { PinoLogger } from "@mastra/loggers";
 
-// #region Tool and Agent Configuration
-interface McpTool {
-  name: string;
-  description: string;
-  inputSchema: z.ZodType<any, any, any>;
-  execute: (args: any) => Promise<any>;
-}
+const logger = new PinoLogger({ level: 'info' });
+
+ // #region Tool and Agent Configuration
+ interface McpTool {
+   name: string;
+   description: string;
+   inputSchema: z.ZodTypeAny;
+   execute: (args: unknown) => Promise<unknown>;
+ }
 
 const adaptMastraTool = (tool: any): McpTool => ({
-  name: tool.id,
-  description: tool.description,
-  inputSchema: tool.inputSchema,
-  execute: async (args: any) => tool.execute({ context: args, mastra }),
-});
+   name: tool.id,
+   description: tool.description,
+   inputSchema: tool.inputSchema,
+   execute: async (args: unknown) => {
+     return await Promise.resolve(tool.execute(args, { mastra })) as Promise<unknown>;
+   },
+ });
 
 const toolRegistry: McpTool[] = [
   adaptMastraTool(chunkerTool),
@@ -84,7 +89,7 @@ const createAgentTool = (agentName: keyof typeof agentToolSchemas, description: 
     name: `${agentName}_run`,
     description,
     inputSchema: agentToolSchemas[agentName],
-    execute: async (args: any) => {
+    execute: async (args: unknown) => {
       const agent = mastra.getAgent(agentName as any);
       const result = await agent.generate([{ role: 'user', content: JSON.stringify(args) }]);
       return { content: [{ type: 'text', text: result.text || JSON.stringify(result, null, 2) }] };
@@ -147,11 +152,11 @@ server.setRequestHandler(CallToolRequestSchema, async request => {
 async function main() {
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    console.error('Mastra Deep Research MCP Server started successfully');
+    logger.info('Mastra Deep Research MCP Server started successfully');
 }
 
 main().catch(error => {
-    console.error('Failed to start MCP server:', error);
+    logger.error('Failed to start MCP server:', error);
     process.exit(1);
 });
 
