@@ -6,7 +6,19 @@ import { PinoLogger } from "@mastra/loggers";
 import { AISpanType } from '@mastra/core/ai-tracing';
 import type { RuntimeContext } from '@mastra/core/runtime-context';
 import type { UIMessage, Message } from 'ai';
-import { PersonalizationProcessor, TokenLimiterProcessor } from "./memory-processors";
+import {
+  PersonalizationProcessor,
+  TokenLimiterProcessor,
+  CircuitBreakerProcessor,
+  CitationExtractorProcessor,
+  ErrorCorrectionProcessor,
+  KnowledgeGraphProcessor,
+  UncertaintyQuantificationProcessor,
+  TemporalReasoningProcessor,
+  MultiPerspectiveProcessor,
+  BayesianBeliefProcessor,
+  HierarchicalMemoryProcessor
+} from "./memory-processors";
 
 export interface TracingSpanInput {
   type: AISpanType;
@@ -376,8 +388,17 @@ export const createResearchMemory = () => {
       },
     },
     processors: [
-      new PersonalizationProcessor(),
-      new TokenLimiterProcessor(),
+      new PersonalizationProcessor({ preferences: ['researcher'] }),
+      new TokenLimiterProcessor({ maxTokens: 1000000 }),
+      new CircuitBreakerProcessor({ failureThreshold: 0.5 }),
+      new CitationExtractorProcessor({ component: logger as any, name: 'citation-extractor' }),
+      new ErrorCorrectionProcessor({ component: logger as any, name: 'error-correction' }),
+      new KnowledgeGraphProcessor(),
+      new UncertaintyQuantificationProcessor(),
+      new TemporalReasoningProcessor(),
+      new MultiPerspectiveProcessor(),
+      new BayesianBeliefProcessor(),
+      new HierarchicalMemoryProcessor()
     ],
   });
 };
@@ -415,6 +436,7 @@ export const createReportMemory = () => {
     processors: [
       new PersonalizationProcessor(),
       new TokenLimiterProcessor(),
+      new CircuitBreakerProcessor(),
     ],
   });
 };
