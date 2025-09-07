@@ -260,9 +260,8 @@ When working with the Mastra framework:
 
 ## Import References
 
-@src/mastra/config/README.md
-@src/mastra/agents/README.md
-@src/mastra/tools/README.md
-@src/mastra/workflows/README.md
-@docs/ARCHITECTURE_DIAGRAMS.md
-@docs/API_REFERENCE.md
+@/src/mastra/index.ts
+@/src/mastra/agents/GEMINI.md
+@/src/mastra/tools/GEMINI.md
+@/src/mastra/workflows/GEMINI.md
+@GEMINI.md

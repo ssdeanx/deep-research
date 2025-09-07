@@ -456,11 +456,3 @@ When working with tools:
 
 ## Import References
 
-@src/mastra/tools/webSearchTool.ts
-@src/mastra/tools/vectorQueryTool.ts
-@src/mastra/tools/chunker-tool.ts
-@src/mastra/tools/rerank-tool.ts
-@src/mastra/tools/evaluateResultTool.ts
-@src/mastra/tools/extractLearningsTool.ts
-@docs/TOOLS_REFERENCE.md
-@docs/API_REFERENCE.md

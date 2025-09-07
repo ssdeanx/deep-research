@@ -513,8 +513,3 @@ When working with workflows:
 
 ## Import References
 
-@src/mastra/workflows/comprehensiveResearchWorkflow.ts
-@src/mastra/workflows/generateReportWorkflow.ts
-@src/mastra/workflows/researchWorkflow.ts
-@docs/WORKFLOW_IMPLEMENTATION_GUIDE.md
-@docs/API_REFERENCE.md

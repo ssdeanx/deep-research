@@ -476,7 +476,7 @@ The system has access to several MCP (Model Context Protocol) servers that provi
 - Track patterns across multiple sessions
 
 **Lotus Wisdom:**
-- Use step-by-step process: open → engage → transform → express → OUTPUT
+- Use step-by-step process (open → engage → transform → express → OUTPUT)
 - Include meditation pauses for complex problems
 - Apply multiple wisdom techniques sequentially
 - Set appropriate meditation durations (5-30 seconds)
@@ -571,8 +571,35 @@ When working with this codebase:
 
 ## Import References
 
-@docs/ARCHITECTURE_DIAGRAMS.md
-@docs/API_REFERENCE.md
-@docs/CONFIGURATION_GUIDE.md
-@src/mastra/config/README.md
-@memory/project_context.md
+## GEMINI.md Import Hierarchy
+
+### Primary GEMINI.md Files (All imported by main GEMINI.md)
+@/docs/GEMINI.md
+@/src/mastra/GEMINI.md
+@/src/mastra/agents/GEMINI.md
+@/src/mastra/tools/GEMINI.md
+@/src/mastra/workflows/GEMINI.md
+@/docs/ARCHITECTURE_DIAGRAMS.md
+@/docs/PROJECT_DOCUMENTATION.md
+
+### Supporting Documentation Files
+@README.md
+@package.json
+@.env.example
+@tsconfig.json
+@eslint.config.js
+@/templates/agent-file-template.md
+@/templates/plan-template.md
+@/templates/spec-template.md
+@/templates/task-template.md
+@/.gemini/commands/specify.toml
+@/.gemini/commands/plan.toml
+@/.gemini/commands/task.toml
+@/memory/constitution.md
+@/memory/constitution_update_checklist.md
+@/scripts/check-task-prerequisites.sh
+@/scripts/common.sh
+@/scripts/create-new-feature.sh
+@/scripts/get-feature-paths.sh
+@/scripts/setup-plan.sh
+@/scripts/update-agent-context.sh

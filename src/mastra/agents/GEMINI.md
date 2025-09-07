@@ -384,11 +384,3 @@ When working with AI agents:
 
 ## Import References
 
-@src/mastra/agents/researchAgent.ts
-@src/mastra/agents/reportAgent.ts
-@src/mastra/agents/evaluationAgent.ts
-@src/mastra/agents/learningExtractionAgent.ts
-@src/mastra/agents/webSummarizationAgent.ts
-@src/mastra/agents/ragAgent.ts
-@docs/AGENT_IMPLEMENTATION_GUIDE.md
-@docs/API_REFERENCE.md

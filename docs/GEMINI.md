@@ -198,11 +198,3 @@ When working with documentation:
 
 ## Import References
 
-@docs/ARCHITECTURE_DIAGRAMS.md
-@docs/API_REFERENCE.md
-@docs/AGENT_IMPLEMENTATION_GUIDE.md
-@docs/WORKFLOW_IMPLEMENTATION_GUIDE.md
-@docs/TOOLS_REFERENCE.md
-@docs/PERFORMANCE_OPTIMIZATION.md
-@docs/TROUBLESHOOTING_GUIDE.md
-@README.md
