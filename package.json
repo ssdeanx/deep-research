@@ -11,7 +11,16 @@
     "lint:fix": "eslint --fix .",
     "mcp:server": "tsx src/mastra/mcp/server.ts"
   },
-  "keywords": ["mastra", "ai", "research", "agent", "workflow","rag", "memory", "mcp"],
+  "keywords": [
+    "mastra",
+    "ai",
+    "research",
+    "agent",
+    "workflow",
+    "rag",
+    "memory",
+    "mcp"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ssdeanx/deep-research.git"
@@ -34,11 +43,16 @@
     "@mastra/mcp": "^0.11.4",
     "@mastra/memory": "^0.14.4",
     "@mastra/rag": "^1.2.4",
+    "@octokit/core": "^7.0.3",
+    "@octokit/types": "^14.1.0",
     "ai": "^4.3.19",
     "cheerio": "^1.1.2",
     "crawlee": "^3.14.1",
     "exa-js": "^1.9.3",
     "jose": "^6.1.0",
+    "ky": "^1.10.0",
+    "marked": "^16.2.1",
+    "octokit": "^5.0.3",
     "tsx": "^4.20.5",
     "zod": "^3.25.76"
   },
