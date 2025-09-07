@@ -11,8 +11,12 @@
     "lint:fix": "eslint --fix .",
     "mcp:server": "tsx src/mastra/mcp/server.ts"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["mastra", "ai", "research", "agent", "workflow","rag", "memory", "mcp"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ssdeanx/deep-research.git"
+  },
+  "author": "ssdeanx",
   "license": "ISC",
   "description": "Advanced AI deep research assistant using Mastra's workflows and agent capabilities. Creates an interactive, human-in-the-loop research system that allows users to explore topics, evaluate results, and generate comprehensive reports.",
   "type": "module",
