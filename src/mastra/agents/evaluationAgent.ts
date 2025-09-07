@@ -2,6 +2,11 @@ import { Agent } from '@mastra/core/agent';
 import { createGemini25Provider } from '../config/googleProvider';
 import { createResearchMemory } from '../config/libsql-storage';
 import { ContentSimilarityMetric, CompletenessMetric, TextualDifferenceMetric, KeywordCoverageMetric, ToneConsistencyMetric } from "@mastra/evals/nlp"; // Non-LLM evals
+import { PinoLogger } from "@mastra/loggers";
+
+const logger = new PinoLogger({ level: 'info' });
+
+logger.info("Initializing Evaluation Agent...");
 
 const memory = createResearchMemory();
 
@@ -34,8 +39,8 @@ export const evaluationAgent = new Agent({
       responseModalities: ["TEXT"], // Can also include "IMAGE" for image generation
       // Thinking configuration for enhanced reasoning
       thinkingConfig: {
-        thinkingBudget: 0, // -1 = dynamic budget, 0 = disabled, 1-24576 = fixed budget
-        includeThoughts: false, // Include reasoning process in response for debugging
+        thinkingBudget: -1, // -1 = dynamic budget, 0 = disabled, 1-24576 = fixed budget
+        includeThoughts: true, // Include reasoning process in response for debugging
       },
       // Search grounding for real-time information access
       useSearchGrounding: true, // Enable Google Search integration for current events

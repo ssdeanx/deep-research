@@ -5,6 +5,11 @@ import { webSearchTool } from '../tools/webSearchTool';
 import { createGemini25Provider } from '../config/googleProvider';
 import { createResearchMemory } from '../config/libsql-storage';
 import { ContentSimilarityMetric, CompletenessMetric, TextualDifferenceMetric, KeywordCoverageMetric, ToneConsistencyMetric } from "@mastra/evals/nlp";
+import { PinoLogger } from "@mastra/loggers";
+
+const logger = new PinoLogger({ level: 'info' });
+
+logger.info("Initializing Research Agent...");
 
 const memory = createResearchMemory();
 
@@ -55,7 +60,7 @@ export const researchAgent = new Agent({
    responseModalities: ["TEXT"],
    thinkingConfig: {
      thinkingBudget: -1,
-     includeThoughts: false,
+     includeThoughts: true,
    },
    useSearchGrounding: true,
    dynamicRetrieval: true,

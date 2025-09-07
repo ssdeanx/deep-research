@@ -12,6 +12,11 @@ import { webSearchTool } from '../tools/webSearchTool';
 import { createGemini25Provider } from '../config/googleProvider';
 import { createResearchMemory } from '../config/libsql-storage';
 import { ContentSimilarityMetric, CompletenessMetric, TextualDifferenceMetric, KeywordCoverageMetric, ToneConsistencyMetric } from "@mastra/evals/nlp";
+import { PinoLogger } from "@mastra/loggers";
+
+const logger = new PinoLogger({ level: 'info' });
+
+logger.info("Initializing RAG Agent...");
 
 const memory = createResearchMemory();
 
@@ -56,7 +61,7 @@ Remember: Your knowledge comes from both your training data and the information 
     responseModalities: ["TEXT"],
     thinkingConfig: {
       thinkingBudget: -1,
-      includeThoughts: false,
+      includeThoughts: true,
     },
     useSearchGrounding: false, // We use our own vector search
     dynamicRetrieval: false,
