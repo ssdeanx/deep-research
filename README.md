@@ -1,3 +1,5 @@
+# Deep Research Assistant + Graph RAG with Mastra 🚀🧠
+
 <div align="center">
   <a href="https://github.com/ssdeanx/deep-research" target="_blank" rel="noopener noreferrer">
     <!-- Custom SVG Project Logo -->
@@ -25,16 +27,21 @@
     <img src="https://img.shields.io/badge/Google%20AI-FF6B35?style=flat-square&logo=google&logoColor=white" alt="Google AI" />
     <img src="https://img.shields.io/badge/LibSQL-4479A1?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNCIgZmlsbD0iIzQ0NzlBMSIvPgo8dGV4dCB4PSIxMiIgeT0iMTYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkQ8L3RleHQ+Cjwvc3ZnPg==" alt="LibSQL" />
     <br />
-    <img src="https://img.shields.io/badge/RAG-Enabled-FF6B35?style=flat-square" alt="RAG" />
-    <img src="https://img.shields.io/badge/Vector%20Search-Enabled-4479A1?style=flat-square" alt="Vector Search" />
+    <img src="https://img.shields.io/badge/RAG-Advanced-FF6B35?style=flat-square" alt="Advanced RAG" />
+    <img src="https://img.shields.io/badge/Vector%20Search-Multi--Index-4479A1?style=flat-square" alt="Multi-Index Vector Search" />
+    <img src="https://img.shields.io/badge/Memory%20Processors-11--Specialized-9C27B0?style=flat-square" alt="Memory Processors" />
     <img src="https://img.shields.io/badge/Human--in--the--Loop-Enabled-4CAF50?style=flat-square" alt="Human-in-the-Loop" />
     <img src="https://img.shields.io/badge/MCP-Integrated-9C27B0?style=flat-square" alt="MCP" />
+    <img src="https://img.shields.io/badge/OpenTelemetry-Tracing-FF6B35?style=flat-square&logo=open-telemetry&logoColor=white" alt="OpenTelemetry" />
+    <img src="https://img.shields.io/badge/Google%20AI-Gemini%202.5-4285F4?style=flat-square&logo=google&logoColor=white" alt="Google AI Gemini 2.5" />
+    <img src="https://img.shields.io/badge/LibSQL-Dual--Database-4479A1?style=flat-square" alt="LibSQL Dual Database" />
+    <img src="https://img.shields.io/badge/Zod-Validation-FFD700?style=flat-square" alt="Zod Validation" />
   </p>
 
   <p>
     **Beyond Basic Search: Intelligent, Autonomous Research & Reporting**
     <br />
-    An cutting-edge, human-in-the-loop AI system designed for advanced deep research, leveraging Mastra's powerful orchestration, agent, and network capabilities.
+    An cutting-edge, human-in-the-loop AI system designed for advanced deep research, leveraging Mastra's powerful orchestration, agent, and network capabilities. Inspired by lotus wisdom—embracing purity of intent, enlightenment through insight, and adaptive growth—this project fosters ethical AI development, harmonious collaboration, and continuous evolution toward enlightened knowledge discovery.
   </p>
 
 ---
@@ -42,368 +49,851 @@
 <details>
   <summary>Table of Contents 🧭</summary>
   <ol>
-    <li><a href="#implementation-architecture-the-brain-behind-the-operation">Implementation Architecture: The Brain Behind the Operation</a></li>
-    <li><a href="#key-advantages-why-this-system-excels">Key Advantages: Why This System Excels</a></li>
-    <li><a href="#how-retrieval-augmented-generation-rag-works">How Retrieval-Augmented Generation (RAG) Works</a></li>
-    <li><a href="#core-components-deep-dive">Core Components: Deep Dive</a></li>
-    <li><a href="#quick-start-get-your-research-engine-running">Quick Start: Get Your Research Engine Running!</a></li>
-    <li><a href="#implementation-details-for-developers">Implementation Details for Developers</a></li>
-    <li><a href="#project-development-timeline">Project Development Timeline</a></li>
-    <li><a href="#configuration--dependencies">Configuration & Dependencies</a></li>
-    <li><a href="#comprehensive-documentation-dive-deeper">Comprehensive Documentation: Dive Deeper</a></li>
-    <li><a href="#system-architecture-at-a-glance">System Architecture at a Glance</a></li>
-    <li><a href="#contributing-to-deep-research">Contributing to Deep Research</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#architecture">Architecture</a></li>
+    <li><a href="#agents">AI Agents</a></li>
+    <li><a href="#workflows">Workflows</a></li>
+    <li><a href="#tools">Tools</a></li>
+    <li><a href="#networks">Agent Networks</a></li>
+    <li><a href="#rag-pipeline">RAG Pipeline</a></li>
+    <li><a href="#memory-processors">Memory Processors</a></li>
+    <li><a href="#tracing--observability">Tracing & Observability</a></li>
+    <li><a href="#mcp-integration">MCP Integration</a></li>
+    <li><a href="#installation">Installation</a></li>
+    <li><a href="#quick-start">Quick Start</a></li>
+    <li><a href="#usage-examples">Usage Examples</a></li>
+    <li><a href="#configuration">Configuration</a></li>
+    <li><a href="#api-reference">API Reference</a></li>
+    <li><a href="#contributing">Contributing</a></li>
     <li><a href="#license">License</a></li>
-    <li><a href="#contact">Contact</a></li>
-    <li><a href="#acknowledgments">Acknowledgments</a></li>
   </ol>
 </details>
 
 ---
 
-## 🔬 Implementation Architecture: The Brain Behind the Operation
+## Features ✨
 
-The Deep Research Assistant is meticulously crafted on Mastra's modular, scalable architecture, designed for intelligent orchestration and seamless human-AI interaction. It's built to tackle complex research challenges autonomously.
+### 🤖 Advanced AI Agents
+- **Research Agent**: Multi-phase research with web search, evaluation, and learning extraction
+- **Report Agent**: Comprehensive report generation from research data
+- **Evaluation Agent**: Content relevance and quality assessment
+- **Learning Extraction Agent**: Key insights and follow-up questions generation
+- **Web Summarization Agent**: Content condensation and synthesis
+- **RAG Agent**: Vector search and retrieval-augmented generation
 
-1.  **vNext Agent Network Orchestration 🧠**:
-    -   **Dynamic Routing**: The core intelligence, leveraging `NewAgentNetwork` to dynamically select and orchestrate specialized agents and workflows based on task requirements. It acts as a sophisticated, LLM-powered supervisor.
-    -   **Adaptive Control**: Provides a flexible, LLM-driven routing layer for complex, multi-stage tasks, adapting in real-time to research findings and user feedback.
+### 🔄 Intelligent Workflows
+- **Comprehensive Research Workflow**: End-to-end research process with human-in-the-loop approval
+- **Generate Report Workflow**: Automated report creation from research data
+- **Research Workflow**: Basic research orchestration
 
-2.  **Robust Workflow-Based Architecture ⚙️**:
-    -   **Structured Research Flows**: Utilizes `researchWorkflow` to handle the entire research lifecycle, from query formulation to data collection and preliminary analysis.
-    -   **Automated Report Generation**: Employs `generateReportWorkflow` to orchestrate iterative research cycles and the meticulous creation of comprehensive reports.
-    -   **Human-in-the-Loop Integration**: Designed for seamless human intervention with built-in suspend/resume capabilities, critical approval gates, and iterative refinement loops.
+### 🛠️ Specialized Tools
+- **Web Search Tool**: Intelligent web scraping and content extraction
+- **Vector Query Tool**: Semantic search over embedded content
+- **Chunker Tool**: Document segmentation for RAG
+- **Rerank Tool**: Result relevance optimization
+- **Evaluation Tool**: Content quality assessment
+- **Learning Extraction Tool**: Insight mining from research data
 
-3.  **Specialized Agents & Potent Tools 🛠️**:
-    -   **Agents**: Autonomous AI entities, each with a distinct area of expertise (e.g., RAG, web research, summarization, reporting).
-    -   **Tools**: Reusable, atomic functions that agents can invoke to perform specific actions (e.g., web search, vector queries, data management).
+### 🌐 Agent Networks
+- **Complex Research Network**: Multi-agent collaboration for advanced research tasks
+- **Dynamic agent communication and coordination**
+
+### 🔌 MCP Integration
+- **Model Context Protocol**: Standardized AI tool integration
+- **Extensible tool ecosystem**
+- **Real-time communication capabilities**
+
+### 📊 Advanced Capabilities
+- **Advanced RAG Pipeline**: Multi-stage retrieval with vector search, chunking, and reranking
+- **Graph RAG**: Knowledge graph-based retrieval and reasoning
+- **Vector Search**: Semantic similarity search with multiple indexes
+- **Memory Processors**: 11 specialized processors for context optimization
+- **Memory Management**: Persistent conversation context with hierarchical memory
+- **Human-in-the-Loop**: Interactive approval and refinement
+- **OpenTelemetry Tracing**: Comprehensive observability with child spans
+- **Zod Validation**: Type-safe data processing
+- **Google AI Gemini 2.5**: Advanced features with search grounding and caching
+- **LibSQL Storage**: Dual-database architecture for research and vector data
 
 ---
 
-## 🎯 Key Advantages: Why This System Excels
+## Architecture 🏗️
 
-1.  **Intelligent Orchestration with vNext Networks**: The `NewAgentNetwork` dynamically routes tasks, enabling fluid, efficient collaboration between specialized agents and workflows, leading to highly optimized problem-solving. 🚀
-2.  **True Human-in-the-Loop Research**: Empowering users to actively guide the research process, validate findings, and refine inquiries at critical junctures, ensuring outputs align perfectly with human intent and expertise. 🧑‍🔬
-3.  **Seamless Suspend/Resume Capabilities**: Workflows can intelligently pause at critical junctures, enabling external input, human review, or waiting for external events, then resume effortlessly, maintaining full state persistence across sessions and deployments. ⏳
-4.  **Structured & Modular Design**: A clear separation of concerns across `vNext Networks`, `Workflows`, `Agents`, and `Tools` guarantees exceptional maintainability, reusability, and independent upgrade paths, fostering a robust and adaptable system. 🧩
-5.  **Unwavering Resilient Operation**: Built-in robust error handling, adaptive retry mechanisms, and intelligent fallback strategies ensure continuous, reliable performance even when external services encounter transient issues or failures. 🛡️
-
----
-
-## 💡 How Retrieval-Augmented Generation (RAG) Works
-
-Our system leverages **Retrieval-Augmented Generation (RAG)** to provide highly accurate and contextually relevant responses. Instead of relying solely on the LLM's pre-trained knowledge, RAG dynamically retrieves up-to-date information from a vast knowledge base and integrates it into the generation process. This approach minimizes hallucinations and ensures responses are grounded in verifiable data.
-
-```mermaid
-graph TD
-    A[User Query] --> B{Retrieve Relevant Information}
-    B --> C[Vector Database]
-    C --> D[Document Chunks]
-    D -- Contextual Data --> E[LLM Augmentation]
-    E --> F[Generate Grounded Response]
-    F --> G[Answer to User]
 ```
-*   **User Query**: The process begins with a user's question or request.
-*   **Retrieve Relevant Information**: The system performs a semantic search within its vast vector database using the user's query. This retrieves document chunks most relevant to the query.
-*   **Vector Database**: Our system utilizes a high-performance vector database to store embeddings of all ingested knowledge (documents, web content, learnings, reports).
-*   **Document Chunks**: Relevant sections or "chunks" of documents are retrieved based on their semantic similarity to the query.
-*   **LLM Augmentation**: The retrieved document chunks provide real-time, external knowledge to the Large Language Model (LLM). This context "augments" the LLM's understanding, allowing it to generate more informed responses.
-*   **Generate Grounded Response**: The LLM synthesizes the retrieved information with its own capabilities to produce a comprehensive and accurate answer.
-*   **Answer to User**: The final, grounded response is delivered to the user.
+┌─────────────────────────────────────────────────────────────────────┐
+│                     Deep Research System                            │
+├─────────────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐ │
+│  │   Agents    │  │  Workflows  │  │   Tools     │  │   Memory    │ │
+│  │             │  │             │  │             │  │ Processors  │ │
+│  │ • Research  │  │ • Research  │  │ • Web       │  │ • Token     │ │
+│  │ • Report    │  │ • Report    │  │ • Vector    │  │ • Personal  │ │
+│  │ • Evaluation│  │ • Generate  │  │ • Chunking  │  │ • Error     │ │
+│  │ • Learning  │  │ • Complex   │  │ • Rerank    │  │ • Circuit   │ │
+│  │ • RAG       │  │             │  │ • MCP       │  │ • Bayesian  │ │
+│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘ │
+├─────────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────┐ │
+│  │   RAG Pipeline  │  │   Storage   │  │   Networks  │  │ Tracing │ │
+│  │                 │  │             │  │             │  │         │ │
+│  │ • Vector Search │  │ • LibSQL    │  │ • Complex   │  │ • Open  │ │
+│  │ • Chunking      │  │ • Vector DB │  │ • Research  │  │ • Tel   │ │
+│  │ • Reranking     │  │ • Dual DB   │  │ • Multi-    │  │ • Child │ │
+│  │ • Graph RAG     │  │ • Graph DB  │  │ • Agent     │  │ • Spans │ │
+│  └─────────────────┘  └─────────────┘  └─────────────┘  └─────────┘ │
+├─────────────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐ │
+│  │   AI/ML     │  │ Integration │  │   APIs      │  │   Caching   │ │
+│  │             │  │             │  │             │  │             │ │
+│  │ • Google AI │  │ • MCP       │  │ • REST      │  │ • Explicit  │ │
+│  │ • Gemini 2.5│  │ • WebSocket │  │ • GraphQL   │  │ • Implicit  │ │
+│  │ • Embeddings│  │ • OpenTel   │  │ • Streaming │  │ • Search    │ │
+│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Core Components
+
+#### 🤖 AI Agents
+Specialized AI assistants with specific roles and capabilities:
+- **Research Agent**: Handles web research, evaluation, and learning extraction
+- **Report Agent**: Generates comprehensive reports from research data
+- **Evaluation Agent**: Assesses content relevance and quality
+- **Learning Extraction Agent**: Extracts key insights and generates follow-up questions
+- **Web Summarization Agent**: Condenses and synthesizes web content
+- **RAG Agent**: Manages vector search and retrieval-augmented generation
+
+#### 🔄 Workflows
+Orchestrated sequences of operations:
+- **Comprehensive Research Workflow**: Complete research pipeline with human approval
+- **Generate Report Workflow**: Automated report creation
+- **Research Workflow**: Basic research orchestration
+
+#### 🛠️ Tools
+Specialized utilities for specific tasks:
+- **Web Search Tool**: Intelligent web content discovery
+- **Vector Query Tool**: Semantic search capabilities
+- **Chunker Tool**: Document segmentation for RAG
+- **Rerank Tool**: Result optimization
+- **Evaluation Tool**: Content assessment
+- **Learning Extraction Tool**: Insight mining
+
+#### 🌐 Networks
+Multi-agent collaboration systems:
+- **Complex Research Network**: Advanced multi-agent research coordination
+
+#### 🧠 Memory Processors
+Advanced context optimization with 11 specialized processors:
+- **TokenLimiterProcessor**: Filters messages exceeding token limits
+- **PersonalizationProcessor**: Boosts user-relevant messages
+- **ErrorCorrectionProcessor**: Deduplicates content via checksum
+- **HierarchicalMemoryProcessor**: Filters episodic vs semantic content
+- **CitationExtractorProcessor**: Prioritizes messages with citations
+- **MultiPerspectiveProcessor**: Scores messages from multiple viewpoints
+- **TemporalReasoningProcessor**: Handles time-based relationships
+- **UncertaintyQuantificationProcessor**: Assigns confidence scores
+- **KnowledgeGraphProcessor**: Builds knowledge graphs
+- **BayesianBeliefProcessor**: Implements Bayesian belief updating
+- **CircuitBreakerProcessor**: Provides fault tolerance
+
+#### 🔍 RAG Pipeline
+Multi-stage retrieval and generation system:
+- **Vector Search**: Semantic similarity search with multiple indexes
+- **Chunking**: Intelligent document segmentation with overlap
+- **Reranking**: Result relevance optimization
+- **Graph RAG**: Knowledge graph-based reasoning
+- **Hybrid Search**: Combines vector and keyword search
+- **Context Augmentation**: Dynamic context retrieval and ranking
+
+#### 📊 Tracing & Observability
+Comprehensive monitoring with OpenTelemetry:
+- **Child Spans**: Detailed operation tracking
+- **Performance Metrics**: Processing time and resource usage
+- **Error Tracking**: Comprehensive error monitoring
+- **Health Checks**: System health monitoring
+- **Cost Tracking**: API usage and cost optimization
 
 ---
 
-## 🔬 Core Components: Deep Dive
+## Agents 🤖
 
-This project is powered by a suite of specialized Mastra components working in concert:
+### Research Agent
+Conducts thorough multi-phase research with web search, content evaluation, and learning extraction.
 
-### **Agents 🤖**
-Autonomous AI entities designed for specific research and analytical tasks. Each agent is a specialized expert, equipped with unique instructions and a set of tools to achieve its objectives.
+**Capabilities:**
+- Multi-phase research process (initial + follow-up)
+- Web search integration
+- Content relevance evaluation
+- Learning extraction and synthesis
+- Follow-up question generation
 
-*   **`ragAgent`**: Specializes in Retrieval-Augmented Generation (RAG), seamlessly blending internal knowledge from vector stores with LLM capabilities for accurate and contextual responses.
-*   **`researchAgent`**: Conducts multi-phase web research, intelligently breaking down complex queries, performing targeted web searches via `webSearchTool`, evaluating result relevance with `evaluateResultTool`, and extracting key learnings using `extractLearningsTool`.
-*   **`reportAgent`**: An expert in synthesizing complex research data into comprehensive, well-structured, and presentable reports, often leveraging markdown for rich formatting. Features advanced tracing with OpenTelemetry spans and performance metrics.
-*   **`webSummarizationAgent`**: Focuses on optimizing token usage by generating concise and informative summaries of extensive web content, ensuring critical information is retained.
-*   **`evaluationAgent`**: Assesses the relevance and quality of search results and extracted information, providing crucial feedback for research refinement.
-*   **`learningExtractionAgent`**: Extracts critical insights and generates intelligent follow-up questions from diverse content sources, helping to identify knowledge gaps.
+### Report Agent
+Generates comprehensive, well-structured reports from research data.
 
-### **Workflows ⚙️**
-Orchestrated sequences of steps, enabling complex, multi-stage processes with built-in control flow, error handling, and human-in-the-loop capabilities. Workflows define the blueprint for automated research and reporting.
+**Capabilities:**
+- Research data synthesis
+- Structured report generation
+- Markdown formatting
+- Executive summaries
+- Detailed analysis sections
 
-*   **`researchWorkflow`**: Guides users through an interactive research process, from initial query formulation to data collection and preliminary analysis. It includes suspend/resume points for human feedback and approval.
-*   **`generateReportWorkflow`**: Manages the end-to-end process of iterative research and report generation, incorporating user approvals, agent collaboration, and conditional logic to produce final reports.
-*   **`comprehensiveResearchWorkflow`**: Advanced end-to-end workflow combining iterative research, RAG processing, content synthesis, and comprehensive report generation with human-in-the-loop approval.
+### Evaluation Agent
+Assesses content quality, relevance, and usefulness for research purposes.
 
-### **Tools 🔧**
-Reusable, atomic functions that agents and workflows can invoke to interact with external systems or perform specific data operations. Tools extend the capabilities of the AI system, connecting it to the real world.
+**Capabilities:**
+- Relevance scoring
+- Content quality assessment
+- Source credibility evaluation
+- Recency analysis
+- Comprehensive evaluation metrics
 
-*   **`webSearchTool`**: Performs intelligent web searches using the Exa API, efficiently retrieving and often summarizing web content.
-*   **`vectorQueryTool`**: Executes semantic searches and retrieves relevant content from configured vector stores based on query embeddings. Features advanced tracing with multiple child spans for comprehensive observability.
-*   **`chunkerTool`**: Provides advanced document chunking across various formats (text, HTML, PDF, etc.), enabling efficient processing for vector embeddings and RAG.
-*   **`graphRAGTool`**: Facilitates graph-based Retrieval-Augmented Generation, exploring relationships within structured knowledge graphs.
-*   **`rerankTool`**: Optimizes search results by re-ranking them based on multiple relevance criteria, improving the quality of retrieved information.
-*   **`dataFileManager`**: Handles file system operations for data input, output, and management, allowing agents to interact with local files.
-*   **`webScraperTool`**: Directly extracts and processes content from specified web pages, bypassing search engine summaries for deeper analysis.
-*   **`weatherTool`**: Retrieves real-time weather information, useful for context-aware research or scenario planning.
-*   **`evaluateResultTool`**: Delegates to `evaluationAgent` to assess the relevance and quality of search results, ensuring high-quality data input.
-*   **`extractLearningsTool`**: Delegates to `learningExtractionAgent` to extract key insights and generate follow-up questions from diverse content sources.
+### Learning Extraction Agent
+Extracts key insights, patterns, and follow-up questions from research content.
+
+**Capabilities:**
+- Key learning identification
+- Pattern recognition
+- Follow-up question generation
+- Content categorization
+- Insight synthesis
+
+### Web Summarization Agent
+Condenses lengthy web content into actionable summaries while preserving critical information.
+
+**Capabilities:**
+- Content analysis and categorization
+- Intelligent summarization (80-95% reduction)
+- Key insight preservation
+- Source context maintenance
+- Token optimization
+
+### RAG Agent
+Manages vector search and retrieval-augmented generation for enhanced context and responses.
+
+**Capabilities:**
+- Vector embedding generation
+- Semantic similarity search
+- Context retrieval and ranking
+- Knowledge augmentation
+- Memory integration
 
 ---
 
-## 🚀 Quick Start: Get Your Research Engine Running!
+## Workflows 🔄
 
+### Comprehensive Research Workflow
+End-to-end research pipeline with human-in-the-loop approval.
+
+**Process:**
+1. **Query Input**: Interactive user query collection
+2. **Web Research**: Multi-phase research execution
+3. **Content Evaluation**: Relevance and quality assessment
+4. **Learning Extraction**: Key insights and follow-up questions
+5. **Data Consolidation**: Research data synthesis
+6. **RAG Processing**: Vector search and retrieval
+7. **Content Synthesis**: Final content generation
+8. **Report Creation**: Comprehensive report generation
+9. **Human Approval**: Interactive approval workflow
+
+### Generate Report Workflow
+Automated report generation from research data.
+
+**Features:**
+- Research data processing
+- Structured report formatting
+- Content organization
+- Executive summaries
+- Detailed analysis sections
+
+### Research Workflow
+Basic research orchestration for simpler use cases.
+
+**Capabilities:**
+- Query processing
+- Web search execution
+- Basic result evaluation
+- Simple report generation
+
+---
+
+## Tools 🛠️
+
+### Web Search Tool
+Intelligent web content discovery and extraction.
+
+**Features:**
+- Advanced web scraping
+- Content relevance filtering
+- Source credibility assessment
+- Structured data extraction
+- Rate limiting and error handling
+
+### Vector Query Tool
+Semantic search over embedded content.
+
+**Capabilities:**
+- Vector similarity search
+- Content ranking and scoring
+- Multi-index support
+- Query optimization
+- Result filtering and sorting
+
+### Chunker Tool
+Document segmentation for RAG applications.
+
+**Features:**
+- Intelligent text segmentation
+- Overlap configuration
+- Metadata preservation
+- Format support (text, markdown, HTML)
+- Chunk size optimization
+
+### Rerank Tool
+Result relevance optimization and ranking.
+
+**Capabilities:**
+- Multi-criteria ranking
+- Semantic relevance scoring
+- Position-based weighting
+- Custom ranking algorithms
+- Performance optimization
+
+### Evaluation Tool
+Content quality and relevance assessment.
+
+**Features:**
+- Multi-dimensional evaluation
+- Scoring algorithms
+- Quality metrics
+- Relevance assessment
+- Automated evaluation pipelines
+
+### Learning Extraction Tool
+Insight mining from research data.
+
+**Capabilities:**
+- Pattern recognition
+- Key learning identification
+- Follow-up question generation
+- Content categorization
+- Insight synthesis and organization
+
+---
+
+## Networks 🌐
+
+### Complex Research Network
+Advanced multi-agent collaboration system for complex research tasks.
+
+**Features:**
+- Multi-agent coordination
+- Dynamic task distribution
+- Inter-agent communication
+- Collaborative problem-solving
+- Network optimization
+- Scalable architecture
+
+---
+
+## MCP Integration 🔌
+
+### Model Context Protocol
+Standardized integration with AI tools and services.
+
+**Capabilities:**
+- Tool discovery and registration
+- Real-time communication
+- Standardized interfaces
+- Extensible architecture
+- Cross-platform compatibility
+
+### MCP Server
+Custom MCP server implementation for enhanced tool integration.
+
+**Features:**
+- Tool registration and management
+- Real-time communication channels
+- Error handling and recovery
+- Performance monitoring
+- Security and authentication
+
+---
+
+## RAG Pipeline 🔍
+
+### Advanced Retrieval-Augmented Generation System
+
+The system implements a sophisticated multi-stage RAG pipeline with the following components:
+
+#### Vector Search & Indexing
+- **Multiple Vector Indexes**: Separate indexes for research documents, web content, learnings, and reports
+- **Semantic Similarity**: Advanced embedding-based search with configurable similarity thresholds
+- **Hybrid Search**: Combines vector similarity with keyword-based search for optimal results
+- **Index Management**: Automatic index creation, optimization, and health monitoring
+
+#### Document Processing Pipeline
+- **Intelligent Chunking**: Overlapping text segmentation with metadata preservation
+- **Content Extraction**: Advanced parsing for various document formats (PDF, HTML, markdown)
+- **Metadata Enrichment**: Automatic extraction of titles, authors, dates, and content categories
+- **Quality Filtering**: Content validation and relevance scoring
+
+#### Retrieval & Ranking
+- **Multi-stage Retrieval**: Initial broad search followed by focused reranking
+- **Context Augmentation**: Dynamic context window expansion based on query complexity
+- **Relevance Scoring**: Multi-criteria ranking combining semantic similarity, recency, and authority
+- **Deduplication**: Intelligent removal of redundant information
+
+#### Graph RAG Integration
+- **Knowledge Graph Construction**: Automatic relationship extraction and graph building
+- **Graph-based Reasoning**: Path finding and relationship traversal for complex queries
+- **Entity Resolution**: Named entity recognition and disambiguation
+- **Temporal Reasoning**: Time-based relationship analysis and event sequencing
+
+---
+
+## Memory Processors 🧠
+
+### Advanced Context Optimization System
+
+The system features 11 specialized memory processors designed to optimize context management and information retrieval:
+
+#### Core Processing Categories
+
+**Content Optimization:**
+- **TokenLimiterProcessor**: Prevents context overflow by filtering messages exceeding token limits
+- **ErrorCorrectionProcessor**: Eliminates duplicate content using checksum-based deduplication
+- **CircuitBreakerProcessor**: Provides fault tolerance and prevents cascading failures
+
+**Semantic Enhancement:**
+- **PersonalizationProcessor**: Boosts relevance of user-specific content and preferences
+- **HierarchicalMemoryProcessor**: Distinguishes between episodic and semantic memory content
+- **CitationExtractorProcessor**: Prioritizes messages containing citations and references
+
+**Advanced Reasoning:**
+- **MultiPerspectiveProcessor**: Evaluates content from multiple analytical viewpoints
+- **TemporalReasoningProcessor**: Handles time-based relationships and chronological ordering
+- **UncertaintyQuantificationProcessor**: Assigns confidence scores to information reliability
+
+**Knowledge Integration:**
+- **KnowledgeGraphProcessor**: Constructs and maintains knowledge graphs from conversation data
+- **BayesianBeliefProcessor**: Implements probabilistic reasoning for belief updating
+
+#### Performance Optimizations
+- **WeakMap Caching**: Efficient memory usage with garbage collection-friendly caching
+- **Pre-compiled Regex**: Optimized pattern matching for content analysis
+- **SIMD-like Processing**: Batch processing optimizations for token estimation
+- **Lazy Evaluation**: Deferred computation with memoization for expensive operations
+
+---
+
+## Tracing & Observability 📊
+
+### Comprehensive Monitoring System
+
+The system implements advanced observability using OpenTelemetry for complete system monitoring:
+
+#### Tracing Infrastructure
+- **OpenTelemetry Integration**: Industry-standard tracing with vendor-neutral APIs
+- **Child Spans**: Detailed operation tracking with hierarchical span relationships
+- **Distributed Tracing**: End-to-end request tracking across all system components
+- **Custom Span Attributes**: Rich metadata for debugging and performance analysis
+
+#### Performance Monitoring
+- **Processing Time Tracking**: Detailed timing for all operations and workflows
+- **Resource Usage Metrics**: Memory, CPU, and I/O utilization monitoring
+- **API Call Tracking**: Request/response monitoring with error classification
+- **Cache Hit Analysis**: Explicit and implicit caching performance metrics
+
+#### Error Tracking & Diagnostics
+- **Comprehensive Error Monitoring**: Structured error logging with context
+- **Exception Propagation**: Error tracking through the entire call stack
+- **Failure Pattern Analysis**: Automated detection of recurring issues
+- **Health Check Integration**: System health monitoring with automated recovery
+
+#### Cost Optimization
+- **API Usage Tracking**: Detailed cost analysis for external API calls
+- **Cache Efficiency Metrics**: Cost savings calculations for cached content
+- **Resource Optimization**: Identification of performance bottlenecks
+- **Usage Analytics**: Historical usage patterns and trend analysis
+
+---
+
+## Installation 📦
+
+### Prerequisites
+- Node.js 20.9+
+- npm or pnpm
+- Google AI API key
+- Database URL (LibSQL)
+
+### Setup
 ```bash
-# 📥 Install project dependencies
+# Clone the repository
+git clone https://github.com/ssdeanx/deep-research.git
+cd deep-research
+
+# Install dependencies
 npm install
 
-# ▶️ Launch the deep research assistant
+# Copy environment file
+cp .env.example .env
+
+# Configure environment variables
+# Edit .env with your API keys and configuration
+```
+
+### Environment Configuration
+```env
+# Google AI Configuration
+GOOGLE_GENERATIVE_AI_API_KEY=your_google_ai_api_key
+
+# Database Configuration
+DATABASE_URL=file:./mastra.db
+
+# Optional: Additional API keys
+EXA_API_KEY=your_exa_api_key
+
+# Logging and Monitoring
+LOG_LEVEL=info
+```
+
+---
+
+## Quick Start 🚀
+
+### Basic Usage
+```typescript
+import { mastra } from './src/mastra';
+
+// Start comprehensive research workflow
+const workflow = mastra.getWorkflow('comprehensive-research-workflow');
+const run = await workflow.createRunAsync();
+
+const result = await run.start({
+  inputData: {}
+});
+
+// Handle workflow suspension for user input
+if (result.status === 'suspended') {
+  // Resume with user query
+  const resumeResult = await run.resume({
+    step: 'get-user-query',
+    resumeData: { query: 'quantum computing advancements' }
+  });
+}
+```
+
+### Using Individual Agents
+```typescript
+// Research agent example
+const researchAgent = mastra.getAgent('researchAgent');
+const researchResult = await researchAgent.generate([
+  { role: 'user', content: 'Research AI advancements in healthcare' }
+]);
+
+// Report generation
+const reportAgent = mastra.getAgent('reportAgent');
+const report = await reportAgent.generate([
+  { role: 'user', content: `Generate report from: ${researchResult.text}` }
+]);
+```
+
+### MCP Integration
+```bash
+# Start MCP server
+npm run mcp:server
+
+# The server will be available for MCP-compatible clients
+```
+
+---
+
+## Usage Examples 📚
+
+### Complete Research Pipeline
+```typescript
+import { mastra } from './src/mastra';
+
+async function conductResearch(query: string) {
+  // Initialize workflow
+  const workflow = mastra.getWorkflow('comprehensive-research-workflow');
+  const run = await workflow.createRunAsync();
+
+  // Start research process
+  let result = await run.start({ inputData: {} });
+
+  // Handle user query input
+  if (result.status === 'suspended') {
+    result = await run.resume({
+      step: 'get-user-query',
+      resumeData: { query }
+    });
+  }
+
+  // Process through research phases
+  // (additional resume calls for other suspension points)
+
+  // Get final result
+  if (result.status === 'success') {
+    return result.output;
+  }
+}
+```
+
+### Custom Agent Usage
+```typescript
+// Custom research with specific parameters
+const researchAgent = mastra.getAgent('researchAgent');
+
+const result = await researchAgent.generate([
+  {
+    role: 'user',
+    content: `Conduct deep research on: ${topic}
+    Focus areas: ${focusAreas.join(', ')}
+    Depth level: ${depth}
+    Include sources from: ${sources.join(', ')}`
+  }
+], {
+  // Custom generation options
+  temperature: 0.7,
+  maxTokens: 4000
+});
+```
+
+### Tool Integration
+```typescript
+// Direct tool usage
+const webSearchTool = mastra.getTool('webSearch');
+const searchResults = await webSearchTool.execute({
+  context: {
+    query: 'artificial intelligence trends 2024',
+    limit: 10
+  }
+});
+
+// Vector search
+const vectorTool = mastra.getTool('vectorQuery');
+const vectorResults = await vectorTool.execute({
+  context: {
+    query: 'machine learning algorithms',
+    topK: 5,
+    indexName: 'research-data'
+  }
+});
+```
+
+---
+
+## Configuration ⚙️
+
+### Agent Configuration
+```typescript
+// Custom agent configuration
+const customResearchAgent = new Agent({
+  name: 'Custom Research Agent',
+  instructions: 'Custom research instructions...',
+  model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17', {
+    responseModalities: ["TEXT"],
+    thinkingConfig: {
+      thinkingBudget: -1,
+      includeThoughts: false,
+    },
+    useSearchGrounding: true,
+    dynamicRetrieval: true,
+    safetyLevel: 'OFF',
+    structuredOutputs: true,
+  }),
+  tools: [webSearchTool, evaluateResultTool],
+  memory: createResearchMemory(),
+});
+```
+
+### Workflow Configuration
+```typescript
+// Custom workflow configuration
+const customWorkflow = createWorkflow({
+  id: 'custom-research-workflow',
+  inputSchema: z.object({
+    query: z.string(),
+    depth: z.enum(['shallow', 'medium', 'deep'])
+  }),
+  outputSchema: z.object({
+    results: z.array(z.any()),
+    summary: z.string()
+  })
+})
+.then(searchStep)
+.then(analyzeStep)
+.commit();
+```
+
+### Storage Configuration
+```typescript
+// Advanced LibSQL storage with dual databases
+import { createLibSQLStore } from './src/mastra/config/libsql-storage';
+
+const storage = createLibSQLStore({
+  tracingContext: {
+    context: {},
+    runtimeContext: {
+      userId: 'user123',
+      sessionId: 'session456'
+    }
+  }
+});
+
+// Vector search configuration
+const vectorSearch = {
+  researchDocuments: {
+    indexName: 'research_documents',
+    dimensions: 1536,
+    metric: 'cosine'
+  },
+  webContent: {
+    indexName: 'web_content',
+    dimensions: 1536,
+    metric: 'cosine'
+  },
+  learnings: {
+    indexName: 'learnings',
+    dimensions: 1536,
+    metric: 'cosine'
+  }
+};
+```
+
+### Memory Processor Configuration
+```typescript
+// Advanced memory configuration with specialized processors
+import { createMemoryWithProcessors } from './src/mastra/config/memory-processors';
+
+const memory = createMemoryWithProcessors({
+  storage,
+  processors: [
+    new TokenLimiterProcessor({ maxTokens: 4000 }),
+    new PersonalizationProcessor({ userId: 'user123' }),
+    new ErrorCorrectionProcessor({ enableChecksum: true }),
+    new CircuitBreakerProcessor({ failureThreshold: 5 }),
+    new BayesianBeliefProcessor({ confidenceThreshold: 0.8 }),
+    new KnowledgeGraphProcessor({ enableRelationships: true })
+  ],
+  options: {
+    lastMessages: 100,
+    semanticRecall: {
+      topK: 10,
+      threshold: 0.7
+    }
+  }
+});
+```
+
+### Google AI Configuration
+```typescript
+// Advanced Google AI configuration with Gemini 2.5 features
+import { createMastraGoogleProvider } from './src/mastra/config/googleProvider';
+
+const googleModel = createMastraGoogleProvider('gemini-2.5-flash-lite-preview-06-17', {
+  useSearchGrounding: true,
+  dynamicRetrieval: true,
+  cachedContent: 'cached-research-context',
+  safetyLevel: 'MODERATE',
+  structuredOutputs: true
+});
+
+// Explicit caching setup
+const cacheManager = createCacheManager();
+const cachedModel = await createCachedGoogleModel('gemini-2.5-flash-preview-05-20', {
+  cacheManager,
+  cacheContents: [{ role: 'user', parts: [{ text: 'Research context...' }] }],
+  cacheTtlSeconds: 300
+});
+```
+
+---
+
+## API Reference 📖
+
+### Core Classes
+
+#### Mastra
+Main application class managing agents, workflows, and tools.
+
+**Methods:**
+- `getAgent(name: string): Agent`
+- `getWorkflow(name: string): Workflow`
+- `getTool(name: string): Tool`
+- `getStorage(): Storage`
+
+#### Agent
+AI agent with specific capabilities and tools.
+
+**Methods:**
+- `generate(messages: Message[], options?: GenerateOptions): Promise<GenerateResult>`
+- `stream(messages: Message[], options?: StreamOptions): Promise<StreamResult>`
+
+#### Workflow
+Orchestrated sequence of operations.
+
+**Methods:**
+- `createRunAsync(): Promise<WorkflowRun>`
+- `start(inputData: any): Promise<WorkflowResult>`
+- `resume(step: string, resumeData: any): Promise<WorkflowResult>`
+
+### Tool Interface
+Standardized tool interface for extensibility.
+
+**Methods:**
+- `execute(context: ToolContext): Promise<ToolResult>`
+
+---
+
+## Contributing 🤝
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Development Setup
+```bash
+# Fork and clone
+git clone https://github.com/your-username/deep-research.git
+cd deep-research
+
+# Install dependencies
+npm install
+
+# Set up development environment
+cp .env.example .env
+# Configure your environment variables
+
+# Run tests
+npm test
+
+# Start development server
 npm run dev
 ```
 
-### Interactive Research Flow: Your Guide to Discovery
-
-Follow the intuitive prompts to navigate your research journey:
-
-1.  **Define Your Quest**: Enter your research topic to initiate the process. 🔍
-2.  **Review Insights**: Examine the AI-generated research findings and extracted learnings. 📊
-3.  **Guide the AI**: Approve the research to proceed, or reject to refine and iterate. 👍👎
-4.  **Final Deliverable**: Upon approval, a comprehensive, well-structured report will be meticulously generated and returned as your output. 📜
-
----
-
-## 🧑‍💻 Implementation Details for Developers
-
-This section provides a deeper dive into the codebase for developers looking to extend, customize, or understand the internals of the Mastra Deep Research Assistant.
-
-### Codebase Structure 📂
-
-The core logic of the project resides in the `src/mastra/` directory, organized into distinct, modular components:
-
-*   **`src/mastra/networks/`**: Contains the `NewAgentNetwork` definitions, responsible for orchestrating the overall flow and routing tasks to the appropriate agents and workflows. This is where the high-level intelligence resides.
-*   **`src/mastra/agents/`**: Houses the specialized AI agents, each designed for a specific task (e.g., `ragAgent`, `researchAgent`, `reportAgent`). Each agent is a self-contained unit with its instructions, model configuration, and tools.
-*   **`src/mastra/workflows/`**: Defines the automated processes and multi-step operations (e.g., `researchWorkflow`, `generateReportWorkflow`). These orchestrate sequences of agent and tool calls, often incorporating human-in-the-loop steps.
-*   **`src/mastra/tools/`**: Contains reusable utility functions that agents and workflows can invoke. These tools interact with external APIs (like web search) or perform specific data manipulations (like chunking).
-*   **`src/mastra/config/`**: Holds configuration files for AI providers (e.g., Google Gemini), storage (LibSQL), and logging.
-*   **`src/mastra/mcp/`**: Contains the Model Context Protocol (MCP) server implementation, allowing external clients to interact with Mastra agents, workflows, and tools.
-
-### Extending the System 🚀
-
-Adding new capabilities to the Deep Research Assistant is designed to be straightforward:
-
-*   **Adding a New Agent**:
-    1.  Create a new `.ts` file in `src/mastra/agents/`.
-    2.  Define a new `Agent` instance, specifying its `name`, `instructions`, `model`, and the `tools` it can use.
-    3.  Consider its `memory` configuration: either define it locally (for standalone use) or rely on externally provided memory from a `vNext Network` or workflow.
-    4.  **Time Estimate**: Typically **1-3 hours** for a basic agent, plus time for instruction tuning and testing.
-
-*   **Creating a Custom Tool**:
-    1.  Create a new `.ts` file in `src/mastra/tools/`.
-    2.  Use `createTool` to define its `id`, `description`, `inputSchema`, `outputSchema`, and the `execute` function containing its logic (e.g., API calls, data processing).
-    3.  **Time Estimate**: **30 minutes to 2 hours** for a tool interacting with a simple API, more for complex logic.
-
-*   **Developing a New Workflow**:
-    1.  Create a new `.ts` file in `src/mastra/workflows/`.
-    2.  Use `createWorkflow` to define its `id`, `inputSchema`, `outputSchema`, and chain together `createStep` calls (which can wrap agents or tools) using `.then()`, `.parallel()`, `.branch()`, or looping constructs.
-    3.  **Time Estimate**: **2-8 hours** depending on complexity and number of steps/conditional logic.
-
-*   **Integrating into the `vNext Network`**:
-    1.  Import your new agent, tool, or workflow into `src/mastra/networks/complexResearchNetwork.ts`.
-    2.  Add it to the `agents` or `workflows` object within the `NewAgentNetwork` configuration.
-    3.  Update the `instructions` of the `NewAgentNetwork` to describe when and how the new component should be used.
-    4.  **Time Estimate**: **15-30 minutes** for integration once the component is ready.
-
-### Testing and Debugging 🐛
-
-*   **Unit Tests**: Individual agents, tools, and workflow steps can be tested in isolation.
-*   **Integration Tests**: Test the interactions between agents and tools, or the full execution path of a workflow.
-*   **Logging**: Utilize the configured logger (`src/mastra/config/logger.ts`) for detailed insights into execution flow and debugging.
-*   **Observability**: Monitor agent and workflow performance using built-in metrics and tracing capabilities.
-
----
-
-## 🗓️ Project Development Timeline
-
-This Gantt chart illustrates a simplified timeline for the development phases of the Deep Research Assistant, starting from today's date (September 5, 2025).
-
-```mermaid
-gantt
-    dateFormat  YYYY-MM-DD
-    title Project Development Phases
-
-    todayMarker stroke-width:2px,stroke:#FF0000,opacity:0.75
-
-    section Phase 1: Foundation & Core AI
-    Setup Environment           :done,    des1, 2025-09-05, 7d
-    Implement Basic Agents      :done,    des2, after des1, 14d
-    Integrate Core Tools        :done,    des3, after des2, 10d
-    LibSQL Storage Setup        :done,    des4, after des3, 7d
-
-    section Phase 2: Orchestration & RAG
-    Develop Workflows           :active,  des5, after des4, 21d
-    Implement vNext Networks    :active,  des6, after des5, 14d
-    Integrate RAG Flow          :active,  des7, after des6, 10d
-    Initial Documentation       :des8, after des7, 7d
-
-    section Phase 3: Refinement & Expansion
-    Advanced Agent Features     :des9, after des8, 14d
-    Performance Optimization    :des10, after des9, 10d
-    Comprehensive Testing       :des11, after des10, 14d
-    Final Documentation Sync    :des12, after des11, 7d
-    Deployment Preparation      :des13, after des12, 5d
-```
-
----
-
-## ⚙️ Configuration & Dependencies
-
-### Required Environment Variables 🔑
-
-Create a `.env` file in the project root with your API keys and database configuration:
-
-```bash
-# Database Configuration
-DATABASE_URL="file:./deep-research.db"  # Main storage database
-DATABASE_AUTH_TOKEN=""  # For Turso cloud (leave empty for local)
-
-# Vector Database Configuration
-VECTOR_DATABASE_URL="file:./vector-store.db"  # Separate vector database
-
-# AI Providers
-GOOGLE_GENERATIVE_AI_API_KEY="your-google-api-key" # Essential for AI model inference
-
-# Search
-EXA_API_KEY="your-exa-api-key"  # Powers intelligent web search capabilities
-```
-
-### Core Project Dependencies 📦
-
-This project relies on the following robust libraries:
-
--   `@mastra/core`: The foundational framework for Mastra's agent, workflow, and network functionalities.
--   `@ai-sdk/google`: Integrates seamlessly with Google Gemini models for powerful AI capabilities.
--   `exa-js`: Provides an efficient client for the Exa API, enabling advanced web search.
--   `zod`: Ensures data integrity and validation through concise schema definitions.
--   `@mastra/libsql`: Facilitates robust data persistence and vector database operations using LibSQL.
-
----
-
-## 📚 Comprehensive Documentation: Dive Deeper
-
-Explore the detailed documentation for a profound understanding of the project's internals and advanced functionalities:
-
-*   [**Advanced Mastra Features**](docs/ADVANCED_MASTRA_FEATURES.md) 🌟 - Delve into cutting-edge capabilities like `streamVNext` and advanced memory.
-*   [**Agent Implementation Guide**](docs/AGENT_IMPLEMENTATION_GUIDE.md) 🤖 - Learn how to build, configure, and optimize specialized AI agents.
-*   [**Agent Memory Best Practices**](docs/AGENT_MEMORY_BEST_PRACTICES.md) 🧠 - Master strategies for effective agent memory management and persistence.
-*   [**API Reference**](docs/API_REFERENCE.md) 📖 - A complete guide to all classes, methods, and types in the system.
-*   [**Example: Upsert Embeddings & RAG**](docs/Example%20Upsert%20Embeddings%20%20RAG%20%20Mastra%20Docs.md) 📊 - Practical examples for integrating RAG with vector embeddings.
-*   [**Future Work Roadmap**](docs/FUTURE_WORK_ROADMAP.md) 🗺️ - Discover planned enhancements and future directions for the project.
-*   [**Integration Patterns**](docs/INTEGRATION_PATTERNS.md) 🔗 - Best practices for integrating with external APIs and services.
-*   [**MCP Integration**](docs/MCP_INTEGRATION.md) 🤝 - A guide to integrating with the Model Context Protocol.
-*   [**Performance Optimization Guide**](docs/PERFORMANCE_OPTIMIZATION.md) ⚡ - Strategies for enhancing system performance and efficiency.
-*   [**Project Documentation Overview**](docs/PROJECT_DOCUMENTATION.md) 📝 - A high-level overview of the entire system's architecture and components.
-*   [**Storage & Vector Database Guide**](docs/STORAGE_VECTOR_DATABASE.md) 💾 - Deep dive into data persistence and semantic search capabilities.
-*   [**Storage in Mastra**](docs/Storage%20in%20Mastra%20%20Mastra%20Docs.md) 🗄️ - General overview of Mastra's storage system.
-*   [**Tools Reference Guide**](docs/TOOLS_REFERENCE.md) 🔧 - Comprehensive documentation for all specialized tools.
-*   [**Troubleshooting Guide**](docs/TROUBLESHOOTING_GUIDE.md) 🐛 - Common issues and solutions for smooth operation.
-*   [**Workflow Implementation Guide**](docs/WORKFLOW_IMPLEMENTATION_GUIDE.md) ⚙️ - Patterns for building robust and scalable workflows.
-
----
-
-## System Architecture at a Glance 🗺️
-
-```mermaid
-graph TD
-    %% Define Nodes with custom shapes and styling
-    A[User/Client Application]:::user_app
-    B(Mastra Instance):::mastra_instance
-    C{vNext Agent Network}:::orchestration_layer
-    D[Workflows]:::orchestration_layer
-    E[Agents]:::core_ai
-    F[Tools]:::tools
-    G[Memory]:::data_storage
-    H[Storage]:::data_storage
-    I[Vector Store]:::data_storage
-    J[Configuration]:::config
-
-    %% Define connections (flows)
-    A -- Initiates Task --> B;
-    B -- Orchestrates --> C;
-    C -- Delegates to --> D;
-    C -- Directs/Utilizes --> E;
-    D -- Executes Steps/Calls --> E;
-    E -- Utilizes --> F;
-    F -- Interacts with --> G;
-    G -- Persists/Retrieves --> H;
-    H -- Manages Embeddings --> I;
-    J -- Configures --> B;
-    J -- Configures --> E;
-    J -- Configures --> F;
-    J -- Configures --> G;
-
-    %% Define subgraphs for logical grouping
-    subgraph User Interface
-        A
-    end
-
-    subgraph Orchestration & Control
-        B
-        C
-        D
-    end
-
-    subgraph Core AI Processing
-        E
-        F
-    end
-
-    subgraph Data & Knowledge Base
-        G
-        H
-        I
-        J
-    end
-
-    %% Apply CSS classes for visual differentiation
-    classDef user_app fill:#E0F7FA,stroke:#00BCD4,stroke-width:2px;
-    classDef mastra_instance fill:#FFFDE7,stroke:#FFEB3B,stroke-width:2px;
-    classDef orchestration_layer fill:#F3E5F5,stroke:#9C27B0,stroke-width:2px;
-    classDef core_ai fill:#E8F5E9,stroke:#4CAF50,stroke-width:2px;
-    classDef tools fill:#FBE9E7,stroke:#FF5722,stroke-width:2px;
-    classDef data_storage fill:#E3F2FD,stroke:#2196F3,stroke-width:2px;
-    classDef config fill:#FCE4EC,stroke:#E91E63,stroke-width:2px;
-
-    %% Link styling (optional, can be done globally or per link)
-    linkStyle default stroke:darkgrey,stroke-width:1.5px,fill:none,stroke-dasharray: 5 5;
-```
-
----
-
-## Contributing to Deep Research 🤝
-
-We welcome contributions to this project! Whether you're fixing bugs, adding new features, or improving documentation, your efforts are greatly appreciated. Please see our [Contribution Guidelines](CONTRIBUTING.md) for more details.
+### Code Standards
+- TypeScript for type safety
+- ESLint for code quality
+- Prettier for code formatting
+- Comprehensive test coverage
+- Clear documentation
 
 ---
 
 ## License 📄
 
-Distributed under the ISC License. See `LICENSE` for more information.
-
----
-
-## Contact 📧
-
-Have questions, suggestions, or just want to connect?
-
-*   **Email**: [your.email@example.com](mailto:your.email@example.com)
-*   **GitHub Issues**: [Open an Issue](https://github.com/your-username/your-repo-name/issues)
+This project is licensed under the ISC License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
 ## Acknowledgments 🙏
 
-This project is built upon the incredible work of the open-source community. We extend our gratitude to:
+- **Mastra Framework**: For the powerful AI orchestration capabilities
+- **Google AI**: For the Gemini models and AI services
+- **LibSQL**: For the high-performance database solution
+- **OpenTelemetry**: For observability and tracing
+- **Zod**: For runtime type validation
 
-*   [Mastra Framework](https://www.mastra.ai/)
-*   [shields.io](https://shields.io/) for the awesome badges.
-*   [othneildrew/Best-README-Template](https://github.com/othneildrew/Best-README-Template) for the excellent README template inspiration.
-*   [matiassingers/awesome-readme](https://github.com/matiassingers/awesome-readme) for the curated list of inspiring READMEs.
+---
+
+*Built with ❤️ using Mastra, Google AI, and modern web technologies. Inspired by the pursuit of enlightened knowledge discovery through ethical AI development.*
