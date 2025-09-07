@@ -1,6 +1,8 @@
 import { createWorkflow, createStep } from '@mastra/core/workflows';
 import { z } from 'zod';
+import { PinoLogger } from "@mastra/loggers";
 
+const logger = new PinoLogger({ level: 'info' });
 // Step 1: Get user query
 const getUserQueryStep = createStep({
   id: 'get-user-query',
@@ -96,11 +98,12 @@ const researchStep = createStep({
         researchData: result.object,
         summary,
       };
-    } catch (error: any) {
-      console.log({ error });
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('Error in researchStep', { error: err.message, stack: err.stack });
       return {
-        researchData: { error: error.message },
-        summary: `Error: ${error.message}`,
+        researchData: { error: err.message },
+        summary: `Error: ${err.message}`,
       };
     }
   },

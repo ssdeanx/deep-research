@@ -782,13 +782,13 @@ export async function searchMemoryMessages(
       foundMessages: relevantMessages.length
     });
 
-    const uiMessages = relevantMessages.map((m) => {
+    const uiMessages = relevantMessages.map((m: Message & { threadId?: string }) => {
       return {
         id: m.id,
         role: m.role,
         content: m.content,
         createdAt: m.createdAt,
-        threadId: (m as any).threadId,
+        threadId: m.threadId,
       } as unknown as UIMessage;
     });
 

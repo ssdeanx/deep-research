@@ -1,5 +1,8 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
+import { PinoLogger } from "@mastra/loggers";
+
+const logger = new PinoLogger({ level: 'info' });
 
 export const extractLearningsTool = createTool({
   id: 'extract-learnings',
@@ -44,11 +47,14 @@ export const extractLearningsTool = createTool({
         },
       );
 
-      console.log('Learning extraction response:', response.object);
+      logger.info('Learning extraction response', { result: response.object });
 
       return response.object;
     } catch (error) {
-      console.error('Error extracting learnings:', error);
+      logger.error('Error extracting learnings', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return {
         learning: 'Error extracting information',
         followUpQuestions: [],

@@ -1,6 +1,9 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { researchWorkflow } from './researchWorkflow';
 import { z } from 'zod';
+import { PinoLogger } from "@mastra/loggers";
+
+const logger = new PinoLogger({ level: 'info' });
 
 // Map research output to report input and handle conditional logic
 const processResearchResultStep = createStep({
@@ -18,13 +21,13 @@ const processResearchResultStep = createStep({
     const approved = inputData.approved && !!inputData.researchData;
 
     if (!approved) {
-      console.log('Research not approved or incomplete, ending workflow');
+      logger.info('Research not approved or incomplete, ending workflow');
       return { completed: false };
     }
 
     // If approved, generate report
     try {
-      console.log('Generating report...');
+      logger.info('Generating report...');
       const agent = mastra.getAgent('reportAgent');
       const response = await agent.generate([
         {
@@ -33,10 +36,10 @@ const processResearchResultStep = createStep({
         },
       ]);
 
-      console.log('Report generated successfully!');
+      logger.info('Report generated successfully!');
       return { report: response.text, completed: true };
     } catch (error) {
-      console.error('Error generating report:', error);
+      logger.error('Error generating report', { error });
       return { completed: false };
     }
   },

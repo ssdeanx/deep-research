@@ -21,7 +21,9 @@ import {
   createVectorIndex,
   VectorStoreError,
   STORAGE_CONFIG,
-  searchMemoryMessages
+  searchMemoryMessages,
+  TracingSpanInput,
+  SpanEndInput
 } from '../config/libsql-storage';
 //import { pinecone } from '../pinecone';
 import { createGeminiEmbeddingModel } from '../config/googleProvider';
@@ -125,7 +127,13 @@ export const graphRAGUpsertTool = createTool({
   execute: async ({ input, runtimeContext, tracingContext }: ToolExecutionContext<typeof upsertInputSchema> & {
     input: z.infer<typeof upsertInputSchema>;
     runtimeContext?: RuntimeContext<GraphRAGRuntimeContext>;
-    tracingContext?: any;
+    tracingContext?: {
+      currentSpan?: {
+        createChildSpan(input: TracingSpanInput): { end(options: SpanEndInput): void };
+      };
+      context?: unknown;
+      runtimeContext?: RuntimeContext<unknown>;
+    };
   }): Promise<z.infer<typeof upsertOutputSchema>> => {
     const startTime = Date.now();
 
@@ -379,7 +387,13 @@ export const graphRAGQueryTool = createTool({
   execute: async ({ input, runtimeContext, tracingContext, memory }: ToolExecutionContext<typeof queryInputSchema> & {
     input: z.infer<typeof queryInputSchema>;
     runtimeContext?: RuntimeContext<GraphRAGRuntimeContext>;
-    tracingContext?: any;
+    tracingContext?: {
+      currentSpan?: {
+        createChildSpan(input: TracingSpanInput): { end(options: SpanEndInput): void };
+      };
+      context?: unknown;
+      runtimeContext?: RuntimeContext<unknown>;
+    };
     memory?: Memory;
   }): Promise<z.infer<typeof queryOutputSchema>> => {
     const startTime = Date.now();

@@ -1,15 +1,16 @@
 import { NewAgentNetwork } from '@mastra/core/network/vNext';
-import { Memory } from '@mastra/memory';
-import { LibSQLStore } from '@mastra/libsql';
 import { createGemini25Provider } from '../config/googleProvider';
 import { createResearchMemory } from '../config/libsql-storage';
-
 import { ragAgent } from '../agents/ragAgent';
 import { researchAgent } from '../agents/researchAgent';
 import { reportAgent } from '../agents/reportAgent';
-
 import { researchWorkflow } from '../workflows/researchWorkflow';
 import { generateReportWorkflow } from '../workflows/generateReportWorkflow';
+import { PinoLogger } from "@mastra/loggers";
+
+const logger = new PinoLogger({ level: 'info' });
+
+logger.info('Complex Research Network initialized');
 
 const memory = createResearchMemory();
 
@@ -36,7 +37,7 @@ export const complexResearchNetwork = new NewAgentNetwork({
     responseModalities: ["TEXT"],
     thinkingConfig: {
       thinkingBudget: -1,
-      includeThoughts: false,
+      includeThoughts: true,
     },
     useSearchGrounding: true,
     dynamicRetrieval: true,
@@ -52,5 +53,5 @@ export const complexResearchNetwork = new NewAgentNetwork({
     researchWorkflow,
     generateReportWorkflow,
   },
-  memory: memory,
+  memory,
 });

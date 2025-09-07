@@ -1,5 +1,8 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
+import { PinoLogger } from "@mastra/loggers";
+
+const logger = new PinoLogger({ level: 'info' });
 
 export const evaluateResultTool = createTool({
   id: 'evaluate-result',
@@ -18,7 +21,7 @@ export const evaluateResultTool = createTool({
   execute: async ({ context, mastra }) => {
     try {
       const { query, result, existingUrls = [] } = context;
-      console.log('Evaluating result', { context });
+      logger.info('Evaluating result', { context });
 
       // Check if URL already exists (only if existingUrls was provided)
       if (existingUrls && existingUrls.includes(result.url)) {
@@ -56,7 +59,10 @@ export const evaluateResultTool = createTool({
 
       return response.object;
     } catch (error) {
-      console.error('Error evaluating result:', error);
+      logger.error('Error evaluating result:', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return {
         isRelevant: false,
         reason: 'Error in evaluation',

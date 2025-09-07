@@ -379,6 +379,11 @@ export const chunkerTool = createTool({
 
       if (validatedInput.vectorOptions?.createEmbeddings || validatedInput.vectorOptions?.upsertToVector) {
         // Conditional tracing span for vector processing if tracing is enabled
+        interface TracingChildSpanOptions {
+          type: AISpanType;
+          name: string;
+          input?: Record<string, unknown>;
+        }
         const vectorProcessingSpan = tracingContext?.currentSpan ? tracingContext.currentSpan.createChildSpan({
           type: AISpanType.GENERIC,
           name: 'vector_processing',
@@ -387,7 +392,7 @@ export const chunkerTool = createTool({
             upsertToVector: validatedInput.vectorOptions?.upsertToVector,
             chunkCount: chunks.length
           }
-        } as any) : undefined;
+        } as TracingChildSpanOptions) : undefined;
         logger.info('Starting vector processing for chunks', {
           createEmbeddings: validatedInput.vectorOptions?.createEmbeddings,
           upsertToVector: validatedInput.vectorOptions?.upsertToVector,
@@ -407,7 +412,6 @@ export const chunkerTool = createTool({
         });
 
         let vectorsUpserted = 0;
-
         // Upsert to vector store if requested
         if (validatedInput.vectorOptions?.upsertToVector) {
           let indexName = validatedInput.vectorOptions.indexName || STORAGE_CONFIG.VECTOR_INDEXES.RESEARCH_DOCUMENTS;

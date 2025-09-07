@@ -64,7 +64,13 @@ export const rerankTool = createTool({
   execute: async ({ input, runtimeContext, tracingContext, memory }: ToolExecutionContext<typeof rerankInputSchema> & {
     input: z.infer<typeof rerankInputSchema>;
     runtimeContext?: RuntimeContext<RerankRuntimeContext>;
-    tracingContext?: any;
+    tracingContext?: {
+      currentSpan?: {
+        createChildSpan(input: { type: AISpanType; name: string; input?: Record<string, unknown> }): { end(options: { output?: Record<string, unknown>; metadata?: Record<string, unknown> }): void };
+      };
+      context?: unknown;
+      runtimeContext?: RuntimeContext<unknown>;
+    };
   }): Promise<z.infer<typeof rerankOutputSchema>> => {
     const startTime = Date.now();
 
@@ -103,7 +109,7 @@ export const rerankTool = createTool({
           indexName: searchIndex,
           topK: validatedInput.topK
         }
-      } as any) : undefined;
+      }) : undefined;
       // First, get more results than needed for reranking using the vectorQueryTool
       const initialResults = await vectorQueryTool.execute({
         context: {
@@ -191,7 +197,7 @@ export const rerankTool = createTool({
             finalK: validatedInput.finalK,
             model: modelPreference
           }
-        } as any) : undefined;
+        }) : undefined;
 
         if (rerankSpan) {
           rerankSpan.end({

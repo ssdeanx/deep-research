@@ -31,10 +31,10 @@ import {
   searchMemoryMessages // Import searchMemoryMessages
 } from '../config/libsql-storage';
 import { createGeminiEmbeddingModel } from '../config/googleProvider';
-import type { UIMessage } from 'ai';
 import { PinoLogger } from '@mastra/loggers';
 import { embedMany } from 'ai';
 import { Memory } from '@mastra/memory'; // Import Memory
+import type { UIMessage, Message } from 'ai';
 
 // Define runtime context type for vector query tools
 export interface VectorQueryRuntimeContext {
@@ -199,32 +199,32 @@ export const enhancedVectorQueryTool = createTool({
         });
 
         // Transform searchMemoryMessages results to match our schema
-        messages.forEach((message: any) => {
+        messages.forEach((message: Message) => {
           results.push({
             id: message.id,
             content: message.content,
             score: 1.0, // searchMemoryMessages doesn't return score, assume perfect match
             metadata: {
               role: message.role,
-              threadId: message.threadId,
+              threadId: validatedInput.threadId,
               createdAt: message.createdAt,
               // Add other relevant metadata from message if available
             },
-            threadId: message.threadId,
+            threadId: validatedInput.threadId,
           });
         });
 
-        uiMessages.forEach((uiMessage: UIMessage & { threadId?: string }) => { // Assert UIMessage can have threadId
+        uiMessages.forEach((uiMessage: UIMessage) => {
           results.push({
             id: uiMessage.id,
             content: typeof uiMessage.content === 'string' ? uiMessage.content : JSON.stringify(uiMessage.content),
             score: 1.0, // searchMemoryMessages doesn't return score, assume perfect match
             metadata: {
               role: uiMessage.role,
-              threadId: uiMessage.threadId,
+              threadId: validatedInput.threadId,
               // Add other relevant metadata from uiMessage if available
             },
-            threadId: uiMessage.threadId,
+            threadId: validatedInput.threadId,
           });
         });
 
