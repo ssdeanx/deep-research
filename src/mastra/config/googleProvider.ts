@@ -96,7 +96,9 @@ export type GoogleModelCacheableId =
   | 'gemini-2.5-flash-preview-05-20'   // Your GEMINI_2_5_FLASH
   | 'gemini-2.5-flash-lite-preview-06-17' // Your GEMINI_2_5_FLASH_LITE
   | 'gemini-2.5-pro'            // Standard API format
-  | 'gemini-2.5-flash'          // Standard API format
+  | 'gemini-2.5-flash'
+  | 'gemini-2.5-flash-lite'
+  | 'gemini-2.5-flash-image-preview'
   | 'gemini-2.0-flash'
   | 'gemini-1.5-flash-001'
   | 'gemini-1.5-pro-001';
@@ -125,6 +127,8 @@ export const baseGoogleModel = (
     safetyLevel?: 'STRICT' | 'MODERATE' | 'PERMISSIVE' | 'OFF';
     cachedContent?: string;
     structuredOutputs?: boolean;
+    functionCalling?: boolean;
+    codeExecution?: boolean; // Enable code execution for models that support it
     // Langfuse tracing options
     agentName?: string;
     tags?: string[];
@@ -138,6 +142,8 @@ export const baseGoogleModel = (
     safetyLevel = 'MODERATE',
     cachedContent,
     structuredOutputs = true,
+    functionCalling = false,
+    codeExecution = false,
     // Langfuse tracing options
     agentName,
     tags = [],
@@ -152,6 +158,8 @@ export const baseGoogleModel = (
     dynamicRetrieval,
     safetyLevel,
     structuredOutputs,
+    functionCalling,
+    codeExecution,
     agentName,
     traceName
   });
@@ -251,14 +259,14 @@ export function createGemini25Provider(
       thinkingBudget?: number;
       includeThoughts?: boolean;
     };
-
+    mediaResolution?: 'OFF' | 'MEDIA_RESOLUTION_LOW' | 'MEDIA_RESOLUTION_MEDIUM' // This allows more higher quality output per token but will cost most overall
     // Response modalities (for backward compatibility)
     responseModalities?: ('TEXT' | 'IMAGE')[];
-
+    codeExecution?: boolean; // Enable code execution for models that support it
     // Search and grounding
     useSearchGrounding?: boolean;
     dynamicRetrieval?: boolean;
-
+    functionCalling?: boolean;
     // Content and caching
     cachedContent?: string;
 
@@ -268,12 +276,13 @@ export function createGemini25Provider(
   } = {}
 ) {
   // Extract the thinking and response modality options (for backward compatibility)
-  const { thinkingConfig, responseModalities, ...baseOptions } = options;
+  const { thinkingConfig, responseModalities, mediaResolution, ...baseOptions } = options;
 
   logger.debug('Creating Gemini 2.5 provider', {
     modelId,
     hasThinkingConfig: !!thinkingConfig,
     responseModalities,
+    mediaResolution
   });
 
   // Note: thinkingConfig and responseModalities should ideally be used in providerOptions
@@ -559,6 +568,8 @@ export function supportsExplicitCaching(modelId: string): modelId is GoogleModel
     // Standard API format models
     'gemini-2.5-pro',
     'gemini-2.5-flash',
+    'gemini-2.5-flash-lite',
+    'gemini-2.5-flash-image-preview',
     'gemini-2.0-flash',
     'gemini-1.5-flash-001',
     'gemini-1.5-pro-001'

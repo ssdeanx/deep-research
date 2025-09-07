@@ -7,10 +7,14 @@ import { reportAgent } from './agents/reportAgent';
 import { researchAgent } from './agents/researchAgent';
 import { webSummarizationAgent } from './agents/webSummarizationAgent';
 import { generateReportWorkflow } from './workflows/generateReportWorkflow';
-//import { comprehensiveResearchWorkflow } from './workflows/comprehensiveResearchWorkflow';
+import { comprehensiveResearchWorkflow } from './workflows/comprehensiveResearchWorkflow';
 import { complexResearchNetwork } from './networks/complexResearchNetwork';
 import { ragAgent } from './agents/ragAgent';
+import { PinoLogger } from "@mastra/loggers";
 
+const logger = new PinoLogger({ level: 'info' });
+
+logger.info('Starting Mastra application')
 
 export const mastra = new Mastra({
   storage: new LibSQLStore({
@@ -22,9 +26,9 @@ export const mastra = new Mastra({
     evaluationAgent,
     learningExtractionAgent,
     webSummarizationAgent,
-    ragAgent
+    ragAgent,
   },
-  workflows: { generateReportWorkflow, researchWorkflow },
+  workflows: { generateReportWorkflow, researchWorkflow, comprehensiveResearchWorkflow },
   vnext_networks: {
     complexResearchNetwork,
   },

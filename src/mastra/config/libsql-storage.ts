@@ -6,6 +6,7 @@ import { PinoLogger } from "@mastra/loggers";
 import { AISpanType } from '@mastra/core/ai-tracing';
 import type { RuntimeContext } from '@mastra/core/runtime-context';
 import type { UIMessage, Message } from 'ai';
+import { PersonalizationProcessor, TokenLimiterProcessor } from "./memory-processors";
 
 export interface TracingSpanInput {
   type: AISpanType;
@@ -374,6 +375,10 @@ export const createResearchMemory = () => {
       generateTitle: true, // Enable automatic title generation
       },
     },
+    processors: [
+      new PersonalizationProcessor(),
+      new TokenLimiterProcessor(),
+    ],
   });
 };
 
@@ -407,6 +412,10 @@ export const createReportMemory = () => {
       generateTitle: true, // Enable automatic title generation
       },
     },
+    processors: [
+      new PersonalizationProcessor(),
+      new TokenLimiterProcessor(),
+    ],
   });
 };
 
