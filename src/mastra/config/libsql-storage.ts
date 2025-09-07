@@ -398,7 +398,7 @@ export const createResearchMemory = () => {
       new UncertaintyQuantificationProcessor(),
       new TemporalReasoningProcessor({ timeWindowHours: 24 }),
       new BayesianBeliefProcessor(),
-      new HierarchicalMemoryProcessor({ threshold: 0.7 }),   // Add the new processor
+      new HierarchicalMemoryProcessor({ threshold: 0.7 }),
       new MultiPerspectiveProcessor({ viewpoints: ['researcher', 'analyst', 'programmer', 'designer', 'developer', 'manager', 'product_owner', 'stakeholder', 'user', 'customer'] }),
     ],
     // ...
