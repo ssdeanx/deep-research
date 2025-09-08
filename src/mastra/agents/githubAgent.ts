@@ -44,3 +44,4 @@ export const githubAgent = new Agent({
   },
   memory,
 });
+logger.info('GitHub Agent initialized successfully');
