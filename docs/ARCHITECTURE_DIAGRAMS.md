@@ -446,6 +446,63 @@
 - **Workflow Orchestration**: Integration with research and reporting workflows
 - **External Exposure**: MCP protocol for seamless integration with external tools
 
+## New Agent Architecture
+
+### Monitor Agent Architecture
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   System        │    │   Performance   │    │   Health        │
+│   Monitoring    │───►│   Analysis      │───►│   Assessment    │
+│                 │    │                 │    │                 │
+│ • Resource      │    │ • Metrics       │    │ • Status        │
+│ • Performance   │    │ • Trends        │    │ • Alerts        │
+│ • Error Logs    │    │ • Anomalies     │    │ • Reports       │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+
+**Key Components:**
+- **Resource Monitor**: CPU, memory, disk, network tracking
+- **Performance Analyzer**: Response times, throughput, bottlenecks
+- **Error Detector**: Log analysis, exception patterns, failure modes
+- **Health Assessor**: System status, dependency checks, recovery suggestions
+
+### Planning Agent Architecture
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Requirements  │    │   Project       │    │   Resource      │
+│   Analysis      │───►│   Planning      │───►│   Allocation    │
+│                 │    │                 │    │                 │
+│ • Scope         │    │ • Timeline      │    │ • Task Assign   │
+│ • Constraints   │    │ • Milestones    │    │ • Scheduling    │
+│ • Dependencies  │    │ • Risk Assess   │    │ • Optimization  │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+
+**Key Components:**
+- **Requirements Processor**: Scope definition, constraint analysis
+- **Planning Engine**: Timeline creation, milestone setting, dependency mapping
+- **Resource Manager**: Task allocation, scheduling optimization, capacity planning
+
+### Quality Assurance Agent Architecture
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Test Planning │    │   Quality       │    │   Defect        │
+│   & Strategy    │───►│   Assessment    │───►│   Analysis      │
+│                 │    │                 │    │                 │
+│ • Test Cases    │    │ • Metrics       │    │ • Root Cause    │
+│ • Coverage      │    │ • Standards     │    │ • Prevention    │
+│ • Automation    │    │ • Compliance    │    │ • Trends        │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+
+**Key Components:**
+- **Test Coordinator**: Test planning, case design, automation setup
+- **Quality Analyzer**: Metrics tracking, standard compliance, risk assessment
+- **Defect Investigator**: Root cause analysis, pattern identification, prevention strategies
+
 ---
 
 *These architecture diagrams represent the current system design as of the latest implementation. Each diagram shows different aspects of the system architecture, from high-level component interactions to detailed data flows and deployment considerations.*

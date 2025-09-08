@@ -1042,7 +1042,88 @@ io.on('connection', (socket) => {
 
 ---
 
-*This comprehensive agent implementation guide provides detailed patterns and examples for building robust, scalable AI agents in the Mastra Deep Research System, covering everything from basic agent creation to advanced patterns like agent networks and real-time monitoring.*</file>
+*This comprehensive agent implementation guide provides detailed patterns and examples for building robust, scalable AI agents in the Mastra Deep Research System, covering everything from basic agent creation to advanced patterns like agent networks and real-time monitoring.*
+
+## New Specialized Agents
+
+### Monitor Agent
+
+**Purpose**: Expert monitoring and observability specialist focused on proactive system health management.
+
+```typescript
+import { Agent } from '@mastra/core/agent';
+import { readDataFileTool, writeDataFileTool, listDataDirTool, searchDataFilesTool, getDataFileInfoTool } from '../tools/data-file-manager';
+import { webScraperTool } from '../tools/web-scraper-tool';
+import { evaluateResultTool } from '../tools/evaluateResultTool';
+import { extractLearningsTool } from '../tools/extractLearningsTool';
+import { createGemini25Provider } from '../config/googleProvider';
+import { createResearchMemory } from '../config/libsql-storage';
+import { ContentSimilarityMetric, CompletenessMetric, TextualDifferenceMetric, KeywordCoverageMetric, ToneConsistencyMetric } from "@mastra/evals/nlp";
+
+export const monitorAgent = new Agent({
+  name: 'Monitor Agent',
+  instructions: `You are an expert monitoring and observability specialist focused on proactive system health management...`,
+  evals: {
+    contentSimilarity: new ContentSimilarityMetric({ ignoreCase: true, ignoreWhitespace: true }),
+    completeness: new CompletenessMetric(),
+    textualDifference: new TextualDifferenceMetric(),
+    keywordCoverage: new KeywordCoverageMetric(),
+    toneConsistency: new ToneConsistencyMetric(),
+  },
+  model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17', {
+    responseModalities: ["TEXT"],
+    thinkingConfig: {
+      thinkingBudget: -1,
+      includeThoughts: true,
+    },
+    useSearchGrounding: true,
+    dynamicRetrieval: true,
+    safetyLevel: 'OFF',
+    structuredOutputs: true,
+  }),
+  tools: {
+    readDataFileTool,
+    writeDataFileTool,
+    listDataDirTool,
+    searchDataFilesTool,
+    getDataFileInfoTool,
+    webScraperTool,
+    evaluateResultTool,
+    extractLearningsTool,
+  },
+  memory: createResearchMemory(),
+});
+```
+
+### Planning Agent
+
+**Purpose**: Expert strategic planning and project management specialist.
+
+```typescript
+import { Agent } from '@mastra/core/agent';
+// ... imports for planning agent tools and configuration
+
+export const planningAgent = new Agent({
+  name: 'Planning Agent',
+  instructions: `You are an expert strategic planning and project management specialist...`,
+  // ... planning agent configuration
+});
+```
+
+### Quality Assurance Agent
+
+**Purpose**: Expert quality assurance and testing specialist.
+
+```typescript
+import { Agent } from '@mastra/core/agent';
+// ... imports for QA agent tools and configuration
+
+export const qualityAssuranceAgent = new Agent({
+  name: 'Quality Assurance Agent',
+  instructions: `You are an expert quality assurance and testing specialist...`,
+  // ... QA agent configuration
+});
+```</file>
 </files><environment_details>
 # VSCode Visible Files
 ../../../../request_2df690cf-ea8b-4dab-aedf-9f4790a6f315/0,src/mastra/agents/learningExtractionAgent.ts
@@ -2297,4 +2378,85 @@ io.on('connection', (socket) => {
 
 ---
 
-*This comprehensive agent implementation guide provides detailed patterns and examples for building robust, scalable AI agents in the Mastra Deep Research System, covering everything from basic agent creation to advanced patterns like agent networks and real-time monitoring.*</write_to_file>
+*This comprehensive agent implementation guide provides detailed patterns and examples for building robust, scalable AI agents in the Mastra Deep Research System, covering everything from basic agent creation to advanced patterns like agent networks and real-time monitoring.*
+
+## New Specialized Agents
+
+### Monitor Agent
+
+**Purpose**: Expert monitoring and observability specialist focused on proactive system health management.
+
+```typescript
+import { Agent } from '@mastra/core/agent';
+import { readDataFileTool, writeDataFileTool, listDataDirTool, searchDataFilesTool, getDataFileInfoTool } from '../tools/data-file-manager';
+import { webScraperTool } from '../tools/web-scraper-tool';
+import { evaluateResultTool } from '../tools/evaluateResultTool';
+import { extractLearningsTool } from '../tools/extractLearningsTool';
+import { createGemini25Provider } from '../config/googleProvider';
+import { createResearchMemory } from '../config/libsql-storage';
+import { ContentSimilarityMetric, CompletenessMetric, TextualDifferenceMetric, KeywordCoverageMetric, ToneConsistencyMetric } from "@mastra/evals/nlp";
+
+export const monitorAgent = new Agent({
+  name: 'Monitor Agent',
+  instructions: `You are an expert monitoring and observability specialist focused on proactive system health management...`,
+  evals: {
+    contentSimilarity: new ContentSimilarityMetric({ ignoreCase: true, ignoreWhitespace: true }),
+    completeness: new CompletenessMetric(),
+    textualDifference: new TextualDifferenceMetric(),
+    keywordCoverage: new KeywordCoverageMetric(),
+    toneConsistency: new ToneConsistencyMetric(),
+  },
+  model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17', {
+    responseModalities: ["TEXT"],
+    thinkingConfig: {
+      thinkingBudget: -1,
+      includeThoughts: true,
+    },
+    useSearchGrounding: true,
+    dynamicRetrieval: true,
+    safetyLevel: 'OFF',
+    structuredOutputs: true,
+  }),
+  tools: {
+    readDataFileTool,
+    writeDataFileTool,
+    listDataDirTool,
+    searchDataFilesTool,
+    getDataFileInfoTool,
+    webScraperTool,
+    evaluateResultTool,
+    extractLearningsTool,
+  },
+  memory: createResearchMemory(),
+});
+```
+
+### Planning Agent
+
+**Purpose**: Expert strategic planning and project management specialist.
+
+```typescript
+import { Agent } from '@mastra/core/agent';
+// ... imports for planning agent tools and configuration
+
+export const planningAgent = new Agent({
+  name: 'Planning Agent',
+  instructions: `You are an expert strategic planning and project management specialist...`,
+  // ... planning agent configuration
+});
+```
+
+### Quality Assurance Agent
+
+**Purpose**: Expert quality assurance and testing specialist.
+
+```typescript
+import { Agent } from '@mastra/core/agent';
+// ... imports for QA agent tools and configuration
+
+export const qualityAssuranceAgent = new Agent({
+  name: 'Quality Assurance Agent',
+  instructions: `You are an expert quality assurance and testing specialist...`,
+  // ... QA agent configuration
+});
+```</write_to_file>

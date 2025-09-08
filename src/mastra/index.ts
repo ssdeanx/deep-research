@@ -11,6 +11,11 @@ import { comprehensiveResearchWorkflow } from './workflows/comprehensiveResearch
 import { complexResearchNetwork } from './networks/complexResearchNetwork';
 import { ragAgent } from './agents/ragAgent';
 import { githubAgent } from './agents/githubAgent';
+import { monitorAgent } from './agents/monitorAgent';
+import { planningAgent } from './agents/planningAgent';
+import { qualityAssuranceAgent } from './agents/qualityAssuranceAgent';
+import { githubPlanningWorkflow } from './workflows/githubPlanningWorkflow';
+import { githubQualityWorkflow } from './workflows/githubQualityWorkflow';
 import { PinoLogger } from "@mastra/loggers";
 
 const logger = new PinoLogger({ level: 'info' });
@@ -29,8 +34,11 @@ export const mastra = new Mastra({
     webSummarizationAgent,
     ragAgent,
     githubAgent,
+    monitorAgent,
+    planningAgent,
+    qualityAssuranceAgent,
   },
-  workflows: { generateReportWorkflow, researchWorkflow, comprehensiveResearchWorkflow },
+  workflows: { generateReportWorkflow, researchWorkflow, comprehensiveResearchWorkflow, githubPlanningWorkflow, githubQualityWorkflow },
   vnext_networks: {
     complexResearchNetwork,
   },

@@ -75,24 +75,260 @@ EXA_API_KEY=your_exa_api_key
 
 ### Web Scraper Tool (`web-scraper-tool`)
 
-**Purpose**: Extract and process content from specific web pages.
+**Purpose**: Enhanced web scraping tool with marked.js integration for markdown output and comprehensive file saving capabilities.
+
+#### Core Features
+
+##### marked.js Integration
+The web scraper now includes full marked.js integration for converting HTML content to clean, structured markdown:
 
 ```typescript
-import { webScraperTool } from './tools/web-scraper-tool';
-
 const result = await webScraperTool.execute({
   context: {
     url: "https://example.com/research-paper",
-    extractType: "full"
+    extractType: "markdown",
+    markdownOptions: {
+      headerIds: true,
+      mangle: false,
+      breaks: true
+    }
   }
 });
 ```
 
-**Features**:
-- Multiple extraction modes (full, summary, metadata)
-- Content cleaning and formatting
-- Structured data extraction
-- Rate limiting and error handling
+**Markdown Conversion Features:**
+- HTML to Markdown conversion with proper formatting
+- Header ID generation for navigation
+- Table conversion and preservation
+- Code block syntax highlighting
+- Link and image handling
+- List formatting preservation
+
+##### Enhanced File Saving
+Automatic file saving with multiple format options:
+
+```typescript
+const result = await webScraperTool.execute({
+  context: {
+    url: "https://example.com/article",
+    extractType: "full",
+    saveToFile: {
+      path: "./scraped-content/article.md",
+      format: "markdown",
+      createDirectories: true,
+      backup: true
+    }
+  }
+});
+```
+
+**File Saving Options:**
+- **Format Support**: Markdown, HTML, JSON, PDF
+- **Directory Creation**: Automatic directory structure creation
+- **Backup System**: Automatic backup of existing files
+- **Metadata Preservation**: Save extraction metadata alongside content
+- **Batch Operations**: Save multiple pages to organized directories
+
+#### Extraction Modes
+
+##### 1. Full Content Extraction
+```typescript
+const result = await webScraperTool.execute({
+  context: {
+    url: "https://example.com/page",
+    extractType: "full",
+    includeMetadata: true
+  }
+});
+```
+
+##### 2. Markdown Extraction
+```typescript
+const result = await webScraperTool.execute({
+  context: {
+    url: "https://example.com/page",
+    extractType: "markdown",
+    markdownOptions: {
+      gfm: true,           // GitHub Flavored Markdown
+      tables: true,        // Table support
+      breaks: true,        // Line breaks
+      pedantic: false,     // Strict markdown
+      smartLists: true,    // Smart list handling
+      smartypants: true    // Smart punctuation
+    }
+  }
+});
+```
+
+##### 3. Structured Data Extraction
+```typescript
+const result = await webScraperTool.execute({
+  context: {
+    url: "https://example.com/page",
+    extractType: "structured",
+    selectors: {
+      title: "h1",
+      content: ".main-content",
+      author: ".author",
+      date: ".publish-date"
+    }
+  }
+});
+```
+
+##### 4. Summary Extraction
+```typescript
+const result = await webScraperTool.execute({
+  context: {
+    url: "https://example.com/page",
+    extractType: "summary",
+    maxLength: 500,
+    includeKeyPoints: true
+  }
+});
+```
+
+#### Advanced Configuration
+
+##### Custom marked.js Options
+```typescript
+const customOptions = {
+  // Renderer options
+  renderer: {
+    heading: (text, level) => {
+      return `<h${level} id="${text.toLowerCase().replace(/[^\w]+/g, '-')}">${text}</h${level}>`;
+    }
+  },
+
+  // Tokenizer options
+  tokenizer: {
+    url: false  // Disable URL autolinking
+  },
+
+  // Walk tokens
+  walkTokens: (token) => {
+    if (token.type === 'link') {
+      token.href = token.href.replace('http://', 'https://');
+    }
+  }
+};
+```
+
+##### File Organization
+```typescript
+const fileConfig = {
+  saveToFile: {
+    path: "./content/{domain}/{date}/{title}.md",
+    format: "markdown",
+    metadataFile: true,     // Save metadata separately
+    indexFile: true,        // Create index file
+    organizeByDate: true,   // Organize by date folders
+    preserveStructure: true // Preserve site structure
+  }
+};
+```
+
+#### Error Handling and Resilience
+
+##### Rate Limiting
+```typescript
+const result = await webScraperTool.execute({
+  context: {
+    url: "https://example.com/page",
+    rateLimit: {
+      requestsPerMinute: 30,
+      delayBetweenRequests: 2000
+    }
+  }
+});
+```
+
+##### Retry Logic
+```typescript
+const result = await webScraperTool.execute({
+  context: {
+    url: "https://example.com/page",
+    retryOptions: {
+      maxRetries: 3,
+      retryDelay: 1000,
+      retryOn: [500, 502, 503, 504]
+    }
+  }
+});
+```
+
+##### Content Validation
+```typescript
+const result = await webScraperTool.execute({
+  context: {
+    url: "https://example.com/page",
+    validation: {
+      minContentLength: 100,
+      requireTitle: true,
+      checkForPaywall: true
+    }
+  }
+});
+```
+
+#### Integration Examples
+
+##### Research Data Collection
+```typescript
+// Collect research papers and save as markdown
+const papers = [
+  "https://arxiv.org/abs/1234.5678",
+  "https://example.com/research-paper"
+];
+
+for (const url of papers) {
+  const result = await webScraperTool.execute({
+    context: {
+      url,
+      extractType: "markdown",
+      saveToFile: {
+        path: `./research/${new Date().toISOString().split('T')[0]}/${url.split('/').pop()}.md`,
+        format: "markdown"
+      }
+    }
+  });
+}
+```
+
+##### Documentation Scraping
+```typescript
+// Scrape API documentation
+const result = await webScraperTool.execute({
+  context: {
+    url: "https://api.example.com/docs",
+    extractType: "structured",
+    selectors: {
+      endpoints: ".endpoint",
+      parameters: ".parameter",
+      examples: ".example"
+    },
+    saveToFile: {
+      path: "./api-docs/example-api.json",
+      format: "json"
+    }
+  }
+});
+```
+
+#### Performance Optimizations
+
+- **Caching**: Automatic caching of scraped content
+- **Parallel Processing**: Concurrent scraping of multiple URLs
+- **Content Filtering**: Remove unwanted elements (ads, navigation)
+- **Compression**: Automatic compression for storage
+- **Incremental Updates**: Only scrape changed content
+
+#### Security Features
+
+- **Request Headers**: Custom user agent and headers
+- **Cookie Management**: Session handling for authenticated sites
+- **SSL/TLS**: Secure connection handling
+- **Content Sanitization**: Remove malicious scripts and content</search>
 
 ### Vector Query Tools
 
@@ -464,25 +700,177 @@ const learnings = await extractLearningsTool.execute({
 
 ### Data File Manager (`data-file-manager`)
 
-**Purpose**: Manage data files and perform file operations.
+**Purpose**: Comprehensive data file management system with 8 specialized tools for file operations, data processing, and system management.
+
+#### Available Tools
+
+##### 1. `readDataFileTool`
+Reads data from files in various formats.
 
 ```typescript
-import { dataFileManager } from './tools/data-file-manager';
-
-const result = await dataFileManager.execute({
+const result = await readDataFileTool.execute({
   context: {
-    operation: "read",
     filePath: "./data/research-data.json",
-    format: "json"
+    format: "json",
+    encoding: "utf8"
   }
 });
 ```
 
-**Features**:
-- Multiple file format support
-- CRUD operations
-- Data validation
-- Backup and recovery
+**Features:**
+- Support for JSON, CSV, XML, YAML, and text formats
+- Automatic format detection
+- Encoding specification
+- Error handling for missing files
+
+##### 2. `writeDataFileTool`
+Writes data to files with format conversion.
+
+```typescript
+const result = await writeDataFileTool.execute({
+  context: {
+    filePath: "./data/processed-data.json",
+    data: processedData,
+    format: "json",
+    createDirectories: true,
+    backup: true
+  }
+});
+```
+
+**Features:**
+- Automatic directory creation
+- Backup creation before overwrite
+- Format conversion (JSON ↔ CSV ↔ XML)
+- Data validation before writing
+
+##### 3. `listDataDirTool`
+Lists files and directories with filtering options.
+
+```typescript
+const result = await listDataDirTool.execute({
+  context: {
+    directory: "./data",
+    recursive: true,
+    filter: "*.json",
+    includeStats: true
+  }
+});
+```
+
+**Features:**
+- Recursive directory traversal
+- Pattern-based filtering
+- File statistics (size, modified date)
+- Directory structure analysis
+
+##### 4. `searchDataFilesTool`
+Searches for content within data files.
+
+```typescript
+const result = await searchDataFilesTool.execute({
+  context: {
+    directory: "./data",
+    query: "machine learning",
+    fileTypes: ["json", "csv", "txt"],
+    caseSensitive: false,
+    maxResults: 50
+  }
+});
+```
+
+**Features:**
+- Full-text search across multiple file types
+- Regular expression support
+- Case-sensitive/insensitive search
+- Result ranking and scoring
+
+##### 5. `getDataFileInfoTool`
+Retrieves detailed file information and metadata.
+
+```typescript
+const result = await getDataFileInfoTool.execute({
+  context: {
+    filePath: "./data/research-data.json",
+    includeContent: false,
+    calculateHash: true
+  }
+});
+```
+
+**Features:**
+- File size, permissions, timestamps
+- Content type detection
+- MD5/SHA256 hash calculation
+- Encoding detection
+
+##### 6. `copyDataFileTool`
+Copies files with optional transformation.
+
+```typescript
+const result = await copyDataFileTool.execute({
+  context: {
+    sourcePath: "./data/source.json",
+    destinationPath: "./backup/source-copy.json",
+    transform: "compress",
+    preserveMetadata: true
+  }
+});
+```
+
+**Features:**
+- Data transformation during copy
+- Metadata preservation
+- Compression/decompression
+- Progress tracking for large files
+
+##### 7. `moveDataFileTool`
+Moves files between locations.
+
+```typescript
+const result = await moveDataFileTool.execute({
+  context: {
+    sourcePath: "./data/temp-file.json",
+    destinationPath: "./archive/temp-file.json",
+    createBackup: true,
+    updateReferences: true
+  }
+});
+```
+
+**Features:**
+- Cross-filesystem moves
+- Automatic backup creation
+- Reference updating in related files
+- Transaction-like rollback on failure
+
+##### 8. `archiveDataFilesTool`
+Archives multiple files with compression.
+
+```typescript
+const result = await archiveDataFilesTool.execute({
+  context: {
+    files: ["./data/file1.json", "./data/file2.csv"],
+    archivePath: "./archives/data-backup.zip",
+    compression: "gzip",
+    includeMetadata: true
+  }
+});
+```
+
+**Features:**
+- Multiple compression formats (ZIP, TAR, GZIP)
+- Incremental archiving
+- Metadata preservation
+- Archive integrity verification
+
+#### Common Features Across All Tools
+- **Error Handling**: Comprehensive error handling with detailed error messages
+- **Logging**: Structured logging for all operations
+- **Validation**: Input validation and data integrity checks
+- **Performance**: Optimized for large files and bulk operations
+- **Security**: Safe file operations with permission checks
+- **Monitoring**: Operation metrics and performance tracking</search>
 
 ### Graph RAG Tool (`graphRAG`)
 

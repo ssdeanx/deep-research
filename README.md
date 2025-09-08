@@ -82,19 +82,26 @@
 - **Web Summarization Agent**: Content condensation and synthesis
 - **RAG Agent**: Vector search and retrieval-augmented generation
 - **GitHub Agent**: Complete GitHub repository and project management with advanced Copilot integration
+- **Monitor Agent**: System health monitoring, performance tracking, and observability specialist
+- **Planning Agent**: Strategic planning and project management with resource allocation and risk assessment
+- **Quality Assurance Agent**: Software quality management, testing coordination, and defect prevention
 
 ### 🔄 Intelligent Workflows
 - **Comprehensive Research Workflow**: End-to-end research process with human-in-the-loop approval
 - **Generate Report Workflow**: Automated report creation from research data
 - **Research Workflow**: Basic research orchestration
+- **GitHub Planning Workflow**: Multi-agent GitHub project management with planning, monitoring, and task generation
+- **GitHub Quality Workflow**: Quality-focused workflow composition with planning and QA analysis
 
 ### 🛠️ Specialized Tools
 - **Web Search Tool**: Intelligent web scraping and content extraction
+- **Web Scraper Tool**: Enhanced web scraping with marked.js integration for markdown output and file saving
 - **Vector Query Tool**: Semantic search over embedded content
 - **Chunker Tool**: Document segmentation for RAG
 - **Rerank Tool**: Result relevance optimization
 - **Evaluation Tool**: Content quality assessment
 - **Learning Extraction Tool**: Insight mining from research data
+- **Data File Manager**: 8 comprehensive data management tools (copy, move, search, archive, backup, etc.)
 
 ### 🌐 Agent Networks
 - **Complex Research Network**: Multi-agent collaboration for advanced research tasks
@@ -167,21 +174,28 @@ Specialized AI assistants with specific roles and capabilities:
 - **Web Summarization Agent**: Condenses and synthesizes web content
 - **RAG Agent**: Manages vector search and retrieval-augmented generation
 - **GitHub Agent**: Complete GitHub repository and project management with Copilot integration
+- **Monitor Agent**: System health monitoring, performance tracking, and observability specialist
+- **Planning Agent**: Strategic planning and project management with resource allocation and risk assessment
+- **Quality Assurance Agent**: Software quality management, testing coordination, and defect prevention
 
 #### 🔄 Workflows
 Orchestrated sequences of operations:
 - **Comprehensive Research Workflow**: Complete research pipeline with human approval
 - **Generate Report Workflow**: Automated report creation
 - **Research Workflow**: Basic research orchestration
+- **GitHub Planning Workflow**: Multi-agent GitHub project management with planning, monitoring, and task generation
+- **GitHub Quality Workflow**: Quality-focused workflow composition with planning and QA analysis
 
 #### 🛠️ Tools
 Specialized utilities for specific tasks:
 - **Web Search Tool**: Intelligent web content discovery
+- **Web Scraper Tool**: Enhanced web scraping with marked.js integration for markdown output and file saving
 - **Vector Query Tool**: Semantic search capabilities
 - **Chunker Tool**: Document segmentation for RAG
 - **Rerank Tool**: Result optimization
 - **Evaluation Tool**: Content assessment
 - **Learning Extraction Tool**: Insight mining
+- **Data File Manager**: 8 comprehensive data management tools (copy, move, search, archive, backup, etc.)
 - **GitHub Tools**: 14 specialized tools for complete GitHub API integration
 
 #### 🌐 Networks
