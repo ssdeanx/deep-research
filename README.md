@@ -37,6 +37,7 @@
     <img src="https://img.shields.io/badge/LibSQL-Dual--Database-4479A1?style=flat-square" alt="LibSQL Dual Database" />
     <img src="https://img.shields.io/badge/Zod-Validation-FFD700?style=flat-square" alt="Zod Validation" />
   </p>
+  </div>
 
   <p>
     **Beyond Basic Search: Intelligent, Autonomous Research & Reporting**
@@ -80,6 +81,7 @@
 - **Learning Extraction Agent**: Key insights and follow-up questions generation
 - **Web Summarization Agent**: Content condensation and synthesis
 - **RAG Agent**: Vector search and retrieval-augmented generation
+- **GitHub Agent**: Complete GitHub repository and project management with advanced Copilot integration
 
 ### 🔄 Intelligent Workflows
 - **Comprehensive Research Workflow**: End-to-end research process with human-in-the-loop approval
@@ -130,7 +132,8 @@
 │  │ • Report    │  │ • Report    │  │ • Vector    │  │ • Personal  │ │
 │  │ • Evaluation│  │ • Generate  │  │ • Chunking  │  │ • Error     │ │
 │  │ • Learning  │  │ • Complex   │  │ • Rerank    │  │ • Circuit   │ │
-│  │ • RAG       │  │             │  │ • MCP       │  │ • Bayesian  │ │
+│  │ • RAG       │  │ • GitHub    │  │ • MCP       │  │ • Bayesian  │ │
+│  │ • GitHub    │  │             │  │ • GitHub    │  │             │ │
 │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘ │
 ├─────────────────────────────────────────────────────────────────────┤
 │  ┌─────────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────┐ │
@@ -147,7 +150,8 @@
 │  │             │  │             │  │             │  │             │ │
 │  │ • Google AI │  │ • MCP       │  │ • REST      │  │ • Explicit  │ │
 │  │ • Gemini 2.5│  │ • WebSocket │  │ • GraphQL   │  │ • Implicit  │ │
-│  │ • Embeddings│  │ • OpenTel   │  │ • Streaming │  │ • Search    │ │
+│  │ • Embeddings│  │ • OpenTel   │  │ • GitHub    │  │ • Search    │ │
+│  │ • Copilot   │  │ • GitHub    │  │ • Streaming │  │             │ │
 │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘ │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -162,6 +166,7 @@ Specialized AI assistants with specific roles and capabilities:
 - **Learning Extraction Agent**: Extracts key insights and generates follow-up questions
 - **Web Summarization Agent**: Condenses and synthesizes web content
 - **RAG Agent**: Manages vector search and retrieval-augmented generation
+- **GitHub Agent**: Complete GitHub repository and project management with Copilot integration
 
 #### 🔄 Workflows
 Orchestrated sequences of operations:
@@ -177,6 +182,7 @@ Specialized utilities for specific tasks:
 - **Rerank Tool**: Result optimization
 - **Evaluation Tool**: Content assessment
 - **Learning Extraction Tool**: Insight mining
+- **GitHub Tools**: 14 specialized tools for complete GitHub API integration
 
 #### 🌐 Networks
 Multi-agent collaboration systems:
@@ -276,6 +282,28 @@ Manages vector search and retrieval-augmented generation for enhanced context an
 - Context retrieval and ranking
 - Knowledge augmentation
 - Memory integration
+
+### GitHub Agent
+Advanced AI-powered GitHub Assistant for complete repository and project management with Copilot integration.
+
+**Capabilities:**
+- **Repository Management**: Create, list, update, and delete repositories
+- **Issue Management**: Create, update, list, and manage GitHub issues with comments
+- **Pull Request Management**: Handle PR creation, updates, merging, and reviews
+- **Branch Management**: Create, list, and delete repository branches
+- **User & Organization Management**: Search users, manage organization members
+- **Advanced Copilot Integration**: Delegate complex coding tasks to GitHub Copilot
+- **GitHub API Integration**: Full access to GitHub REST API via Octokit
+
+**Copilot Integration Features:**
+- **Task Delegation**: Assign coding tasks to @github-copilot for automated implementation
+- **Code Analysis**: Request Copilot analysis and suggestions on pull requests
+- **Automated PR Creation**: Copilot generates code and creates pull requests automatically
+
+**Prerequisites:**
+- GitHub Copilot Enterprise subscription for advanced features
+- Valid GITHUB_API_KEY environment variable
+- Appropriate repository permissions
 
 ---
 
@@ -378,6 +406,47 @@ Insight mining from research data.
 - Content categorization
 - Insight synthesis and organization
 
+### GitHub Tools
+Comprehensive suite of 14 specialized tools for complete GitHub API integration.
+
+**Repository Management Tools:**
+- **createRepository**: Create new repositories with custom settings
+- **getRepository**: Retrieve detailed repository information
+- **updateRepository**: Modify repository settings and metadata
+- **deleteRepository**: Remove repositories (with confirmation)
+- **listRepositories**: List user repositories with filtering options
+
+**Branch Management Tools:**
+- **listBranches**: List all branches in a repository
+- **getBranch**: Get detailed branch information
+- **createBranch**: Create new branches from existing commits
+- **deleteBranch**: Remove branches safely
+
+**Issue Management Tools:**
+- **createIssue**: Create new issues with titles and descriptions
+- **getIssue**: Retrieve issue details and metadata
+- **updateIssue**: Modify issue status, title, and body
+- **listIssues**: List repository issues with filtering (open/closed/all)
+
+**Pull Request Management Tools:**
+- **createPullRequest**: Create pull requests between branches
+- **getPullRequest**: Get detailed PR information
+- **updatePullRequest**: Modify PR title, body, and state
+- **mergePullRequest**: Merge PRs with various merge methods
+- **listPullRequests**: List PRs with status filtering
+
+**Additional Tools:**
+- **search**: Advanced GitHub search across repositories
+- **getUser**: Retrieve user profile information
+- **listOrganizations**: List user organizations
+- **createComment**: Add comments to issues and PRs
+
+**All tools support:**
+- Full GitHub API integration via Octokit
+- Comprehensive error handling and logging
+- Type-safe input validation with Zod schemas
+- Rate limiting and API quota management
+
 ---
 
 ## Networks 🌐
@@ -416,6 +485,13 @@ Custom MCP server implementation for enhanced tool integration.
 - Error handling and recovery
 - Performance monitoring
 - Security and authentication
+
+**GitHub Tools Integration:**
+- All 14 GitHub tools available through MCP
+- Standardized tool interface for GitHub operations
+- Type-safe API interactions
+- Rate limiting and error handling
+- Full GitHub API coverage via Octokit
 
 ---
 
@@ -550,12 +626,37 @@ GOOGLE_GENERATIVE_AI_API_KEY=your_google_ai_api_key
 # Database Configuration
 DATABASE_URL=file:./mastra.db
 
+# GitHub API Configuration
+GITHUB_API_KEY=your_github_personal_access_token
+
 # Optional: Additional API keys
 EXA_API_KEY=your_exa_api_key
 
 # Logging and Monitoring
 LOG_LEVEL=info
 ```
+
+#### GitHub API Setup
+To use GitHub features, you need to configure a GitHub Personal Access Token:
+
+1. **Create a Personal Access Token:**
+   - Go to GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)
+   - Generate a new token with the following permissions:
+     - `repo` (Full control of private repositories)
+     - `public_repo` (Access public repositories)
+     - `read:org` (Read org and team membership)
+     - `read:user` (Read ALL user profile data)
+     - `read:project` (Read project boards)
+
+2. **Add to Environment:**
+   ```env
+   GITHUB_API_KEY=ghp_your_token_here
+   ```
+
+3. **Copilot Enterprise (Optional):**
+   - For advanced Copilot integration features
+   - Requires GitHub Copilot Enterprise subscription
+   - Enables automated task delegation and code generation
 
 ---
 
@@ -680,6 +781,91 @@ const vectorResults = await vectorTool.execute({
     indexName: 'research-data'
   }
 });
+```
+
+### GitHub Agent Usage
+```typescript
+// Using the GitHub Agent for repository management
+const githubAgent = mastra.getAgent('githubAgent');
+
+// Create a new repository
+const createResult = await githubAgent.generate([
+  {
+    role: 'user',
+    content: 'Create a new repository called "my-awesome-project" with description "An awesome project" and make it private'
+  }
+]);
+
+// List user repositories
+const listResult = await githubAgent.generate([
+  {
+    role: 'user',
+    content: 'List all my repositories'
+  }
+]);
+
+// Create and manage issues
+const issueResult = await githubAgent.generate([
+  {
+    role: 'user',
+    content: 'Create a new issue in repository "my-org/my-repo" with title "Bug: Login not working" and description "Users cannot log in after recent update"'
+  }
+]);
+```
+
+### GitHub Tools Direct Usage
+```typescript
+// Direct GitHub tool usage
+const createRepoTool = mastra.getTool('createRepository');
+const repoResult = await createRepoTool.execute({
+  context: {
+    name: 'my-new-repo',
+    description: 'A new repository created via API',
+    private: true
+  }
+});
+
+// List pull requests
+const listPRsTool = mastra.getTool('listPullRequests');
+const prsResult = await listPRsTool.execute({
+  context: {
+    owner: 'my-org',
+    repo: 'my-repo',
+    state: 'open'
+  }
+});
+
+// Create a pull request
+const createPRTool = mastra.getTool('createPullRequest');
+const prResult = await createPRTool.execute({
+  context: {
+    owner: 'my-org',
+    repo: 'my-repo',
+    title: 'Add new feature',
+    head: 'feature-branch',
+    base: 'main',
+    body: 'This PR adds a new feature...'
+  }
+});
+```
+
+### Copilot Integration Examples
+```typescript
+// Delegate a coding task to GitHub Copilot
+const copilotResult = await githubAgent.generate([
+  {
+    role: 'user',
+    content: 'Have Copilot implement a user authentication system for repository "my-org/my-app". The system should include login, logout, and password reset functionality.'
+  }
+]);
+
+// Request Copilot analysis of a pull request
+const analysisResult = await githubAgent.generate([
+  {
+    role: 'user',
+    content: 'Ask Copilot to analyze PR #123 in repository "my-org/my-repo" and provide suggestions for improvement'
+  }
+]);
 ```
 
 ---
