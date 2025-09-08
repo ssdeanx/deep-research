@@ -44,6 +44,7 @@
     "@mastra/memory": "^0.14.4",
     "@mastra/rag": "^1.2.4",
     "@octokit/core": "^7.0.3",
+    "@octokit/rest": "^22.0.0",
     "@octokit/types": "^14.1.0",
     "ai": "^4.3.19",
     "cheerio": "^1.1.2",

@@ -256,7 +256,7 @@ When working with the Mastra framework:
 4. **Handle Errors Gracefully**: Comprehensive error handling and recovery
 5. **Optimize Performance**: Consider token limits, caching, and resource usage
 6. **Document Thoroughly**: Clear documentation for all public APIs
-7. **Test Extensively**: Robust testing for all components and interactions
+7. **Test Extensively**: Robust tnsting for all components and interactions
 
 ## Import References
 
