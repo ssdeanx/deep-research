@@ -13,7 +13,17 @@ import type { ToolExecutionContext } from '@mastra/core/tools';
 import type { ExtractParams } from '@mastra/rag';
 import { createGraphRAGTool } from '@mastra/rag';
 import { z } from 'zod';
-import type { Message, UIMessage } from 'ai';
+import type { UIMessage } from 'ai';
+
+// Local fallback for Message type when '@mastra/core/message' is unavailable
+// This defines the minimal shape used in this module to avoid a hard dependency.
+interface Message {
+  id: string;
+  role?: string;
+  content: string;
+  createdAt?: string | number | Date;
+}
+
 import { generateId } from 'ai';
 import { PinoLogger } from '@mastra/loggers';
 import { RuntimeContext } from "@mastra/core/runtime-context";
@@ -28,7 +38,8 @@ import {
   createVectorIndex,
   VectorStoreError,
   STORAGE_CONFIG,
-  searchMemoryMessages
+  searchMemoryMessages,
+  type Message as StorageMessage
 } from '../config/libsql-storage';
 //import { pinecone } from '../pinecone';
 import { createGeminiEmbeddingModel } from '../config/googleProvider';
@@ -444,7 +455,7 @@ export const graphRAGQueryTool = createTool({
       }
       // Integrate semantic recall with searchMemoryMessages for context-based params
       // Use memory if available and call searchMemoryMessages with the required arguments (memory, threadId, query, topK)
-      let memoryResults: { messages: Message[]; uiMessages: UIMessage[] } = { messages: [], uiMessages: [] };
+      let memoryResults: { messages: StorageMessage[]; uiMessages: UIMessage[] } = { messages: [], uiMessages: [] };
       if (typeof memory !== 'undefined' && memory) {
         // Use sessionId as the threadId for memory lookup (adjust if a different threadId is desired)
         memoryResults = await searchMemoryMessages(
@@ -485,23 +496,21 @@ export const graphRAGQueryTool = createTool({
         runtimeContext: graphRAGContext,
         tracingContext,
       });
-
       // Integrate memory results into graph results for enhanced semantic recall
-      type ExtendedMessage = Message & { metadata?: Record<string, unknown> };
-
-      const enhancedSources = [
-        ...(graphResult.sources ?? []),
-        ...((memoryResults.messages || []).slice(0, 3).map((msg: ExtendedMessage) => {
-          const msgMeta = msg.metadata ?? {};
-          return {
-            id: msg.id ?? generateId(),
-            score: 0.9, // High score for memory relevance
-            content: msg.content,
-            metadata: { type: 'memory', scope: 'thread', ...msgMeta },
-            vector: undefined
-          };
-        }))
-      ];
+            type ExtendedMessage = (StorageMessage | Message) & { metadata?: Record<string, unknown> };
+            const enhancedSources = [
+              ...(graphResult.sources ?? []),
+              ...((memoryResults.messages || []).slice(0, 3).map((msg: ExtendedMessage) => {
+                const msgMeta = msg.metadata ?? {};
+                return {
+                  id: msg.id ?? generateId(),
+                  score: 0.9, // High score for memory relevance
+                  content: msg.content,
+                  metadata: { type: 'memory', scope: 'thread', ...msgMeta },
+                  vector: undefined
+                };
+              }))
+            ];
       const processingTime = Date.now() - startTime;
       const sources = enhancedSources.map((source: {
         id?: string;

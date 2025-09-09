@@ -50,5 +50,15 @@ export const mastra = new Mastra({
   workflows: { generateReportWorkflow, researchWorkflow, comprehensiveResearchWorkflow, githubPlanningWorkflow, githubQualityWorkflow },
   vnext_networks: {
     complexResearchNetwork,
-  }
+  },
+  telemetry: {
+    serviceName: "my-app",
+    enabled: true,
+    sampling: {
+      type: "always_on",
+    },
+    export: {
+      type: "console",
+    },
+  },
 });

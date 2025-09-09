@@ -120,7 +120,7 @@ logger.info('Google provider configuration loaded', {
 
 export const baseGoogleModel = (
   modelId: string = GEMINI_CONFIG.MODELS.GEMINI_2_5_FLASH_LITE,
-  options: {
+  options: Readonly<{
     useSearchGrounding?: boolean;
     dynamicRetrieval?: boolean;
     safetyLevel?: 'STRICT' | 'MODERATE' | 'PERMISSIVE' | 'OFF';
@@ -133,7 +133,7 @@ export const baseGoogleModel = (
     tags?: string[];
     metadata?: Record<string, unknown>;
     traceName?: string;
-  } = {}
+  }> = {}
 ) => {
   const {
     useSearchGrounding = false,
@@ -164,54 +164,64 @@ export const baseGoogleModel = (
   });
 
   try {
-    const model = baseGoogle(modelId, {
-      useSearchGrounding,
-      dynamicRetrievalConfig: dynamicRetrieval ? {
-        mode: 'MODE_DYNAMIC',
-        dynamicThreshold: 0.8
-      } : undefined,
-      safetySettings: [...GEMINI_CONFIG.SAFETY_PRESETS[safetyLevel]],
-      cachedContent,
-      structuredOutputs
-    });
+  // baseGoogle only accepts the modelId; attach computed provider defaults to the returned model object
+  const model = baseGoogle(modelId);
+
+  // Validate the provided safetyLevel and build a sanitized safetySettings array to avoid injecting untrusted objects
+  const allowedSafetyLevels = ['STRICT', 'MODERATE', 'PERMISSIVE', 'OFF'] as const;
+  const resolvedSafetyLevel = (allowedSafetyLevels.includes(safetyLevel)) ? safetyLevel : 'MODERATE';
+  const safetySettings = (GEMINI_CONFIG.SAFETY_PRESETS[resolvedSafetyLevel] ?? []).map(s => ({
+    category: String(s.category),
+    threshold: String(s.threshold)
+  }));
+
+  // Compose default provider options and attach them to the model for downstream consumption (consumer code can read __defaultProviderOptions
+  // and apply them via providerOptions when calling generateText or other SDK entrypoints)
+  (model as Record<string, unknown>).__defaultProviderOptions = {
+    useSearchGrounding,
+    dynamicRetrieval: dynamicRetrieval ? { mode: 'MODE_DYNAMIC', dynamicThreshold: 0.8 } : undefined,
+    safetySettings,
+    cachedContent,
+    structuredOutputs
+  };
 
     // Add Langfuse metadata to the model for automatic tracing
-    if ((agentName !== null) || tags.length > 0 || Object.keys(metadata).length > 0) {
-      // Attach metadata that Langfuse can pick up
-      (model as Record<string, unknown>).__langfuseMetadata = {
-        agentName: agentName ?? 'unknown',
-        tags: [
-          'mastra',
-          'google',
-          'gemini-2.5',
-          'dean-machines',
-          ...((agentName !== null) ? [agentName] : []),
-          ...tags
-        ],
-        metadata: {
-          modelId,
-          provider: 'google',
-          framework: 'mastra',
-          project: 'dean-machines-rsc',
-          agentName: agentName ?? 'unknown',
-          thinkingBudget: 'dynamic',
-          safetyLevel,
-          useSearchGrounding,
-          dynamicRetrieval,
-          structuredOutputs,
-          timestamp: new Date().toISOString(),
-          traceName: traceName ?? `${agentName ?? 'agent'}-${modelId}`,
-          ...metadata
-        }
-      };
+          if (agentName !== null || tags.length > 0 || Object.keys(metadata).length > 0) {
+            // Attach metadata that Langfuse can pick up
+            (model as Record<string, unknown>).__langfuseMetadata = {
+              agentName: agentName ?? 'unknown',
+              tags: [
+                'mastra',
+                'google',
+                'gemini-2.5',
+                'dean-machines',
+                ...((agentName !== null) ? [agentName] : []),
+                ...tags
+              ],
+              metadata: {
+                modelId,
+                provider: 'google',
+                framework: 'mastra',
+                project: 'dean-machines-rsc',
+                agentName: agentName ?? 'unknown',
+                thinkingBudget: 'dynamic',
+                safetyLevel,
+                useSearchGrounding,
+                dynamicRetrieval,
+                structuredOutputs,
+                timestamp: new Date().toISOString(),
+                traceName: traceName ?? `${agentName ?? 'agent'}-${modelId}`,
+                ...metadata
+              }
+            };
 
-      logger.info('Google model configured with Langfuse metadata', {
-        modelId,
-        agentName,
-        traceName: traceName ?? `${agentName ?? 'agent'}-${modelId}`,
-        tagsCount: tags.length
-      });
-    }
+            logger.info('Google model configured with Langfuse metadata', {
+              modelId,
+              agentName,
+              traceName: traceName ?? `${agentName ?? 'agent'}-${modelId}`,
+              tagsCount: tags.length
+            });
+          }
 
     logger.info('Google model instance created successfully', { modelId, agentName });
     return model;
@@ -253,15 +263,15 @@ export const baseGoogleModel = (
 
 export function createGemini25Provider(
   modelId: string = GEMINI_CONFIG.MODELS.GEMINI_2_5_FLASH_LITE,
-  options: {
+  options: Readonly<{
     // Thinking capabilities (for backward compatibility with existing agents)
-    thinkingConfig?: {
+    thinkingConfig?: Readonly<{
       thinkingBudget?: number;
       includeThoughts?: boolean;
-    };
-    mediaResolution?: 'OFF' | 'MEDIA_RESOLUTION_LOW' | 'MEDIA_RESOLUTION_MEDIUM' // This allows more higher quality output per token but will cost most overall
+    }>;
+    mediaResolution?: 'OFF' | 'MEDIA_RESOLUTION_LOW' | 'MEDIA_RESOLUTION_MEDIUM'; // This allows more higher quality output per token but will cost most overall
     // Response modalities (for backward compatibility)
-    responseModalities?: Array<'TEXT' | 'IMAGE'>;
+    responseModalities?: ReadonlyArray<'TEXT' | 'IMAGE'>;
     codeExecution?: boolean; // Enable code execution for models that support it
     // Search and grounding
     useSearchGrounding?: boolean;
@@ -273,7 +283,7 @@ export function createGemini25Provider(
     // Safety and structure
     safetyLevel?: 'STRICT' | 'MODERATE' | 'PERMISSIVE' | 'OFF';
     structuredOutputs?: boolean;
-  } = {}
+  }> = {}
 ) {
   // Extract the thinking and response modality options (for backward compatibility)
   const { thinkingConfig, responseModalities, mediaResolution, ...baseOptions } = options;
@@ -292,58 +302,17 @@ export function createGemini25Provider(
   return baseGoogleModel(modelId, baseOptions);
 }
 
-/**
- * Create Google provider with image generation capabilities
- * @param modelId - Model ID (default: gemini-2.0-flash-exp)
- * @param options - Configuration options
- */
-
-export function createGeminiImageProvider(
-  modelId: string = GEMINI_CONFIG.MODELS.GEMINI_2_5_FLASH_LITE,
-  options: {
-    useSearchGrounding?: boolean;
-    safetyLevel?: 'STRICT' | 'MODERATE' | 'PERMISSIVE' | 'OFF';
-  } = {}
-) {
-  const { useSearchGrounding = false, safetyLevel = 'MODERATE' } = options;
-
-  return baseGoogle(modelId, {
-    useSearchGrounding,
-    safetySettings: [...GEMINI_CONFIG.SAFETY_PRESETS[safetyLevel]]
-  });
-}
-
-/**
- * Create embedding model with flexible dimensions
- * @param modelId - Embedding model ID
- * @param options - Embedding configuration
- * @param outputDimensionality - number;
- */
-
 export function createGeminiEmbeddingModel(
   modelId: string = GEMINI_CONFIG.EMBEDDING_MODELS.TEXT_EMBEDDING_004,
-  options: {
-    outputDimensionality?: 1536;
-    taskType?: 'SEMANTIC_SIMILARITY' | 'CLASSIFICATION' | 'CLUSTERING' | 'RETRIEVAL_DOCUMENT' | 'RETRIEVAL_QUERY' | 'QUESTION_ANSWERING' | 'FACT_VERIFICATION' | 'CODE_RETRIEVAL_QUERY';
-  } = {}
 ) {
-  const {
-    outputDimensionality = 1536, // Default to 1536 to match your setup
-    taskType = 'SEMANTIC_SIMILARITY'
-  } = options;
+  // The textEmbedding method does not directly accept outputDimensionality or taskType as top-level options.
+  // These are typically configured at the model level or within the embedding request payload.
+  // For now, we'll remove them from the direct call to baseGoogle.textEmbedding.
 
-  return baseGoogle.textEmbeddingModel(modelId, {
-    outputDimensionality,
-    taskType
-  });
+  // Use the provider's textEmbedding method for consistency
+  return baseGoogle.textEmbedding(modelId);
 }
 
-/**
- * Main function - auto-detects model version and uses appropriate provider
- * @param modelId - ID of the Google model to use
- * @param options - Optional settings for the provider
- * @returns Google provider instance
- */
 /**
  * Create a Mastra-compatible Google provider with proper thinking config support
  *
@@ -371,18 +340,18 @@ export function createGeminiEmbeddingModel(
 
 export function createMastraGoogleProvider(
   modelId: string = GEMINI_CONFIG.MODELS.GEMINI_2_5_FLASH_LITE,
-  options: {
+  options: Readonly<{
     // Search and grounding
     useSearchGrounding?: boolean;
     dynamicRetrieval?: boolean;
-
+    mediaResolution?: 'OFF' | 'MEDIA_RESOLUTION_LOW' | 'MEDIA_RESOLUTION_MEDIUM' // This allows more higher quality output per token but will cost most overall
     // Content and caching
     cachedContent?: string;
 
     // Safety and structure
     safetyLevel?: 'STRICT' | 'MODERATE' | 'PERMISSIVE' | 'OFF';
     structuredOutputs?: boolean;
-  } = {}
+  }> = {}
 ) {
   // Use the enhanced 2.5 provider for all models
   return createGemini25Provider(modelId, options);
@@ -440,7 +409,7 @@ export function createCacheManager(apiKey?: string): GoogleAICacheManager {
     throw new Error('Google AI API key is required for cache manager');
   }
 
-  logger.info('Creating Google AI cache manager', { hasApiKey: !!(key ?? "") });
+  logger.info('Creating Google AI cache manager', { hasApiKey: !!key });
   return new GoogleAICacheManager(key);
 }
 
@@ -479,7 +448,7 @@ export async function createCachedContent(
       ttlSeconds
     });
 
-    if (name === null) {
+    if (!name) {
       throw new Error('Failed to create cached content: no name returned');
     }
 
@@ -668,7 +637,7 @@ export function extractGroundingMetadata(providerMetadata?: Readonly<Record<stri
 /**
  * Log cache usage statistics from response metadata
  * @param response - Response object from generateText
- * @param logger - Logger instance
+ * @param customLogger - Logger instance
  *
  * @example
  * ```typescript
@@ -678,9 +647,9 @@ export function extractGroundingMetadata(providerMetadata?: Readonly<Record<stri
  *
  * [EDIT: 2025-06-22] [BY: GitHub Copilot]
  */
-export function logCacheUsage(response: Record<string, unknown>, logger: PinoLogger) {
-  const responseBody = response?.body as Record<string, unknown> | undefined;
-  const usageMetadata = responseBody?.usageMetadata as Record<string, unknown> | undefined;
+export function logCacheUsage(response: Readonly<Record<string, unknown>>, customLogger: PinoLogger) {
+  const responseBody = response.body as Record<string, unknown> | undefined;
+  const usageMetadata = responseBody?.usageMetadata as Readonly<Record<string, unknown>> | undefined;
   if (
     usageMetadata &&
     typeof usageMetadata.cachedContentTokenCount === 'number' &&
@@ -689,7 +658,7 @@ export function logCacheUsage(response: Record<string, unknown>, logger: PinoLog
   ) {
     const cacheHitRate = ((usageMetadata.cachedContentTokenCount / usageMetadata.totalTokenCount) * 100).toFixed(2);
 
-    logger.info('Cache hit detected', {
+    customLogger.info('Cache hit detected', {
       cachedTokens: usageMetadata.cachedContentTokenCount,
       totalTokens: usageMetadata.totalTokenCount,
       promptTokens: usageMetadata.promptTokenCount,

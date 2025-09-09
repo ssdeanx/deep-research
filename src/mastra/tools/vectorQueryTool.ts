@@ -33,9 +33,8 @@ import {
 } from '../config/libsql-storage';
 import { createGeminiEmbeddingModel } from '../config/googleProvider';
 import { PinoLogger } from '@mastra/loggers';
-import { embedMany } from 'ai';
-import type { Memory } from '@mastra/memory'; // Import Memory
-import type { UIMessage, Message } from 'ai';
+import { embedMany, generateId } from 'ai';
+import type { Memory } from '@mastra/memory';
 
 // Define runtime context type for vector query tools
 export interface VectorQueryRuntimeContext {
@@ -204,10 +203,10 @@ export const enhancedVectorQueryTool = createTool({
         });
 
         // Transform searchMemoryMessages results to match our schema
-        messages.forEach((message: Message) => {
+        messages.forEach((message) => {
           results.push({
-            id: message.id,
-            content: message.content,
+            id: message.id ?? generateId(),
+            content: message.content ?? '',
             score: 1.0, // searchMemoryMessages doesn't return score, assume perfect match
             metadata: {
               role: message.role,
@@ -219,10 +218,19 @@ export const enhancedVectorQueryTool = createTool({
           });
         });
 
-        uiMessages.forEach((uiMessage: UIMessage) => {
+        uiMessages.forEach((uiMessage) => {
+          // UIMessage may not expose a typed 'content' property; coerce to any and try common fallbacks
+          const anyUi = uiMessage as any;
+          const uiContent =
+            typeof anyUi.content === 'string'
+              ? anyUi.content
+              : typeof anyUi.text === 'string'
+              ? anyUi.text
+              : JSON.stringify(anyUi);
+
           results.push({
-            id: uiMessage.id,
-            content: typeof uiMessage.content === 'string' ? uiMessage.content : JSON.stringify(uiMessage.content),
+            id: uiMessage.id ?? generateId(),
+            content: uiContent,
             score: 1.0, // searchMemoryMessages doesn't return score, assume perfect match
             metadata: {
               role: uiMessage.role,
@@ -233,7 +241,9 @@ export const enhancedVectorQueryTool = createTool({
           });
         });
 
-        relevantContext = [...messages, ...uiMessages].map(m => m.content).join('\n\n');
+        relevantContext = [...messages, ...uiMessages]
+          .map((m: any) => (typeof m.content === 'string' ? m.content : (typeof m.text === 'string' ? m.text : '')))
+          .join('\n\n');
 
       } else {
         // Use direct LibSQL vector store search with cosine similarity

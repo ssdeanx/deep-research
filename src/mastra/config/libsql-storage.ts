@@ -5,7 +5,7 @@ import { embedMany } from "ai";
 import { PinoLogger } from "@mastra/loggers";
 import { AISpanType } from '@mastra/core/ai-tracing';
 import type { RuntimeContext } from '@mastra/core/runtime-context';
-import type { UIMessage, Message } from 'ai';
+import type { UIMessage } from 'ai';
 import {
   PersonalizationProcessor,
   TokenLimiterProcessor,
@@ -46,6 +46,17 @@ export interface QueryResult {
   vector?: number[];
 }
 
+/**
+ * Simplified Message type used by memory search and UI adapters
+ */
+export interface Message {
+  id?: string;
+  role?: 'user' | 'assistant' | 'system' | 'data';
+  content?: string;
+  createdAt?: string | number | Date;
+  threadId?: string;
+}
+
 const logger = new PinoLogger({ name: 'libsql-storage', level: 'info' });
 
 /**
@@ -67,6 +78,7 @@ export const STORAGE_CONFIG = {
 /**
  * LibSQL Storage Configuration
  */
+
 export const createLibSQLStore = (tracingContext?: { context?: unknown; runtimeContext?: RuntimeContext; currentSpan?: { createChildSpan(input: TracingSpanInput): { end(options: SpanEndInput): void } } }) => {
   const startTime = Date.now();
   const databaseUrl = process.env.DATABASE_URL ?? STORAGE_CONFIG.DEFAULT_DATABASE_URL;
@@ -134,6 +146,7 @@ export const createLibSQLStore = (tracingContext?: { context?: unknown; runtimeC
 /**
  * LibSQL Vector Store Configuration
  */
+
 export const createLibSQLVectorStore = (tracingContext?: { context?: unknown; runtimeContext?: RuntimeContext; currentSpan?: { createChildSpan(input: TracingSpanInput): { end(options: SpanEndInput): void } } }) => {
   const startTime = Date.now();
   const databaseUrl = process.env.VECTOR_DATABASE_URL ?? STORAGE_CONFIG.VECTOR_DATABASE_URL;
@@ -144,7 +157,7 @@ export const createLibSQLVectorStore = (tracingContext?: { context?: unknown; ru
     name: 'libsql_vector_store_init',
     input: {
       databaseUrl: databaseUrl.replace(/authToken=[^&]*/, 'authToken=***'), // Mask auth token
-      hasAuthToken: !((process.env.VECTOR_DATABASE_AUTH_TOKEN ?? process.env.DATABASE_AUTH_TOKEN) === null)
+      hasAuthToken: !!(process.env.VECTOR_DATABASE_AUTH_TOKEN ?? process.env.DATABASE_AUTH_TOKEN)
     }
   } as TracingSpanInput);
 
@@ -239,6 +252,7 @@ export const initializeVectorIndexes = async () => {
 /**
  * Search for similar content in vector store
  */
+
 export const searchSimilarContent = async (
   query: string,
   indexName: string,
@@ -287,7 +301,7 @@ export const searchSimilarContent = async (
 
     const embeddings: number[][] = isNumberMatrix(embedResult)
       ? embedResult
-      : (isNumberMatrix((embedResult as { embeddings?: unknown })?.embeddings)
+      : (isNumberMatrix((embedResult as { embeddings?: unknown }).embeddings)
         ? (embedResult as { embeddings: number[][] }).embeddings
         : []);
 
@@ -469,11 +483,12 @@ export interface ExtractParams {
 /**
  * Upsert vectors to LibSQL vector store
  */
+
 export async function upsertVectors(
   indexName: string,
-  vectors: number[][],
-  metadata: Array<Record<string, unknown>>,
-  ids: string[],
+  vectors: ReadonlyArray<readonly number[]>,
+  metadata: ReadonlyArray<Record<string, unknown>>,
+  ids: readonly string[],
   tracingContext?: { context?: unknown; runtimeContext?: RuntimeContext; currentSpan?: { createChildSpan(input: TracingSpanInput): { end(options: SpanEndInput): void } } }
 ): Promise<{ success: boolean; count?: number; error?: string }> {
   const startTime = Date.now();
@@ -492,11 +507,16 @@ export async function upsertVectors(
   try {
     const vectorStore = createLibSQLVectorStore(tracingContext);
 
+    // Convert readonly inputs to mutable arrays expected by the vector store implementation
+    const mutableVectors = vectors.map(row => Array.from(row));
+    const mutableMetadata = metadata.map(m => ({ ...m }));
+    const mutableIds = Array.from(ids);
+
     await vectorStore.upsert({
       indexName,
-      vectors,
-      metadata,
-      ids,
+      vectors: mutableVectors,
+      metadata: mutableMetadata,
+      ids: mutableIds,
     });
 
     const processingTime = Date.now() - startTime;
@@ -556,6 +576,7 @@ export async function upsertVectors(
 /**
  * Create vector index
  */
+
 export async function createVectorIndex(
   indexName: string,
   dimension = STORAGE_CONFIG.DEFAULT_DIMENSION,
@@ -638,11 +659,12 @@ export async function createVectorIndex(
 /**
  * Query vectors from LibSQL vector store
  */
+
 export async function queryVectors(
   indexName: string,
-  queryVector: number[],
+  queryVector: readonly number[],
   topK = 5,
-  filter?: Parameters<LibSQLVector['query']>[0]['filter'],
+  filter?: Readonly<Parameters<LibSQLVector['query']>[0]['filter']>,
   includeVector = false,
   tracingContext?: { context?: unknown; runtimeContext?: RuntimeContext; currentSpan?: { createChildSpan(input: TracingSpanInput): { end(options: SpanEndInput): void } } }
 ): Promise<QueryResult[]> {
@@ -665,7 +687,7 @@ export async function queryVectors(
     const vectorStore = createLibSQLVectorStore(tracingContext);
     const results = await vectorStore.query({
       indexName,
-      queryVector,
+      queryVector: Array.from(queryVector),
       topK,
       filter,
       includeVector,
@@ -696,7 +718,7 @@ export async function queryVectors(
     return results.map(result => ({
       id: result.id,
       score: result.score,
-      metadata: result.metadata || {}
+      metadata: result.metadata ?? {}
     })) as QueryResult[];
   } catch (error) {
     const processingTime = Date.now() - startTime;
@@ -735,8 +757,9 @@ export async function queryVectors(
 /**
  * Search memory messages
  */
+
 export async function searchMemoryMessages(
-  memory: Memory,
+  memory: Readonly<Memory>,
   threadId: string,
   query: string,
   topK = 5
@@ -770,7 +793,7 @@ export async function searchMemoryMessages(
       : Array.isArray(recalled) ? recalled as unknown[]
       : [];
 
-    const normalizeRole = (r?: string): Message['role'] => {
+    const normalizeRole = (r?: string | null): Message['role'] => {
       if (r === null) {
         return 'user';
       }
@@ -792,11 +815,11 @@ export async function searchMemoryMessages(
 
     const relevantMessages = recalledMessagesArray.map((msg: unknown, idx: number) => {
       const msgObj = msg as { id?: string; role?: string; sender?: string; roleName?: string; content?: string; parts?: Array<{ text?: string; content?: string }>; createdAt?: string; timestamp?: string; threadId?: string; thread_id?: string };
-      const safeId = msgObj.id ?? `${threadId ?? 'unknown'}-msg-${idx}-${Date.now()}`;
+      const safeId = msgObj.id ?? `${threadId}-msg-${idx}-${Date.now()}`;
       const role = normalizeRole(msgObj.role ?? msgObj.sender ?? msgObj.roleName);
-      const content = msgObj.content ?? (msgObj.parts?.map((p: { text?: string; content?: string }) => p.text ?? p.content).join('') ?? '');
+      const content = msgObj.content ?? (msgObj.parts?.map((p) => p.text ?? p.content).join('') ?? '');
       const createdAtRaw = msgObj.createdAt ?? msgObj.timestamp;
-      const createdAt = createdAtRaw !== null ? new Date(createdAtRaw as string | number | Date) : undefined;
+      const createdAt = (createdAtRaw !== null && createdAtRaw !== undefined) ? new Date(createdAtRaw as string | number | Date) : undefined;
       const thread = msgObj.threadId ?? msgObj.thread_id;
       return {
         id: safeId,
@@ -814,14 +837,14 @@ export async function searchMemoryMessages(
       foundMessages: relevantMessages.length
     });
 
-    const uiMessages = relevantMessages.map((m: Message & { threadId?: string }) => {
+    const uiMessages = relevantMessages.map((m: Readonly<Message>) => {
       return {
-        id: m.id,
-        role: m.role,
-        content: m.content,
-        createdAt: m.createdAt,
-        threadId: m.threadId,
-      } as unknown as UIMessage;
+              id: m.id,
+              role: m.role,
+              content: m.content,
+              createdAt: m.createdAt,
+              threadId: m.threadId,
+            } as unknown as UIMessage;
     });
 
     return {
@@ -876,8 +899,8 @@ interface MessageV2 {
   format?: string;
 }
 
-export const simplifyMessages = (messages: MessageV2[]) => {
-  return messages.map(msg => ({
+export const simplifyMessages = (messages: readonly MessageV2[]) => {
+  return messages.map((msg: Readonly<MessageV2>) => ({
     id: msg.id,
     role: msg.role,
     content: msg.content ?? (msg.parts?.map((part) => part.text ?? part.content).join('') ?? ''),
@@ -890,6 +913,7 @@ export const simplifyMessages = (messages: MessageV2[]) => {
 /**
  * Get or create user resource for working memory
  */
+
 export const getOrCreateUserResource = async (memory: Memory, userId: string) => {
   try {
     const {storage} = memory; // Already confirmed to be LibSQLStore type
@@ -935,6 +959,7 @@ export const getOrCreateUserResource = async (memory: Memory, userId: string) =>
 /**
  * Update user working memory
  */
+
 export const updateUserWorkingMemory = async (memory: Memory, userId: string, updates: { workingMemory: string; metadata?: Record<string, unknown> } & Record<string, unknown>) => {
   try {
     await memory.storage?.updateResource({
@@ -969,6 +994,7 @@ export interface ChunkWithMetadata {
 /**
  * Extract metadata from chunks
  */
+
 export function extractChunkMetadata(
   chunks: ChunkWithMetadata[],
   extractParams: ExtractParams
@@ -1049,6 +1075,7 @@ export function extractChunkMetadata(
 /**
  * Storage health check
  */
+
 export const performStorageHealthCheck = async (context: 'research' | 'report' = 'research') => {
   const results = {
     storage: false,
@@ -1117,6 +1144,7 @@ export const performStorageHealthCheck = async (context: 'research' | 'report' =
 /**
  * Initialize complete storage system
  */
+
 export const initializeStorageSystem = async (context: 'research' | 'report' = 'research') => {
   try {
     logger.info('Initializing complete storage system...', { context });

@@ -9,10 +9,11 @@ import { rerankTool } from '../tools/rerank-tool';
 import { weatherTool } from '../tools/weather-tool';
 import { webScraperTool } from '../tools/web-scraper-tool';
 import { webSearchTool } from '../tools/webSearchTool';
-import { createGemini25Provider } from '../config/googleProvider';
+//import { createGemini25Provider } from '../config/googleProvider';
 import { createResearchMemory } from '../config/libsql-storage';
 import { ContentSimilarityMetric, CompletenessMetric, TextualDifferenceMetric, KeywordCoverageMetric, ToneConsistencyMetric } from "@mastra/evals/nlp";
 import { PinoLogger } from "@mastra/loggers";
+import { google } from '@ai-sdk/google';
 
 const logger = new PinoLogger({ level: 'info' });
 
@@ -61,18 +62,7 @@ Remember: Your knowledge comes from both your training data and the information 
     keywordCoverage: new KeywordCoverageMetric(), // Keywords will be provided at runtime for evaluation
     toneConsistency: new ToneConsistencyMetric(),
   },
-  model: createGemini25Provider('gemini-2.5-flash', {
-    responseModalities: ["TEXT"],
-    thinkingConfig: {
-      thinkingBudget: -1,
-      includeThoughts: true,
-    },
-    mediaResolution: "MEDIA_RESOLUTION_LOW",
-    useSearchGrounding: false, // We use our own vector search
-    dynamicRetrieval: false,
-    safetyLevel: 'OFF',
-    structuredOutputs: true,
-  }),
+  model: google('gemini-2.5-flash',),
   tools: {
     vectorQueryTool,
     chunkerTool,
@@ -92,3 +82,4 @@ Remember: Your knowledge comes from both your training data and the information 
   },
   memory,
 });
+
