@@ -17,14 +17,18 @@ import { qualityAssuranceAgent } from './agents/qualityAssuranceAgent';
 import { githubPlanningWorkflow } from './workflows/githubPlanningWorkflow';
 import { githubQualityWorkflow } from './workflows/githubQualityWorkflow';
 import { PinoLogger } from "@mastra/loggers";
-
+import { publisherAgent } from "./agents/publisherAgent";
+import { copywriterAgent } from "./agents/copywriterAgent";
+import { editorAgent } from "./agents/editorAgent";
+import { server } from './mcp/server';
 const logger = new PinoLogger({ level: 'info' });
 
 logger.info('Starting Mastra application')
 
 export const mastra = new Mastra({
   storage: new LibSQLStore({
-    url: ':memory:',
+    url: 'file:./mastra.db',
+    initialBackoffMs: 50
   }),
   agents: {
     researchAgent,
@@ -37,9 +41,12 @@ export const mastra = new Mastra({
     monitorAgent,
     planningAgent,
     qualityAssuranceAgent,
+    publisherAgent,
+    copywriterAgent,
+    editorAgent,
   },
   workflows: { generateReportWorkflow, researchWorkflow, comprehensiveResearchWorkflow, githubPlanningWorkflow, githubQualityWorkflow },
   vnext_networks: {
     complexResearchNetwork,
-  },
+  }
 });

@@ -119,8 +119,10 @@ const conductWebResearchStep = createStep({
         learnings: result.object.learnings,
         completedQueries: result.object.completedQueries,
       };
-    } catch (error: any) {
-      logger.error('Error in conductWebResearchStep', { error: error.message, stack: error.stack });
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      const errStack = error instanceof Error && error.stack ? error.stack : undefined;
+      logger.error('Error in conductWebResearchStep', { error: errMsg, stack: errStack });
       return {
         searchResults: [],
         learnings: [],
@@ -228,11 +230,13 @@ const evaluateAndExtractStep = createStep({
         followUpQuestions: extractionResult.object.followUpQuestions,
         processedUrl: searchResult.url,
       };
-    } catch (error: any) {
-      logger.error('Error in evaluateAndExtractStep', { error: error.message, stack: error.stack });
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      const errStack = error instanceof Error && error.stack ? error.stack : undefined;
+      logger.error('Error in evaluateAndExtractStep', { error: errMsg, stack: errStack });
       return {
         isRelevant: false,
-        reason: `Error during evaluation or extraction: ${error.message}`,
+        reason: `Error during evaluation or extraction: ${errMsg}`,
         processedUrl: searchResult.url,
       };
     }
@@ -344,16 +348,18 @@ const processAndRetrieveStep = createStep({
               tracingContext,
             });
 
-      const refinedContext = (rerankedResults.messages as Array<{ content: string }>).map((m) => m.content).join('\n\n');
+      const refinedContext = (rerankedResults.messages as { content: string }[]).map((m) => m.content).join('\n\n');
 
       logger.info('RAG processing and retrieval complete.');
       return {
         refinedContext,
       };
-    } catch (error: any) {
-      logger.error('Error in processAndRetrieveStep:', { error: error.message, stack: error.stack });
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      const errStack = error instanceof Error && error.stack ? error.stack : undefined;
+      logger.error('Error in processAndRetrieveStep:', { error: errMsg, stack: errStack });
       return {
-        refinedContext: `Error during RAG processing: ${error.message}`,
+        refinedContext: `Error during RAG processing: ${errMsg}`,
       };
     }
   },
@@ -385,10 +391,12 @@ const synthesizeFinalContentStep = createStep({
       return {
         finalSynthesizedContent: summaryResponse.text,
       };
-    } catch (error: any) {
-      logger.error('Error in synthesizeFinalContentStep:', { error: error.message, stack: error.stack });
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      const errStack = error instanceof Error && error.stack ? error.stack : undefined;
+      logger.error('Error in synthesizeFinalContentStep:', { error: errMsg, stack: errStack });
       return {
-        finalSynthesizedContent: `Error during content synthesis: ${error.message}`,
+        finalSynthesizedContent: `Error during content synthesis: ${errMsg}`,
       };
     }
   },
@@ -418,9 +426,9 @@ const generateFinalReportStep = createStep({
       ]);
       logger.info('Final report generated.');
       return { report: report.text };
-    } catch (error: any) {
-      logger.error('Error generating final report:', { error: error.message, stack: error.stack });
-      return { report: `Error generating report: ${error.message}` };
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      return { report: `Error generating report: ${errMsg}` };
     }
   },
 });
@@ -465,7 +473,7 @@ const reportApprovalStep = createStep({
 
 // --- Nested Iterative Research Loop Workflow ---
 let _currentIterationCount: number;
-const iterativeResearchLoopWorkflow: any = createWorkflow({
+const iterativeResearchLoopWorkflow = createWorkflow({
   id: 'iterative-research-loop',
   inputSchema: z.object({
     query: z.string(),
@@ -508,31 +516,36 @@ const iterativeResearchLoopWorkflow: any = createWorkflow({
   })
   .foreach(evaluateAndExtractStep, { concurrency: 1 })
   .map(async ({ getStepResult }) => {
-    const iterationLearnings: Array<{ learning: string; followUpQuestions: string[]; source: string }> =
+    const iterationLearnings: { learning: string; followUpQuestions: string[]; source: string }[] =
       getStepResult(conductWebResearchStep).learnings;
-    const iterationSearchResults: Array<{ title: string; url: string; content: string }> =
+    const iterationSearchResults: { title?: string; url?: string; content?: string }[] =
       getStepResult(conductWebResearchStep).searchResults;
 
     // Evaluation results produced by evaluateAndExtractStep (one per search result in the foreach)
     const _rawEvaluateResults = getStepResult(evaluateAndExtractStep);
-    type EvaluateResultType = {
+    interface EvaluateResultType {
       isRelevant: boolean;
       reason?: string;
       learning?: string;
       followUpQuestions?: string[];
       processedUrl?: string; // Corrected: Added processedUrl here
     };
-    const evaluateResults: Array<EvaluateResultType> = (Array.isArray(_rawEvaluateResults) ? _rawEvaluateResults : [_rawEvaluateResults]) as Array<EvaluateResultType>;
+    const evaluateResults: EvaluateResultType[] = (Array.isArray(_rawEvaluateResults) ? _rawEvaluateResults : [_rawEvaluateResults]) as Array<EvaluateResultType>;
 
-    const relevantLearnings: Array<{ learning: string; followUpQuestions: string[]; source: string }> = [];
-    const relevantContent: Array<{ title: string; url: string; content: string }> = [];
+    const relevantLearnings: { learning: string; followUpQuestions: string[]; source: string }[] = [];
+    const relevantContent: { title: string; url: string; content: string }[] = [];
     const newFollowUpQuestions: string[] = [];
 
     for (const evalResult of evaluateResults) {
       if (evalResult.isRelevant && evalResult.processedUrl) {
         const originalSearchResult = iterationSearchResults.find(sr => sr.url === evalResult.processedUrl);
-        if (originalSearchResult) {
-          relevantContent.push(originalSearchResult);
+        if (originalSearchResult && originalSearchResult.title && originalSearchResult.url && originalSearchResult.content) {
+          // Push a fully-typed object to satisfy the required shape
+          relevantContent.push({
+            title: originalSearchResult.title,
+            url: originalSearchResult.url,
+            content: originalSearchResult.content,
+          });
         }
 
         const originalLearning = iterationLearnings.find(l => l.source === evalResult.processedUrl);
