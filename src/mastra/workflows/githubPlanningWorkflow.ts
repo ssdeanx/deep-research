@@ -73,9 +73,10 @@ const createProjectPlanStep = createStep({
       ]);
 
       return { plan: result.text };
-    } catch (error: any) {
-      logger.error('Error creating project plan', { error: error.message });
-      return { plan: `Error: ${error.message}` };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error('Error creating project plan', { error: message });
+      return { plan: `Error: ${message}` };
     }
   },
 });
@@ -103,11 +104,11 @@ const monitorRepositoryStep = createStep({
           Provide health status, activity metrics, and progress tracking.`,
         },
       ]);
-
       return { monitoringReport: result.text };
-    } catch (error: any) {
-      logger.error('Error monitoring repository', { error: error.message });
-      return { monitoringReport: `Error: ${error.message}` };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error('Error monitoring repository', { error: message });
+      return { monitoringReport: `Error: ${message}` };
     }
   },
 });
@@ -137,14 +138,15 @@ const generateGithubTasksStep = createStep({
           Suggest issues, milestones, and project board items.`,
         },
       ]);
-
       return { tasks: result.text };
-    } catch (error: any) {
-      logger.error('Error generating GitHub tasks', { error: error.message });
-      return { tasks: `Error: ${error.message}` };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error('Error generating GitHub tasks', { error: message });
+      return { tasks: `Error: ${message}` };
     }
   },
 });
+
 
 // Define the workflow
 export const githubPlanningWorkflow = createWorkflow({

@@ -36,9 +36,10 @@ const processPlanningResultsStep = createStep({
       ]);
 
       return { qaAnalysis: result.text, completed: true };
-    } catch (error: any) {
-      logger.error('Error in QA analysis', { error: error.message });
-      return { qaAnalysis: `Error: ${error.message}`, completed: false };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error('Error in QA analysis', { error: message });
+      return { qaAnalysis: `Error: ${message}`, completed: false };
     }
   },
 });

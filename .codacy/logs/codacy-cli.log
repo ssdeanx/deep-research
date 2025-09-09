@@ -1483,3 +1483,134 @@
 2025-09-09T08:06:24-04:00 [INFO] (codacy-cli-v2/cli-v2.go:27) Starting Codacy CLI version=1.0.0-main.349.sha.1b80ceb (1b80ceb) built at 2025-07-10T10:14:35Z
 2025-09-09T08:06:24-04:00 [INFO] (codacy-cli-v2/cmd/root.go:34) Executing CLI command command=analyze full_command=[/home/sam/.cache/codacy/codacy-cli-v2/1.0.0-main.349.sha.1b80ceb/codacy-cli-v2 analyze /home/sam/00-mastra/deep-research/package-lock.json --format sarif] args=[/home/sam/00-mastra/deep-research/package-lock.json]
 2025-09-09T08:06:24-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=trivy toolConfigPath=.codacy/tools-configs/trivy.yaml
+2025-09-09T08:06:49-04:00 [INFO] (codacy-cli-v2/cli-v2.go:27) Starting Codacy CLI version=1.0.0-main.349.sha.1b80ceb (1b80ceb) built at 2025-07-10T10:14:35Z
+2025-09-09T08:06:49-04:00 [INFO] (codacy-cli-v2/cmd/root.go:34) Executing CLI command command=analyze full_command=[/home/sam/.cache/codacy/codacy-cli-v2/1.0.0-main.349.sha.1b80ceb/codacy-cli-v2 analyze /home/sam/00-mastra/deep-research/src/mastra/workflows/1757419609062-comprehensiveResearchWorkflow.ts --format sarif] args=[/home/sam/00-mastra/deep-research/src/mastra/workflows/1757419609062-comprehensiveResearchWorkflow.ts]
+2025-09-09T08:06:49-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=lizard toolConfigPath=.codacy/tools-configs/lizard.yaml
+2025-09-09T08:06:49-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=semgrep toolConfigPath=.codacy/tools-configs/semgrep.yaml
+2025-09-09T08:06:56-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=trivy toolConfigPath=.codacy/tools-configs/trivy.yaml
+2025-09-09T08:06:56-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=eslint toolConfigPath=.codacy/tools-configs/eslint.config.mjs
+2025-09-09T08:07:07-04:00 [INFO] (codacy-cli-v2/cli-v2.go:27) Starting Codacy CLI version=1.0.0-main.349.sha.1b80ceb (1b80ceb) built at 2025-07-10T10:14:35Z
+2025-09-09T08:07:07-04:00 [INFO] (codacy-cli-v2/cmd/root.go:34) Executing CLI command command=analyze full_command=[/home/sam/.cache/codacy/codacy-cli-v2/1.0.0-main.349.sha.1b80ceb/codacy-cli-v2 analyze /snap/code/205/usr/share/code/resources/app/extensions/node_modules/typescript/lib/lib.es5.d.ts --format sarif] args=[/snap/code/205/usr/share/code/resources/app/extensions/node_modules/typescript/lib/lib.es5.d.ts]
+2025-09-09T08:07:07-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=semgrep toolConfigPath=.codacy/tools-configs/semgrep.yaml
+2025-09-09T08:07:15-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool toolConfigPath=.codacy/tools-configs/trivy.yaml tool=trivy
+2025-09-09T08:07:15-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=eslint toolConfigPath=.codacy/tools-configs/eslint.config.mjs
+2025-09-09T08:07:15-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=lizard toolConfigPath=.codacy/tools-configs/lizard.yaml
+2025-09-09T08:08:03-04:00 [INFO] (codacy-cli-v2/cli-v2.go:27) Starting Codacy CLI version=1.0.0-main.349.sha.1b80ceb (1b80ceb) built at 2025-07-10T10:14:35Z
+2025-09-09T08:08:03-04:00 [INFO] (codacy-cli-v2/cmd/root.go:34) Executing CLI command command=analyze full_command=[/home/sam/.cache/codacy/codacy-cli-v2/1.0.0-main.349.sha.1b80ceb/codacy-cli-v2 analyze /home/sam/00-mastra/deep-research/node_modules/@mastra/core/dist/workflows/workflow.d.ts --format sarif] args=[/home/sam/00-mastra/deep-research/node_modules/@mastra/core/dist/workflows/workflow.d.ts]
+2025-09-09T08:08:03-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=semgrep toolConfigPath=.codacy/tools-configs/semgrep.yaml
+2025-09-09T08:08:10-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=trivy toolConfigPath=.codacy/tools-configs/trivy.yaml
+2025-09-09T08:08:10-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=eslint toolConfigPath=.codacy/tools-configs/eslint.config.mjs
+2025-09-09T08:08:10-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=lizard toolConfigPath=.codacy/tools-configs/lizard.yaml
+2025-09-09T08:08:50-04:00 [INFO] (codacy-cli-v2/cli-v2.go:27) Starting Codacy CLI version=1.0.0-main.349.sha.1b80ceb (1b80ceb) built at 2025-07-10T10:14:35Z
+2025-09-09T08:08:50-04:00 [INFO] (codacy-cli-v2/cmd/root.go:34) Executing CLI command full_command=[/home/sam/.cache/codacy/codacy-cli-v2/1.0.0-main.349.sha.1b80ceb/codacy-cli-v2 analyze /home/sam/00-mastra/deep-research/node_modules/@mastra/core/dist/workflows/step.d.ts --format sarif] args=[/home/sam/00-mastra/deep-research/node_modules/@mastra/core/dist/workflows/step.d.ts] command=analyze
+2025-09-09T08:08:50-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=trivy toolConfigPath=.codacy/tools-configs/trivy.yaml
+2025-09-09T08:08:50-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=eslint toolConfigPath=.codacy/tools-configs/eslint.config.mjs
+2025-09-09T08:08:50-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=lizard toolConfigPath=.codacy/tools-configs/lizard.yaml
+2025-09-09T08:08:50-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=semgrep toolConfigPath=.codacy/tools-configs/semgrep.yaml
+2025-09-09T08:09:25-04:00 [INFO] (codacy-cli-v2/cli-v2.go:27) Starting Codacy CLI version=1.0.0-main.349.sha.1b80ceb (1b80ceb) built at 2025-07-10T10:14:35Z
+2025-09-09T08:09:25-04:00 [INFO] (codacy-cli-v2/cmd/root.go:34) Executing CLI command command=analyze full_command=[/home/sam/.cache/codacy/codacy-cli-v2/1.0.0-main.349.sha.1b80ceb/codacy-cli-v2 analyze /tmp/comprehensiveResearchWorkflow.ts --format sarif] args=[/tmp/comprehensiveResearchWorkflow.ts]
+2025-09-09T08:09:25-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=trivy toolConfigPath=.codacy/tools-configs/trivy.yaml
+2025-09-09T08:09:25-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=eslint toolConfigPath=.codacy/tools-configs/eslint.config.mjs
+2025-09-09T08:09:25-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=lizard toolConfigPath=.codacy/tools-configs/lizard.yaml
+2025-09-09T08:09:26-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool toolConfigPath=.codacy/tools-configs/semgrep.yaml tool=semgrep
+2025-09-09T08:10:03-04:00 [INFO] (codacy-cli-v2/cli-v2.go:27) Starting Codacy CLI version=1.0.0-main.349.sha.1b80ceb (1b80ceb) built at 2025-07-10T10:14:35Z
+2025-09-09T08:10:03-04:00 [INFO] (codacy-cli-v2/cmd/root.go:34) Executing CLI command command=analyze full_command=[/home/sam/.cache/codacy/codacy-cli-v2/1.0.0-main.349.sha.1b80ceb/codacy-cli-v2 analyze /home/sam/00-mastra/deep-research/src/mastra/workflows/comprehensiveResearchWorkflow.ts --format sarif] args=[/home/sam/00-mastra/deep-research/src/mastra/workflows/comprehensiveResearchWorkflow.ts]
+2025-09-09T08:10:03-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=semgrep toolConfigPath=.codacy/tools-configs/semgrep.yaml
+2025-09-09T08:10:11-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool toolConfigPath=.codacy/tools-configs/trivy.yaml tool=trivy
+2025-09-09T08:10:11-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=eslint toolConfigPath=.codacy/tools-configs/eslint.config.mjs
+2025-09-09T08:10:11-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=lizard toolConfigPath=.codacy/tools-configs/lizard.yaml
+2025-09-09T08:10:38-04:00 [INFO] (codacy-cli-v2/cli-v2.go:27) Starting Codacy CLI version=1.0.0-main.349.sha.1b80ceb (1b80ceb) built at 2025-07-10T10:14:35Z
+2025-09-09T08:10:38-04:00 [INFO] (codacy-cli-v2/cmd/root.go:34) Executing CLI command command=analyze full_command=[/home/sam/.cache/codacy/codacy-cli-v2/1.0.0-main.349.sha.1b80ceb/codacy-cli-v2 analyze /snap/code/205/usr/share/code/resources/app/extensions/node_modules/typescript/lib/lib.es5.d.ts --format sarif] args=[/snap/code/205/usr/share/code/resources/app/extensions/node_modules/typescript/lib/lib.es5.d.ts]
+2025-09-09T08:10:38-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool toolConfigPath=.codacy/tools-configs/semgrep.yaml tool=semgrep
+2025-09-09T08:10:46-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=trivy toolConfigPath=.codacy/tools-configs/trivy.yaml
+2025-09-09T08:10:46-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool toolConfigPath=.codacy/tools-configs/eslint.config.mjs tool=eslint
+2025-09-09T08:10:46-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=lizard toolConfigPath=.codacy/tools-configs/lizard.yaml
+2025-09-09T08:11:04-04:00 [INFO] (codacy-cli-v2/cli-v2.go:27) Starting Codacy CLI version=1.0.0-main.349.sha.1b80ceb (1b80ceb) built at 2025-07-10T10:14:35Z
+2025-09-09T08:11:04-04:00 [INFO] (codacy-cli-v2/cmd/root.go:34) Executing CLI command command=analyze full_command=[/home/sam/.cache/codacy/codacy-cli-v2/1.0.0-main.349.sha.1b80ceb/codacy-cli-v2 analyze /home/sam/00-mastra/deep-research/src/mastra/workflows/comprehensiveResearchWorkflow.ts --format sarif] args=[/home/sam/00-mastra/deep-research/src/mastra/workflows/comprehensiveResearchWorkflow.ts]
+2025-09-09T08:11:04-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=trivy toolConfigPath=.codacy/tools-configs/trivy.yaml
+2025-09-09T08:11:04-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool toolConfigPath=.codacy/tools-configs/eslint.config.mjs tool=eslint
+2025-09-09T08:11:04-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=lizard toolConfigPath=.codacy/tools-configs/lizard.yaml
+2025-09-09T08:11:04-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=semgrep toolConfigPath=.codacy/tools-configs/semgrep.yaml
+2025-09-09T08:11:14-04:00 [INFO] (codacy-cli-v2/cli-v2.go:27) Starting Codacy CLI version=1.0.0-main.349.sha.1b80ceb (1b80ceb) built at 2025-07-10T10:14:35Z
+2025-09-09T08:11:14-04:00 [INFO] (codacy-cli-v2/cmd/root.go:34) Executing CLI command command=analyze full_command=[/home/sam/.cache/codacy/codacy-cli-v2/1.0.0-main.349.sha.1b80ceb/codacy-cli-v2 analyze /home/sam/00-mastra/deep-research/src/mastra/workflows/1757419874044-comprehensiveResearchWorkflow.ts --format sarif] args=[/home/sam/00-mastra/deep-research/src/mastra/workflows/1757419874044-comprehensiveResearchWorkflow.ts]
+2025-09-09T08:11:14-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=semgrep toolConfigPath=.codacy/tools-configs/semgrep.yaml
+2025-09-09T08:11:21-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool toolConfigPath=.codacy/tools-configs/trivy.yaml tool=trivy
+2025-09-09T08:11:21-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=eslint toolConfigPath=.codacy/tools-configs/eslint.config.mjs
+2025-09-09T08:11:21-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=lizard toolConfigPath=.codacy/tools-configs/lizard.yaml
+2025-09-09T08:11:32-04:00 [INFO] (codacy-cli-v2/cli-v2.go:27) Starting Codacy CLI version=1.0.0-main.349.sha.1b80ceb (1b80ceb) built at 2025-07-10T10:14:35Z
+2025-09-09T08:11:32-04:00 [INFO] (codacy-cli-v2/cmd/root.go:34) Executing CLI command command=analyze full_command=[/home/sam/.cache/codacy/codacy-cli-v2/1.0.0-main.349.sha.1b80ceb/codacy-cli-v2 analyze /home/sam/00-mastra/deep-research/src/mastra/workflows/githubQualityWorkflow.ts --format sarif] args=[/home/sam/00-mastra/deep-research/src/mastra/workflows/githubQualityWorkflow.ts]
+2025-09-09T08:11:32-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=lizard toolConfigPath=.codacy/tools-configs/lizard.yaml
+2025-09-09T08:11:32-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=semgrep toolConfigPath=.codacy/tools-configs/semgrep.yaml
+2025-09-09T08:11:38-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool toolConfigPath=.codacy/tools-configs/trivy.yaml tool=trivy
+2025-09-09T08:11:38-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=eslint toolConfigPath=.codacy/tools-configs/eslint.config.mjs
+2025-09-09T08:11:53-04:00 [INFO] (codacy-cli-v2/cli-v2.go:27) Starting Codacy CLI version=1.0.0-main.349.sha.1b80ceb (1b80ceb) built at 2025-07-10T10:14:35Z
+2025-09-09T08:11:53-04:00 [INFO] (codacy-cli-v2/cmd/root.go:34) Executing CLI command command=analyze full_command=[/home/sam/.cache/codacy/codacy-cli-v2/1.0.0-main.349.sha.1b80ceb/codacy-cli-v2 analyze /home/sam/00-mastra/deep-research/src/mastra/workflows/1757419913198-githubQualityWorkflow.ts --format sarif] args=[/home/sam/00-mastra/deep-research/src/mastra/workflows/1757419913198-githubQualityWorkflow.ts]
+2025-09-09T08:11:53-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool toolConfigPath=.codacy/tools-configs/semgrep.yaml tool=semgrep
+2025-09-09T08:12:00-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=trivy toolConfigPath=.codacy/tools-configs/trivy.yaml
+2025-09-09T08:12:00-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=eslint toolConfigPath=.codacy/tools-configs/eslint.config.mjs
+2025-09-09T08:12:00-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=lizard toolConfigPath=.codacy/tools-configs/lizard.yaml
+2025-09-09T08:12:04-04:00 [INFO] (codacy-cli-v2/cli-v2.go:27) Starting Codacy CLI version=1.0.0-main.349.sha.1b80ceb (1b80ceb) built at 2025-07-10T10:14:35Z
+2025-09-09T08:12:04-04:00 [INFO] (codacy-cli-v2/cmd/root.go:34) Executing CLI command command=analyze full_command=[/home/sam/.cache/codacy/codacy-cli-v2/1.0.0-main.349.sha.1b80ceb/codacy-cli-v2 analyze /home/sam/00-mastra/deep-research/src/mastra/workflows/githubPlanningWorkflow.ts --format sarif] args=[/home/sam/00-mastra/deep-research/src/mastra/workflows/githubPlanningWorkflow.ts]
+2025-09-09T08:12:04-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=lizard toolConfigPath=.codacy/tools-configs/lizard.yaml
+2025-09-09T08:12:04-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=semgrep toolConfigPath=.codacy/tools-configs/semgrep.yaml
+2025-09-09T08:12:11-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool toolConfigPath=.codacy/tools-configs/trivy.yaml tool=trivy
+2025-09-09T08:12:11-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=eslint toolConfigPath=.codacy/tools-configs/eslint.config.mjs
+2025-09-09T08:12:20-04:00 [INFO] (codacy-cli-v2/cli-v2.go:27) Starting Codacy CLI version=1.0.0-main.349.sha.1b80ceb (1b80ceb) built at 2025-07-10T10:14:35Z
+2025-09-09T08:12:20-04:00 [INFO] (codacy-cli-v2/cmd/root.go:34) Executing CLI command args=[/home/sam/00-mastra/deep-research/node_modules/@mastra/loggers/dist/pino.d.ts] command=analyze full_command=[/home/sam/.cache/codacy/codacy-cli-v2/1.0.0-main.349.sha.1b80ceb/codacy-cli-v2 analyze /home/sam/00-mastra/deep-research/node_modules/@mastra/loggers/dist/pino.d.ts --format sarif]
+2025-09-09T08:12:20-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=semgrep toolConfigPath=.codacy/tools-configs/semgrep.yaml
+2025-09-09T08:12:28-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=trivy toolConfigPath=.codacy/tools-configs/trivy.yaml
+2025-09-09T08:12:28-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool toolConfigPath=.codacy/tools-configs/eslint.config.mjs tool=eslint
+2025-09-09T08:12:28-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=lizard toolConfigPath=.codacy/tools-configs/lizard.yaml
+2025-09-09T08:12:29-04:00 [INFO] (codacy-cli-v2/cli-v2.go:27) Starting Codacy CLI version=1.0.0-main.349.sha.1b80ceb (1b80ceb) built at 2025-07-10T10:14:35Z
+2025-09-09T08:12:29-04:00 [INFO] (codacy-cli-v2/cmd/root.go:34) Executing CLI command command=analyze full_command=[/home/sam/.cache/codacy/codacy-cli-v2/1.0.0-main.349.sha.1b80ceb/codacy-cli-v2 analyze /home/sam/00-mastra/deep-research/src/mastra/workflows/1757419949361-githubPlanningWorkflow.ts --format sarif] args=[/home/sam/00-mastra/deep-research/src/mastra/workflows/1757419949361-githubPlanningWorkflow.ts]
+2025-09-09T08:12:29-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=eslint toolConfigPath=.codacy/tools-configs/eslint.config.mjs
+2025-09-09T08:12:29-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=lizard toolConfigPath=.codacy/tools-configs/lizard.yaml
+2025-09-09T08:12:29-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=semgrep toolConfigPath=.codacy/tools-configs/semgrep.yaml
+2025-09-09T08:12:36-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=trivy toolConfigPath=.codacy/tools-configs/trivy.yaml
+2025-09-09T08:12:42-04:00 [INFO] (codacy-cli-v2/cli-v2.go:27) Starting Codacy CLI version=1.0.0-main.349.sha.1b80ceb (1b80ceb) built at 2025-07-10T10:14:35Z
+2025-09-09T08:12:42-04:00 [INFO] (codacy-cli-v2/cmd/root.go:34) Executing CLI command full_command=[/home/sam/.cache/codacy/codacy-cli-v2/1.0.0-main.349.sha.1b80ceb/codacy-cli-v2 analyze /home/sam/00-mastra/deep-research/src/mastra/workflows/githubPlanningWorkflow.ts --format sarif] args=[/home/sam/00-mastra/deep-research/src/mastra/workflows/githubPlanningWorkflow.ts] command=analyze
+2025-09-09T08:12:42-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=semgrep toolConfigPath=.codacy/tools-configs/semgrep.yaml
+2025-09-09T08:12:49-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=trivy toolConfigPath=.codacy/tools-configs/trivy.yaml
+2025-09-09T08:12:49-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=eslint toolConfigPath=.codacy/tools-configs/eslint.config.mjs
+2025-09-09T08:12:49-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=lizard toolConfigPath=.codacy/tools-configs/lizard.yaml
+2025-09-09T08:13:00-04:00 [INFO] (codacy-cli-v2/cli-v2.go:27) Starting Codacy CLI version=1.0.0-main.349.sha.1b80ceb (1b80ceb) built at 2025-07-10T10:14:35Z
+2025-09-09T08:13:00-04:00 [INFO] (codacy-cli-v2/cmd/root.go:34) Executing CLI command full_command=[/home/sam/.cache/codacy/codacy-cli-v2/1.0.0-main.349.sha.1b80ceb/codacy-cli-v2 analyze /home/sam/00-mastra/deep-research/src/mastra/workflows/1757419980475-githubPlanningWorkflow.ts --format sarif] args=[/home/sam/00-mastra/deep-research/src/mastra/workflows/1757419980475-githubPlanningWorkflow.ts] command=analyze
+2025-09-09T08:13:00-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=lizard toolConfigPath=.codacy/tools-configs/lizard.yaml
+2025-09-09T08:13:00-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=semgrep toolConfigPath=.codacy/tools-configs/semgrep.yaml
+2025-09-09T08:13:07-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool toolConfigPath=.codacy/tools-configs/trivy.yaml tool=trivy
+2025-09-09T08:13:07-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=eslint toolConfigPath=.codacy/tools-configs/eslint.config.mjs
+2025-09-09T08:13:35-04:00 [INFO] (codacy-cli-v2/cli-v2.go:27) Starting Codacy CLI version=1.0.0-main.349.sha.1b80ceb (1b80ceb) built at 2025-07-10T10:14:35Z
+2025-09-09T08:13:35-04:00 [INFO] (codacy-cli-v2/cmd/root.go:34) Executing CLI command full_command=[/home/sam/.cache/codacy/codacy-cli-v2/1.0.0-main.349.sha.1b80ceb/codacy-cli-v2 analyze /home/sam/00-mastra/deep-research/src/mastra/workflows/githubQualityWorkflow.ts --format sarif] args=[/home/sam/00-mastra/deep-research/src/mastra/workflows/githubQualityWorkflow.ts] command=analyze
+2025-09-09T08:13:35-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool toolConfigPath=.codacy/tools-configs/semgrep.yaml tool=semgrep
+2025-09-09T08:13:42-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=trivy toolConfigPath=.codacy/tools-configs/trivy.yaml
+2025-09-09T08:13:42-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=eslint toolConfigPath=.codacy/tools-configs/eslint.config.mjs
+2025-09-09T08:13:43-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=lizard toolConfigPath=.codacy/tools-configs/lizard.yaml
+2025-09-09T08:14:40-04:00 [INFO] (codacy-cli-v2/cli-v2.go:27) Starting Codacy CLI version=1.0.0-main.349.sha.1b80ceb (1b80ceb) built at 2025-07-10T10:14:35Z
+2025-09-09T08:14:40-04:00 [INFO] (codacy-cli-v2/cmd/root.go:34) Executing CLI command command=analyze full_command=[/home/sam/.cache/codacy/codacy-cli-v2/1.0.0-main.349.sha.1b80ceb/codacy-cli-v2 analyze /home/sam/00-mastra/deep-research/src/mastra/workflows/generateReportWorkflow.ts --format sarif] args=[/home/sam/00-mastra/deep-research/src/mastra/workflows/generateReportWorkflow.ts]
+2025-09-09T08:14:40-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=trivy toolConfigPath=.codacy/tools-configs/trivy.yaml
+2025-09-09T08:14:40-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool toolConfigPath=.codacy/tools-configs/eslint.config.mjs tool=eslint
+2025-09-09T08:14:40-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool toolConfigPath=.codacy/tools-configs/lizard.yaml tool=lizard
+2025-09-09T08:14:40-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=semgrep toolConfigPath=.codacy/tools-configs/semgrep.yaml
+2025-09-09T08:15:02-04:00 [INFO] (codacy-cli-v2/cli-v2.go:27) Starting Codacy CLI version=1.0.0-main.349.sha.1b80ceb (1b80ceb) built at 2025-07-10T10:14:35Z
+2025-09-09T08:15:02-04:00 [INFO] (codacy-cli-v2/cmd/root.go:34) Executing CLI command command=analyze full_command=[/home/sam/.cache/codacy/codacy-cli-v2/1.0.0-main.349.sha.1b80ceb/codacy-cli-v2 analyze /home/sam/00-mastra/deep-research/node_modules/zod/v3/types.d.cts --format sarif] args=[/home/sam/00-mastra/deep-research/node_modules/zod/v3/types.d.cts]
+2025-09-09T08:16:51-04:00 [INFO] (codacy-cli-v2/cli-v2.go:27) Starting Codacy CLI version=1.0.0-main.349.sha.1b80ceb (1b80ceb) built at 2025-07-10T10:14:35Z
+2025-09-09T08:16:51-04:00 [INFO] (codacy-cli-v2/cmd/root.go:34) Executing CLI command command=install full_command=[/home/sam/.cache/codacy/codacy-cli-v2/1.0.0-main.349.sha.1b80ceb/codacy-cli-v2 install] args=[]
+2025-09-09T08:16:51-04:00 [INFO] (codacy-cli-v2/cmd/install.go:72) All components are already installed
+2025-09-09T08:16:51-04:00 [INFO] (codacy-cli-v2/cli-v2.go:27) Starting Codacy CLI version=1.0.0-main.349.sha.1b80ceb (1b80ceb) built at 2025-07-10T10:14:35Z
+2025-09-09T08:16:51-04:00 [INFO] (codacy-cli-v2/cmd/root.go:34) Executing CLI command args=[/home/sam/.config/Code/User/settings.json] command=analyze full_command=[/home/sam/.cache/codacy/codacy-cli-v2/1.0.0-main.349.sha.1b80ceb/codacy-cli-v2 analyze /home/sam/.config/Code/User/settings.json --format sarif]
+2025-09-09T08:16:51-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=trivy toolConfigPath=.codacy/tools-configs/trivy.yaml
+2025-09-09T08:16:53-04:00 [INFO] (codacy-cli-v2/cli-v2.go:27) Starting Codacy CLI version=1.0.0-main.349.sha.1b80ceb (1b80ceb) built at 2025-07-10T10:14:35Z
+2025-09-09T08:16:53-04:00 [INFO] (codacy-cli-v2/cmd/root.go:34) Executing CLI command args=[] command=install full_command=[/home/sam/.cache/codacy/codacy-cli-v2/1.0.0-main.349.sha.1b80ceb/codacy-cli-v2 install]
+2025-09-09T08:16:53-04:00 [INFO] (codacy-cli-v2/cmd/install.go:72) All components are already installed
+2025-09-09T08:18:22-04:00 [INFO] (codacy-cli-v2/cli-v2.go:27) Starting Codacy CLI version=1.0.0-main.349.sha.1b80ceb (1b80ceb) built at 2025-07-10T10:14:35Z
+2025-09-09T08:18:22-04:00 [INFO] (codacy-cli-v2/cmd/root.go:34) Executing CLI command command=install full_command=[/home/sam/.cache/codacy/codacy-cli-v2/1.0.0-main.349.sha.1b80ceb/codacy-cli-v2 install] args=[]
+2025-09-09T08:18:22-04:00 [INFO] (codacy-cli-v2/cmd/install.go:72) All components are already installed
+2025-09-09T08:18:22-04:00 [INFO] (codacy-cli-v2/cli-v2.go:27) Starting Codacy CLI version=1.0.0-main.349.sha.1b80ceb (1b80ceb) built at 2025-07-10T10:14:35Z
+2025-09-09T08:18:22-04:00 [INFO] (codacy-cli-v2/cmd/root.go:34) Executing CLI command full_command=[/home/sam/.cache/codacy/codacy-cli-v2/1.0.0-main.349.sha.1b80ceb/codacy-cli-v2 analyze /home/sam/.config/Code/User/settings.json --format sarif] args=[/home/sam/.config/Code/User/settings.json] command=analyze
+2025-09-09T08:18:22-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=trivy toolConfigPath=.codacy/tools-configs/trivy.yaml
+2025-09-09T08:18:27-04:00 [INFO] (codacy-cli-v2/cli-v2.go:27) Starting Codacy CLI version=1.0.0-main.349.sha.1b80ceb (1b80ceb) built at 2025-07-10T10:14:35Z
+2025-09-09T08:18:27-04:00 [INFO] (codacy-cli-v2/cmd/root.go:34) Executing CLI command args=[] command=install full_command=[/home/sam/.cache/codacy/codacy-cli-v2/1.0.0-main.349.sha.1b80ceb/codacy-cli-v2 install]
+2025-09-09T08:18:27-04:00 [INFO] (codacy-cli-v2/cmd/install.go:72) All components are already installed
+2025-09-09T08:18:27-04:00 [INFO] (codacy-cli-v2/cli-v2.go:27) Starting Codacy CLI version=1.0.0-main.349.sha.1b80ceb (1b80ceb) built at 2025-07-10T10:14:35Z
+2025-09-09T08:18:27-04:00 [INFO] (codacy-cli-v2/cmd/root.go:34) Executing CLI command command=analyze full_command=[/home/sam/.cache/codacy/codacy-cli-v2/1.0.0-main.349.sha.1b80ceb/codacy-cli-v2 analyze /home/sam/00-mastra/deep-research/src/mastra/workflows/githubPlanningWorkflow.ts --format sarif] args=[/home/sam/00-mastra/deep-research/src/mastra/workflows/githubPlanningWorkflow.ts]
+2025-09-09T08:18:27-04:00 [INFO] (codacy-cli-v2/cmd/analyze.go:334) Config file found for tool tool=semgrep toolConfigPath=.codacy/tools-configs/semgrep.yaml

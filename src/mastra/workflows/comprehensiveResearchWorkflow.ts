@@ -551,7 +551,7 @@ const iterativeResearchLoopWorkflow = createWorkflow({
         const originalLearning = iterationLearnings.find(l => l.source === evalResult.processedUrl);
         if (originalLearning) {
           relevantLearnings.push(originalLearning);
-          newFollowUpQuestions.push(...(originalLearning.followUpQuestions || []));
+          newFollowUpQuestions.push(...(originalLearning.followUpQuestions ?? []));
         }
       }
     }
@@ -600,9 +600,9 @@ comprehensiveResearchWorkflow
     }
   )
   .map(async ({ getStepResult }) => {
-    const overallLearnings = getStepResult(iterativeResearchLoopWorkflow).allLearnings;
-    const overallRelevantContent = getStepResult(iterativeResearchLoopWorkflow).allRelevantContent;
-    const originalQuery = getStepResult(getUserQueryStep as any).query;
+    const overallLearnings = getStepResult(iterativeResearchLoopWorkflow as any).allLearnings;
+    const overallRelevantContent = getStepResult(iterativeResearchLoopWorkflow as any).allRelevantContent;
+    const originalQuery = (getStepResult(getUserQueryStep as any) as { query: string }).query;
 
     return {
       allLearnings: overallLearnings,
@@ -621,7 +621,7 @@ comprehensiveResearchWorkflow
   .then(processAndRetrieveStep)
   .map(async ({ inputData, getStepResult }) => { // inputData now contains output of processAndRetrieveStep
     const { refinedContext } = inputData;
-    const originalQuery = getStepResult(getUserQueryStep as any).query;
+    const originalQuery = (getStepResult(getUserQueryStep as any) as { query: string }).query;
     return {
       refinedContext,
       originalQuery,
@@ -630,7 +630,7 @@ comprehensiveResearchWorkflow
   .then(synthesizeFinalContentStep)
   .map(async ({ inputData, getStepResult }) => { // inputData now contains output of synthesizeFinalContentStep
     const { finalSynthesizedContent } = inputData;
-    const originalQuery = getStepResult(getUserQueryStep as any).query;
+    const originalQuery = (getStepResult(getUserQueryStep as any) as { query: string }).query;
     return {
       finalSynthesizedContent,
       originalQuery,
