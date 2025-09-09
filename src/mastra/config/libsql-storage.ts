@@ -280,11 +280,10 @@ export const searchSimilarContent = async (
           model: embedder,
         }) as EmbedManyResult;
 
-    function isNumberMatrix(value: unknown): value is number[][] {
-      return Array.isArray(value) && value.every(
+    const isNumberMatrix = (value: unknown): value is number[][] =>
+      Array.isArray(value) && value.every(
         row => Array.isArray(row) && row.every(cell => typeof cell === 'number')
       );
-    }
 
     const embeddings: number[][] = isNumberMatrix(embedResult)
       ? embedResult

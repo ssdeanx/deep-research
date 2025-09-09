@@ -57,7 +57,7 @@ const upsertInputSchema = z.object({
   useReport: z.boolean().optional().describe('Whether to use report index'),
   indexName: z.string().default(STORAGE_CONFIG.VECTOR_INDEXES.RESEARCH_DOCUMENTS).describe('Name of the index to upsert to'),
   createIndex: z.boolean().default(true).describe('Whether to create the index if it does not exist'),
-  vectorProfile: z.enum(['gemini']).default('gemini').describe('Vector profile to use for embeddings and upserting'),
+  vectorProfile: z.enum(['libsql']).default('libsql').describe('Vector profile to use for embeddings and upserting'),
 }).strict();
 
 const upsertOutputSchema = z.object({
@@ -70,12 +70,12 @@ const upsertOutputSchema = z.object({
 
 const queryInputSchema = z.object({
   query: z.string().min(1).describe('The query to search for relationships and patterns'),
-  indexName: z.string().default('context').describe('Name of the index to query'),
+  indexName: z.string().default(STORAGE_CONFIG.VECTOR_INDEXES.RESEARCH_DOCUMENTS).describe('Name of the index to upsert to'),
   topK: z.number().int().positive().default(10).describe('Number of results to return'),
   threshold: z.number().min(0).max(1).default(0.7).describe('Similarity threshold for graph connections'),
   includeVector: z.boolean().default(false).describe('Whether to include vector data in results'),
   minScore: z.number().min(0).max(1).default(0).describe('Minimum similarity score threshold'),
-  vectorProfile: z.enum(['gemini']).default('gemini').describe('Vector profile to use for embeddings and querying'),
+  vectorProfile: z.enum(['libsql']).default('libsql').describe('Vector profile to use for embeddings and querying'),
   filter: z.record(z.string(), z.unknown()).optional().describe('Optional metadata filter using Upstash-compatible MongoDB/Sift query syntax'), // Add filter field
   useReport: z.boolean().optional().describe('Whether to use report index'),
 }).strict();
@@ -103,7 +103,7 @@ const queryOutputSchema = z.object({
 /**
  * Runtime context type for GraphRAG tool configuration
  */
-export type GraphRAGRuntimeContext = {
+export interface GraphRAGRuntimeContext {
   indexName: string;
   topK: number;
   threshold: number;
@@ -113,7 +113,7 @@ export type GraphRAGRuntimeContext = {
   sessionId?: string;
   category?: string;
   debug?: boolean;
-  vectorProfile?: 'gemini';
+  vectorProfile?: 'libsql';
 };
 
 /**
@@ -142,7 +142,7 @@ export const graphRAGUpsertTool = createTool({
       let effectiveIndexName = validatedInput.useReport ? STORAGE_CONFIG.VECTOR_INDEXES.REPORTS : validatedInput.indexName;
       // Conditional for report context - safely inspect metadata without using `any`
       const docMetadata = validatedInput.document.metadata as Record<string, unknown> | undefined;
-      const docUseReport = docMetadata ? docMetadata['useReport'] : undefined;
+      const docUseReport = docMetadata ? docMetadata.useReport : undefined;
       if ((typeof docUseReport === 'boolean' && docUseReport) || runtimeContext?.get('useReport')) {
         effectiveIndexName = STORAGE_CONFIG.VECTOR_INDEXES.REPORTS;
       }
@@ -151,7 +151,7 @@ export const graphRAGUpsertTool = createTool({
       const userId = (runtimeContext?.get('userId') as string | undefined) ?? 'anonymous';
       const sessionId = (runtimeContext?.get('sessionId') as string | undefined) ?? 'default';
       const debug = (runtimeContext?.get('debug') as boolean | undefined) ?? false;
-      const vectorProfileName = validatedInput.vectorProfile || 'gemini';
+      const vectorProfileName = validatedInput.vectorProfile || 'libsql';
 
       // Get the embedder
       const embedder = createGeminiEmbeddingModel();
@@ -169,10 +169,10 @@ export const graphRAGUpsertTool = createTool({
 
       // Use the chunkerTool for robust document processing - fixed input structure
       // Normalize extractParams shape so that summary.summaries contains only allowed literals
-      type SummaryObject = { summaries?: ('self' | 'prev' | 'next')[]; promptTemplate?: string };
+      interface SummaryObject { summaries?: ('self' | 'prev' | 'next')[]; promptTemplate?: string }
       const normalizeSummary = (s?: unknown) => {
         if (s === undefined || typeof s === 'boolean') {
-          return s as boolean | undefined;
+          return s;
         }
         const maybe = s as SummaryObject;
         const allowed = new Set<NonNullable<SummaryObject['summaries']>[number]>(['self', 'prev', 'next']);

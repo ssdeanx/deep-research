@@ -1,5 +1,9 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
+import { PinoLogger } from '@mastra/loggers';
+import { AISpanType } from '@mastra/core/ai-tracing';
+
+const logger = new PinoLogger({ name: 'WeatherTool', level: 'info' });
 
 interface GeocodingResponse {
   results: {
@@ -35,8 +39,26 @@ export const weatherTool = createTool({
     conditions: z.string(),
     location: z.string(),
   }),
-  execute: async ({ context }) => {
-    return await getWeather(context.location);
+  execute: async ({ context, tracingContext }) => {
+    logger.info(`Fetching weather for location: ${context.location}`);
+
+    const weatherSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.GENERIC,
+      name: 'weather_fetch',
+      input: { location: context.location }
+    });
+
+    try {
+      const result = await getWeather(context.location);
+      weatherSpan?.end({ output: result });
+      logger.info(`Weather fetched successfully for ${context.location}`);
+      return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      weatherSpan?.end({ metadata: { error: errorMessage } });
+      logger.error(`Failed to fetch weather for ${context.location}: ${errorMessage}`);
+      throw error;
+    }
   },
 });
 
@@ -98,5 +120,5 @@ function getWeatherCondition(code: number): string {
     96: 'Thunderstorm with slight hail',
     99: 'Thunderstorm with heavy hail',
   };
-  return conditions[code] || 'Unknown';
+  return conditions[code] ?? 'Unknown';
 }

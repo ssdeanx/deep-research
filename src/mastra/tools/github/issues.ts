@@ -2,6 +2,7 @@ import { createTool } from '@mastra/core';
 import { z } from 'zod';
 import { octokit } from './octokit';
 import { PinoLogger } from "@mastra/loggers";
+import { AISpanType } from '@mastra/core/ai-tracing';
 
 const logger = new PinoLogger({ level: 'info' });
 
@@ -14,12 +15,21 @@ export const createIssue = createTool({
     title: z.string(),
     body: z.string(),
   }),
-  execute: async ({ context }) => {
+  execute: async ({ context, tracingContext }) => {
+    const createSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.GENERIC,
+      name: 'create_issue',
+      input: { owner: context.owner, repo: context.repo, title: context.title }
+    });
+
     try {
       const issue = await octokit.issues.create(context);
       logger.info('Issue created successfully', { issue: issue.data.number });
+      createSpan?.end({ output: { issueNumber: issue.data.number } });
       return issue.data;
     } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      createSpan?.end({ metadata: { error: errorMessage } });
       if (error instanceof Error) {
         logger.info('Error creating issue');
       } else {

@@ -83,8 +83,8 @@ export const vectorQueryTool = createVectorQueryTool({
   model: createGeminiEmbeddingModel(), // Use Gemini embedding model
   databaseConfig: {
     libsql: {
-      connectionUrl: process.env.VECTOR_DATABASE_URL || STORAGE_CONFIG.VECTOR_DATABASE_URL,
-      authToken: process.env.VECTOR_DATABASE_AUTH_TOKEN || process.env.DATABASE_AUTH_TOKEN,
+      connectionUrl: process.env.VECTOR_DATABASE_URL ?? STORAGE_CONFIG.VECTOR_DATABASE_URL,
+      authToken: process.env.VECTOR_DATABASE_AUTH_TOKEN ?? process.env.DATABASE_AUTH_TOKEN,
     }
   },
   enableFilter: true,
@@ -258,7 +258,7 @@ export const enhancedVectorQueryTool = createTool({
           },
           metadata: {
             model: 'gemini-embedding-001',
-            tokensProcessed: validatedInput.query.split(' ').length
+            tokensProcessed: validatedInput.query.split(/\s+/).filter(Boolean).length
           }
         });
         // Create child span for vector store query
@@ -303,15 +303,15 @@ export const enhancedVectorQueryTool = createTool({
         // Transform vector results to match our schema with runtime context, minimizing 'any' usage
         vectorResults.forEach((result: { id?: string; score?: number; metadata?: Record<string, unknown> }, index: number) => {
           const content = String(result.metadata?.text || result.metadata?.content || '');
-          const score = result.score || 0;
+          const score = result.score ?? 0;
 
           if (score >= qualityThreshold) {
             results.push({
-              id: result.id || `vec-${index}`,
+              id: result.id ?? `vec-${index}`,
               content,
               score,
               metadata: {
-                ...(result.metadata || {}),
+                ...(result.metadata ?? {}),
                 userId,
                 sessionId,
                 searchPreference
@@ -475,7 +475,7 @@ export const hybridVectorSearchTool = createTool({
         totalResults: basicResults.totalResults,
         processingTime: 0,
       };
- 
+
       // Apply hybrid scoring if metadata query is provided
       const hybridScores: z.infer<typeof hybridScoreSchema>[] = [];
       if (validatedInput.metadataQuery) {
@@ -489,17 +489,17 @@ export const hybridVectorSearchTool = createTool({
             );
             metadataScore = matchingKeys.length / Object.keys(validatedInput.metadataQuery).length;
           }
- 
+
           const combinedScore = (semanticScore * validatedInput.semanticWeight!) +
                                  (metadataScore * validatedInput.metadataWeight!);
- 
+
           hybridScores.push({
             semanticScore,
             metadataScore,
             combinedScore,
           });
         });
- 
+
         // Re-sort results by combined score
         const resultsWithScores = semanticResults.results.map((result: HybridVectorResult, index: number) => {
           // Defensive: Only copy safe keys from result.metadata to prevent prototype pollution

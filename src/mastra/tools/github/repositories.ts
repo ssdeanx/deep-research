@@ -2,6 +2,7 @@ import { createTool } from '@mastra/core';
 import { z } from 'zod';
 import { octokit } from './octokit';
 import { PinoLogger } from "@mastra/loggers";
+import { AISpanType } from '@mastra/core/ai-tracing';
 
 const logger = new PinoLogger({ level: 'info' });
 
@@ -9,12 +10,21 @@ export const listRepositories = createTool({
   id: 'listRepositories',
   description: 'Lists the repositories for the authenticated user.',
   inputSchema: z.object({}),
-  execute: async () => {
+  execute: async ({ tracingContext }) => {
+    const listSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.GENERIC,
+      name: 'list_repositories',
+      input: {}
+    });
+
     try {
       const repos = await octokit.repos.listForAuthenticatedUser();
       logger.info('Repositories listed successfully'); // Corrected logging as per user's instruction
+      listSpan?.end({ output: { count: repos.data.length } });
       return repos.data;
     } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      listSpan?.end({ metadata: { error: errorMessage } });
       logger.info('Error listing repositories'); // Corrected logging as per user's instruction
       throw error;
     }
@@ -29,12 +39,21 @@ export const createRepository = createTool({
     description: z.string().optional(),
     private: z.boolean().optional(),
   }),
-  execute: async ({ context }) => {
+  execute: async ({ context, tracingContext }) => {
+    const createSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.GENERIC,
+      name: 'create_repository',
+      input: { name: context.name, private: context.private }
+    });
+
     try {
       const repo = await octokit.repos.createForAuthenticatedUser(context);
       logger.info('Repository created successfully'); // Corrected logging as per user's instruction
+      createSpan?.end({ output: { repoName: repo.data.name, repoId: repo.data.id } });
       return repo.data;
     } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      createSpan?.end({ metadata: { error: errorMessage } });
       logger.info('Error creating repository'); // Corrected logging as per user's instruction
       throw error;
     }

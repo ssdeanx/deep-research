@@ -1,6 +1,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { PinoLogger } from "@mastra/loggers";
+import { AISpanType } from '@mastra/core/ai-tracing';
 
 const logger = new PinoLogger({ level: 'info' });
 
@@ -17,7 +18,13 @@ export const extractLearningsTool = createTool({
       })
       .describe('The search result to process'),
   }),
-  execute: async ({ context, mastra }) => {
+  execute: async ({ context, mastra, tracingContext }) => {
+    const extractSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.GENERIC,
+      name: 'extract_learnings',
+      input: { query: context.query, url: context.result.url, contentLength: context.result.content.length }
+    });
+
     try {
       const { query, result } = context;
 
@@ -49,12 +56,15 @@ export const extractLearningsTool = createTool({
 
       logger.info('Learning extraction response', { result: response.object });
 
+      extractSpan?.end({ output: { learningLength: response.object?.learning?.length || 0, questionsCount: response.object?.followUpQuestions?.length || 0 } });
       return response.object;
     } catch (error) {
       logger.error('Error extracting learnings', {
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
       });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      extractSpan?.end({ metadata: { error: errorMessage } });
       return {
         learning: 'Error extracting information',
         followUpQuestions: [],

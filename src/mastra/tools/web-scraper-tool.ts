@@ -1,6 +1,7 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import { PinoLogger } from "@mastra/loggers";
+import { AISpanType } from '@mastra/core/ai-tracing';
 import * as cheerio from "cheerio";
 import { Request, CheerioCrawler } from "crawlee";
 import { marked } from "marked";
@@ -34,7 +35,13 @@ export const webScraperTool = createTool({
   description: "Extracts structured data from web pages using cheerio and crawlee.",
   inputSchema: webScraperInputSchema,
   outputSchema: webScraperOutputSchema,
-  execute: async ({ context }) => {
+  execute: async ({ context, tracingContext }) => {
+    const scrapeSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.GENERIC,
+      name: 'web_scrape',
+      input: { url: context.url, selector: context.selector, saveMarkdown: context.saveMarkdown, extractAttributesCount: context.extractAttributes?.length || 0 }
+    });
+
     logger.info('Starting web scraping', { url: context.url, selector: context.selector, saveMarkdown: context.saveMarkdown });
 
     let rawContent: string | undefined;
@@ -107,9 +114,12 @@ export const webScraperTool = createTool({
         }
       }
 
+      scrapeSpan?.end({ output: { status, extractedDataCount: extractedData.length, contentLength: rawContent?.length || 0, savedFile: !!savedFilePath } });
     } catch (error) {
       errorMessage = `Web scraping failed: ${error instanceof Error ? error.message : String(error)}`;
       logger.error(errorMessage);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      scrapeSpan?.end({ metadata: { error: errorMsg } });
     }
 
     return webScraperOutputSchema.parse({

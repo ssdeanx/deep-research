@@ -3,6 +3,7 @@ import { z } from 'zod';
 import Exa from 'exa-js';
 import 'dotenv/config';
 import { PinoLogger } from "@mastra/loggers";
+import { AISpanType } from '@mastra/core/ai-tracing';
 
 const logger = new PinoLogger({ level: 'info' });
 
@@ -16,13 +17,20 @@ export const webSearchTool = createTool({
   inputSchema: z.object({
     query: z.string().describe('The search query to run'),
   }),
-  execute: async ({ context, mastra }) => {
+  execute: async ({ context, mastra, tracingContext }) => {
+    const searchSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.GENERIC,
+      name: 'web_search',
+      input: { query: context.query }
+    });
+
     logger.info('Executing web search tool');
     const { query } = context;
 
     try {
       if (!process.env.EXA_API_KEY) {
         logger.error('Error: EXA_API_KEY not found in environment variables');
+        searchSpan?.end({ metadata: { error: 'Missing API key' } });
         return { results: [], error: 'Missing API key' };
       }
 
@@ -34,6 +42,7 @@ export const webSearchTool = createTool({
 
       if (!results || results.length === 0) {
         logger.info('No search results found');
+        searchSpan?.end({ output: { resultCount: 0 } });
         return { results: [], error: 'No results found' };
       }
 
@@ -91,6 +100,7 @@ Provide a concise summary that captures the key information relevant to the rese
         }
       }
 
+      searchSpan?.end({ output: { resultCount: processedResults.length, totalContentLength: processedResults.reduce((sum, r) => sum + r.content.length, 0) } });
       return {
         results: processedResults,
       };
@@ -98,6 +108,7 @@ Provide a concise summary that captures the key information relevant to the rese
       logger.error('Error searching the web', { error });
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Error details:', { error: errorMessage });
+      searchSpan?.end({ metadata: { error: errorMessage } });
       return {
         results: [],
         error: errorMessage,

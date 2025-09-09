@@ -75,13 +75,16 @@ export const rerankTool = createTool({
     const startTime = Date.now();
 
     try {
-      const validatedInput = rerankInputSchema.parse(input);      // Get runtime context values
+      // Parse and validate the incoming input (this uses the `input` param)
+      const parsedInput = rerankInputSchema.parse(input);
+
+      // Get runtime context values (with fallbacks to parsed input or defaults)
       const userId = (runtimeContext?.get('user-id') as string | undefined) ?? 'anonymous';
       const sessionId = (runtimeContext?.get('session-id') as string | undefined) ?? 'default';
       const modelPreference = (runtimeContext?.get('model-preference') as string | undefined) ?? 'gemini-2.5-flash-lite-preview-06-17';
-      const semanticWeight = (runtimeContext?.get('semantic-weight') as number | undefined) ?? validatedInput.semanticWeight;
-      const vectorWeight = (runtimeContext?.get('vector-weight') as number | undefined) ?? validatedInput.vectorWeight;
-      const positionWeight = (runtimeContext?.get('position-weight') as number | undefined) ?? validatedInput.positionWeight;
+      const semanticWeight = (runtimeContext?.get('semantic-weight') as number | undefined) ?? parsedInput.semanticWeight;
+      const vectorWeight = (runtimeContext?.get('vector-weight') as number | undefined) ?? parsedInput.vectorWeight;
+      const positionWeight = (runtimeContext?.get('position-weight') as number | undefined) ?? parsedInput.positionWeight;
       const debug = (runtimeContext?.get('debug') as boolean | undefined) ?? false;
 
       if (debug) {
@@ -90,43 +93,44 @@ export const rerankTool = createTool({
           sessionId,
           modelPreference,
           weights: { semanticWeight, vectorWeight, positionWeight },
-          query: validatedInput.query,
-          indexName: validatedInput.indexName
+          query: parsedInput.query,
+          indexName: parsedInput.indexName
         });
       }
 
       // Determine index based on context
-      let searchIndex = validatedInput.indexName || STORAGE_CONFIG.VECTOR_INDEXES.RESEARCH_DOCUMENTS;
+      let searchIndex = parsedInput.indexName || STORAGE_CONFIG.VECTOR_INDEXES.RESEARCH_DOCUMENTS;
       if (runtimeContext?.get('useReport')) {
         searchIndex = STORAGE_CONFIG.VECTOR_INDEXES.REPORTS;
       }
+
       // Conditional tracing span for initial query if tracing is enabled
       const initialQuerySpan = tracingContext?.currentSpan ? tracingContext.currentSpan.createChildSpan({
         type: AISpanType.GENERIC,
         name: 'rerank_initial_query',
         input: {
-          query: validatedInput.query,
+          query: parsedInput.query,
           indexName: searchIndex,
-          topK: validatedInput.topK
+          topK: parsedInput.topK
         }
       }) : undefined;
+
       // First, get more results than needed for reranking using the vectorQueryTool
       const initialResults = await vectorQueryTool.execute({
         context: {
-          queryText: validatedInput.query,
-          topK: validatedInput.topK,
-          threadId: searchIndex, // Use determined index as threadId for context
+          queryText: parsedInput.query,
+          topK: parsedInput.topK,
+          threadId: searchIndex,
         },
         runtimeContext,
-        tracingContext, // Pass tracingContext
-        memory, // Pass memory
+        tracingContext,
+        memory,
       });
 
       // If we have more results than needed, apply reranking
-      if (initialResults.results.length > validatedInput.finalK) {
+      if (initialResults.results.length > parsedInput.finalK) {
         const model = createGemini25Provider(modelPreference);
 
-        // End initial query span if enabled
         if (initialQuerySpan) {
           initialQuerySpan.end({
             output: {
@@ -136,6 +140,7 @@ export const rerankTool = createTool({
             metadata: { operation: 'rerank_initial_query' }
           });
         }
+
         // Convert vector query results to the format expected by rerank function
         const queryResults = initialResults.results.map((result: { id: string; score: number; metadata: Record<string, unknown>; content: string; }, index: number) => ({
           id: result.id,
@@ -152,7 +157,7 @@ export const rerankTool = createTool({
         // Rerank using Mastra's rerank function
         const rerankedResults = await rerank(
           queryResults,
-          validatedInput.query,
+          parsedInput.query,
           model,
           {
             weights: {
@@ -160,26 +165,24 @@ export const rerankTool = createTool({
               vector: vectorWeight,
               position: positionWeight
             },
-            topK: validatedInput.finalK
+            topK: parsedInput.finalK
           }
         );
 
         // Map reranked results back to messages (or a more generic format)
-        const rerankedMessages = rerankedResults.map((result) => {
-          return {
-            id: result.result.id,
-            content: result.result.metadata?.text || '', // Safely extract content
-            role: 'assistant', // Assuming the reranked content is from the assistant
-            metadata: result.result.metadata,
-            score: result.score,
-          };
-        });
+        const rerankedMessages = rerankedResults.map((result) => ({
+          id: result.result.id,
+          content: result.result.metadata?.text || '',
+          role: 'assistant',
+          metadata: result.result.metadata,
+          score: result.score,
+        }));
 
         const rerankMetadata = {
-          topK: validatedInput.topK,
-          finalK: validatedInput.finalK,
-          before: 0, // Not applicable for vector search
-          after: 0, // Not applicable for vector search
+          topK: parsedInput.topK,
+          finalK: parsedInput.finalK,
+          before: 0,
+          after: 0,
           initialResultCount: initialResults.results.length,
           rerankingUsed: true,
           rerankingDuration: Date.now() - startTime,
@@ -188,13 +191,14 @@ export const rerankTool = createTool({
           userId,
           sessionId
         };
+
         // Conditional tracing span for reranking if tracing is enabled
         const rerankSpan = tracingContext?.currentSpan ? tracingContext.currentSpan.createChildSpan({
           type: AISpanType.GENERIC,
           name: 'rerank_operation',
           input: {
             initialCount: initialResults.results.length,
-            finalK: validatedInput.finalK,
+            finalK: parsedInput.finalK,
             model: modelPreference
           }
         }) : undefined;
@@ -221,15 +225,15 @@ export const rerankTool = createTool({
 
         return rerankOutputSchema.parse({
           messages: rerankedMessages,
-          uiMessages: [], // uiMessages are not applicable in this context
+          uiMessages: [],
           rerankMetadata
         });
 
       } else {
         // Not enough results to warrant reranking, return original results
         const rerankMetadata = {
-          topK: validatedInput.topK,
-          finalK: validatedInput.finalK,
+          topK: parsedInput.topK,
+          finalK: parsedInput.finalK,
           before: 0,
           after: 0,
           initialResultCount: initialResults.results.length,
@@ -243,7 +247,7 @@ export const rerankTool = createTool({
         if (debug) {
           logger.info('Reranking skipped - insufficient results', {
             resultCount: initialResults.results.length,
-            finalK: validatedInput.finalK
+            finalK: parsedInput.finalK
           });
         }
 
@@ -257,14 +261,14 @@ export const rerankTool = createTool({
     } catch (error) {
       logger.error('Rerank tool execution failed', {
         error: error instanceof Error ? error.message : String(error),
-        query: input.query,
-        indexName: input.indexName
+        query: input?.query,
+        indexName: input?.indexName
       });
 
       // Return empty results on error
       const rerankMetadata = {
-        topK: input.topK || 10,
-        finalK: input.finalK || 3,
+        topK: input?.topK || 10,
+        finalK: input?.finalK || 3,
         before: 0,
         after: 0,
         initialResultCount: 0,

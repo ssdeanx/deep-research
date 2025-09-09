@@ -2,6 +2,7 @@ import { createTool } from '@mastra/core';
 import { z } from 'zod';
 import { octokit } from './octokit';
 import { PinoLogger } from "@mastra/loggers";
+import { AISpanType } from '@mastra/core/ai-tracing';
 
 const logger = new PinoLogger({ level: 'info' });
 
@@ -13,13 +14,31 @@ export const getCommit = createTool({
     repo: z.string(),
     commit_sha: z.string(),
   }),
-  execute: async ({ context }) => {
+  execute: async ({ context, tracingContext }) => {
+    const spanName = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.GENERIC,
+      name: 'get_commit',
+      input: { owner: context.owner, repo: context.repo, commit_sha: context.commit_sha }
+    });
+
     try {
       const commit = await octokit.git.getCommit(context);
       logger.info('Commit retrieved successfully');
+
+      spanName?.end({
+        output: { commit_sha: commit.data.sha, message: commit.data.message?.substring(0, 50) },
+        metadata: { operation: 'get_commit' }
+      });
       return commit.data;
     } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error getting commit');
+      spanName?.end({
+        metadata: {
+          error: errorMessage,
+          operation: 'get_commit'
+        }
+      });
       throw error;
     }
   },
@@ -162,13 +181,31 @@ export const getRef = createTool({
     repo: z.string(),
     ref: z.string(),
   }),
-  execute: async ({ context }) => {
+  execute: async ({ context, tracingContext }) => {
+    const spanName = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.GENERIC,
+      name: 'get_ref',
+      input: { owner: context.owner, repo: context.repo, ref: context.ref }
+    });
+
     try {
       const ref = await octokit.git.getRef(context);
       logger.info('Reference retrieved successfully');
+
+      spanName?.end({
+        output: { ref: ref.data.ref, sha: ref.data.object?.sha },
+        metadata: { operation: 'get_ref' }
+      });
       return ref.data;
     } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error getting reference');
+      spanName?.end({
+        metadata: {
+          error: errorMessage,
+          operation: 'get_ref'
+        }
+      });
       throw error;
     }
   },
@@ -183,13 +220,31 @@ export const createRef = createTool({
     ref: z.string(),
     sha: z.string(),
   }),
-  execute: async ({ context }) => {
+  execute: async ({ context, tracingContext }) => {
+    const spanName = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.GENERIC,
+      name: 'create_ref',
+      input: { owner: context.owner, repo: context.repo, ref: context.ref, sha: context.sha }
+    });
+
     try {
       const ref = await octokit.git.createRef(context);
       logger.info('Reference created successfully');
+
+      spanName?.end({
+        output: { ref: ref.data.ref, sha: ref.data.object?.sha },
+        metadata: { operation: 'create_ref' }
+      });
       return ref.data;
     } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error creating reference');
+      spanName?.end({
+        metadata: {
+          error: errorMessage,
+          operation: 'create_ref'
+        }
+      });
       throw error;
     }
   },
@@ -205,13 +260,31 @@ export const updateRef = createTool({
     sha: z.string(),
     force: z.boolean().optional(),
   }),
-  execute: async ({ context }) => {
+  execute: async ({ context, tracingContext }) => {
+    const spanName = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.GENERIC,
+      name: 'update_ref',
+      input: { owner: context.owner, repo: context.repo, ref: context.ref, sha: context.sha, force: context.force }
+    });
+
     try {
       const ref = await octokit.git.updateRef(context);
       logger.info('Reference updated successfully');
+
+      spanName?.end({
+        output: { ref: ref.data.ref, sha: ref.data.object?.sha },
+        metadata: { operation: 'update_ref' }
+      });
       return ref.data;
     } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error updating reference');
+      spanName?.end({
+        metadata: {
+          error: errorMessage,
+          operation: 'update_ref'
+        }
+      });
       throw error;
     }
   },
@@ -225,13 +298,31 @@ export const deleteRef = createTool({
     repo: z.string(),
     ref: z.string(),
   }),
-  execute: async ({ context }) => {
+  execute: async ({ context, tracingContext }) => {
+    const spanName = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.GENERIC,
+      name: 'delete_ref',
+      input: { owner: context.owner, repo: context.repo, ref: context.ref }
+    });
+
     try {
       await octokit.git.deleteRef(context);
       logger.info('Reference deleted successfully');
+
+      spanName?.end({
+        output: { success: true },
+        metadata: { operation: 'delete_ref' }
+      });
       return { success: true };
     } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error deleting reference');
+      spanName?.end({
+        metadata: {
+          error: errorMessage,
+          operation: 'delete_ref'
+        }
+      });
       throw error;
     }
   },
