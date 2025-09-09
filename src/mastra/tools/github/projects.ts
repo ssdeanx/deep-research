@@ -18,11 +18,9 @@ export const listProjectCards = createTool({
       name: 'list_project_cards',
       input: { column_id: context.column_id }
     });
-
     try {
       const cards = await octokit.request('GET /projects/columns/{column_id}/cards', context);
       logger.info('Project cards listed successfully');
-
       spanName?.end({
         output: { cards_count: cards.data?.length || 0 },
         metadata: { operation: 'list_project_cards' }
