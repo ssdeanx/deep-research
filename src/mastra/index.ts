@@ -52,7 +52,7 @@ export const mastra = new Mastra({
     complexResearchNetwork,
   },
   telemetry: {
-    serviceName: "my-app",
+    serviceName: "ai",
     enabled: true,
     sampling: {
       type: "always_on",

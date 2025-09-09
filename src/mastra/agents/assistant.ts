@@ -32,8 +32,18 @@ export const assistant = new Agent({
     {
         extraBody: {
             reasoning: {
+                max_tokens: 6144,
+            },
+            effort: "medium",
+            user: {
                 max_tokens: 2048,
-            }
+            },
+            assistant: {
+                max_tokens: 2048,
+            },
+            system: {
+                max_tokens: 2048,
+            },
         }
     }),
     memory,

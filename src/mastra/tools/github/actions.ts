@@ -14,15 +14,29 @@ export const listWorkflowRuns = createTool({
     repo: z.string(),
     workflow_id: z.union([z.number(), z.string()]),
   }),
-  execute: async ({ context, tracingContext }) => {
+  execute: async (args: Readonly<{ context: Readonly<Record<string, unknown>>; tracingContext?: any }>) => {
+    const { context, tracingContext } = args;
+
+    // Safely coerce expected required params from the untyped context
+    const owner = String((context as any).owner ?? '');
+    const repo = String((context as any).repo ?? '');
+    const workflow_id = (context as any).workflow_id as string | number | undefined;
+
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
       name: 'list_workflow_runs',
-      input: { owner: context.owner, repo: context.repo, workflow_id: context.workflow_id }
+      input: { owner, repo, workflow_id }
     });
 
     try {
-      const runs = await octokit.actions.listWorkflowRuns(context);
+      // Build explicit params object to satisfy typed Octokit API
+      const params: { owner: string; repo: string; workflow_id: string | number } = {
+        owner,
+        repo,
+        workflow_id: workflow_id as string | number
+      };
+
+      const runs = await octokit.actions.listWorkflowRuns(params as any);
       logger.info('Workflow runs listed successfully');
 
       spanName?.end({
