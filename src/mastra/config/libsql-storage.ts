@@ -19,7 +19,7 @@ import {
   BayesianBeliefProcessor,
   HierarchicalMemoryProcessor
 } from "./memory-processors";
-import { RegisteredLogger } from "@mastra/core/logger";
+import type { RegisteredLogger } from "@mastra/core/logger";
 
 export interface TracingSpanInput {
   type: AISpanType;
@@ -69,7 +69,7 @@ export const STORAGE_CONFIG = {
  */
 export const createLibSQLStore = (tracingContext?: { context?: unknown; runtimeContext?: RuntimeContext; currentSpan?: { createChildSpan(input: TracingSpanInput): { end(options: SpanEndInput): void } } }) => {
   const startTime = Date.now();
-  const databaseUrl = process.env.DATABASE_URL || STORAGE_CONFIG.DEFAULT_DATABASE_URL;
+  const databaseUrl = process.env.DATABASE_URL ?? STORAGE_CONFIG.DEFAULT_DATABASE_URL;
 
   // Create child span for storage initialization
   const initSpan = tracingContext?.currentSpan?.createChildSpan({
@@ -77,7 +77,7 @@ export const createLibSQLStore = (tracingContext?: { context?: unknown; runtimeC
     name: 'libsql_store_init',
     input: {
       databaseUrl: databaseUrl.replace(/authToken=[^&]*/, 'authToken=***'), // Mask auth token
-      hasAuthToken: !!process.env.DATABASE_AUTH_TOKEN
+      hasAuthToken: !(process.env.DATABASE_AUTH_TOKEN === null)
     }
   } as TracingSpanInput);
 
@@ -136,7 +136,7 @@ export const createLibSQLStore = (tracingContext?: { context?: unknown; runtimeC
  */
 export const createLibSQLVectorStore = (tracingContext?: { context?: unknown; runtimeContext?: RuntimeContext; currentSpan?: { createChildSpan(input: TracingSpanInput): { end(options: SpanEndInput): void } } }) => {
   const startTime = Date.now();
-  const databaseUrl = process.env.VECTOR_DATABASE_URL || STORAGE_CONFIG.VECTOR_DATABASE_URL;
+  const databaseUrl = process.env.VECTOR_DATABASE_URL ?? STORAGE_CONFIG.VECTOR_DATABASE_URL;
 
   // Create child span for vector store initialization
   const initSpan = tracingContext?.currentSpan?.createChildSpan({
@@ -144,14 +144,14 @@ export const createLibSQLVectorStore = (tracingContext?: { context?: unknown; ru
     name: 'libsql_vector_store_init',
     input: {
       databaseUrl: databaseUrl.replace(/authToken=[^&]*/, 'authToken=***'), // Mask auth token
-      hasAuthToken: !!(process.env.VECTOR_DATABASE_AUTH_TOKEN || process.env.DATABASE_AUTH_TOKEN)
+      hasAuthToken: !((process.env.VECTOR_DATABASE_AUTH_TOKEN ?? process.env.DATABASE_AUTH_TOKEN) === null)
     }
   } as TracingSpanInput);
 
   try {
     const vectorStore = new LibSQLVector({
       connectionUrl: databaseUrl,
-      authToken: process.env.VECTOR_DATABASE_AUTH_TOKEN || process.env.DATABASE_AUTH_TOKEN,
+      authToken: process.env.VECTOR_DATABASE_AUTH_TOKEN ?? process.env.DATABASE_AUTH_TOKEN,
     });
 
     const processingTime = Date.now() - startTime;
@@ -389,7 +389,7 @@ export const createResearchMemory = () => {
         },
         processors: [
       new PersonalizationProcessor({ preferences: ['researcher'] }),
-      new TokenLimiterProcessor({ maxTokens: 1000000 }),
+      new TokenLimiterProcessor({ options: { maxTokens: 1000000 } }),
       new CircuitBreakerProcessor({ failureThreshold: 0.5 }),
       new CitationExtractorProcessor({ component: logger as unknown as RegisteredLogger, name: 'citation-extractor' }),
       new ErrorCorrectionProcessor({ component: logger as unknown as RegisteredLogger, name: 'error-correction' }),
@@ -452,7 +452,7 @@ export interface ExtractParams {
     combineTemplate?: string;
   };
   summary?: boolean | {
-    summaries?: ("self" | "prev" | "next")[];
+    summaries?: Array<"self" | "prev" | "next">;
     promptTemplate?: string;
   };
   keywords?: boolean | {
@@ -771,7 +771,7 @@ export async function searchMemoryMessages(
       : [];
 
     const normalizeRole = (r?: string): Message['role'] => {
-      if (!r) {
+      if (r === null) {
         return 'user';
       }
       const s = String(r).toLowerCase();
@@ -791,12 +791,12 @@ export async function searchMemoryMessages(
     };
 
     const relevantMessages = recalledMessagesArray.map((msg: unknown, idx: number) => {
-      const msgObj = msg as { id?: string; role?: string; sender?: string; roleName?: string; content?: string; parts?: { text?: string; content?: string }[]; createdAt?: string; timestamp?: string; threadId?: string; thread_id?: string };
+      const msgObj = msg as { id?: string; role?: string; sender?: string; roleName?: string; content?: string; parts?: Array<{ text?: string; content?: string }>; createdAt?: string; timestamp?: string; threadId?: string; thread_id?: string };
       const safeId = msgObj.id ?? `${threadId ?? 'unknown'}-msg-${idx}-${Date.now()}`;
       const role = normalizeRole(msgObj.role ?? msgObj.sender ?? msgObj.roleName);
-      const content = msgObj.content ?? (msgObj.parts?.map((p: { text?: string; content?: string }) => p.text || p.content).join('') ?? '');
+      const content = msgObj.content ?? (msgObj.parts?.map((p: { text?: string; content?: string }) => p.text ?? p.content).join('') ?? '');
       const createdAtRaw = msgObj.createdAt ?? msgObj.timestamp;
-      const createdAt = createdAtRaw ? new Date(createdAtRaw) : undefined;
+      const createdAt = createdAtRaw !== null ? new Date(createdAtRaw as string | number | Date) : undefined;
       const thread = msgObj.threadId ?? msgObj.thread_id;
       return {
         id: safeId,
@@ -939,7 +939,7 @@ export const updateUserWorkingMemory = async (memory: Memory, userId: string, up
   try {
     await memory.storage?.updateResource({
       resourceId: userId,
-      workingMemory: updates.workingMemory as string,
+      workingMemory: updates.workingMemory,
       metadata: {
         ... (updates.metadata as Record<string, unknown>),
         updatedAt: new Date(), // Moved updatedAt back into metadata
@@ -993,7 +993,7 @@ export function extractChunkMetadata(
         enhancedMetadata.extractedSummary = `${chunk.content.substring(0, 100)}...`;
       } else {
         const summaries: Record<string, string> = {};
-        if (extractParams.summary.summaries?.includes('self')) {
+        if ((extractParams.summary.summaries?.includes('self')) ?? false) {
           summaries.self = `${chunk.content.substring(0, 150)}...`;
         }
         enhancedMetadata.extractedSummaries = summaries;
@@ -1002,7 +1002,7 @@ export function extractChunkMetadata(
 
     if (extractParams.keywords) {
       if (typeof extractParams.keywords === 'boolean') {
-        const words = chunk.content.toLowerCase().match(/\b\w{4,}\b/g) || [];
+        const words = chunk.content.toLowerCase().match(/\b\w{4,}\b/g) ?? [];
         const wordCount: Record<string, number> = {};
         words.forEach(word => {
           wordCount[word] = (wordCount[word] || 0) + 1;

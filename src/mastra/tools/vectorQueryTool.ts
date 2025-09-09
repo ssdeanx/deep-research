@@ -33,7 +33,7 @@ import {
 import { createGeminiEmbeddingModel } from '../config/googleProvider';
 import { PinoLogger } from '@mastra/loggers';
 import { embedMany } from 'ai';
-import { Memory } from '@mastra/memory'; // Import Memory
+import type { Memory } from '@mastra/memory'; // Import Memory
 import type { UIMessage, Message } from 'ai';
 
 // Define runtime context type for vector query tools
@@ -91,7 +91,6 @@ export const vectorQueryTool = createVectorQueryTool({
   description: "Search for semantically similar content in the LibSQL vector store using embeddings. Supports filtering, ranking, and context retrieval."
 });
 
-
 // Enhanced vector query tool that integrates with UpstashMemory
 export const enhancedVectorQueryTool = createTool({
   id: 'vector_query',
@@ -108,11 +107,15 @@ export const enhancedVectorQueryTool = createTool({
       // Validate input
       const validatedInput = vectorQueryInputSchema.parse(input);
       // Get runtime context values for personalization
-      const userId = (runtimeContext?.get('user-id') as string | undefined) ?? 'anonymous';
-      const sessionId = (runtimeContext?.get('session-id') as string | undefined) ?? 'default';
-      const searchPreference = (runtimeContext?.get('search-preference') as 'semantic' | 'hybrid' | 'metadata' | undefined) ?? 'semantic';
-      const qualityThreshold = (runtimeContext?.get('quality-threshold') as number | undefined) ?? validatedInput.minScore;
-      const debug = (runtimeContext?.get('debug') as boolean | undefined) ?? false;
+      const userId = (runtimeContext?.get('user-id')) ?? 'anonymous';
+      const sessionId = (runtimeContext?.get('session-id')) ?? 'default';
+      const searchPreference = (runtimeContext?.get('search-preference')) ?? 'semantic';
+      // Normalize qualityThreshold to a number to avoid type errors during comparisons
+      const rawQualityThreshold = runtimeContext?.get('quality-threshold');
+      const qualityThreshold = typeof rawQualityThreshold === 'number'
+        ? rawQualityThreshold
+        : Number(rawQualityThreshold ?? validatedInput.minScore) || validatedInput.minScore;
+      const debug = (runtimeContext?.get('debug')) ?? false;
 
       // Enhanced tracing: Add span attributes and metadata
       if (tracingContext?.currentSpan) {
@@ -151,19 +154,20 @@ export const enhancedVectorQueryTool = createTool({
         };
       }
 
-      const results: z.infer<typeof vectorQueryResultSchema>[] = [];
+      const results: Array<z.infer<typeof vectorQueryResultSchema>> = [];
       let relevantContext = '';
 
       // If threadId is provided, use LibSQL memory search
-      if (validatedInput.threadId) {
-        logger.info('Searching within thread using LibSQL memory', { threadId: validatedInput.threadId });
+      if (validatedInput.threadId !== null) {
+        const threadId = validatedInput.threadId;
+        logger.info('Searching within thread using LibSQL memory', { threadId });
 
         if (!memory) {
           throw new Error("Memory instance is required for thread-specific searches.");
         }
 
         // Determine recall params based on context (thread for research, resource for report)
-        const recallParams = runtimeContext?.get('useReport')
+        const recallParams = (runtimeContext?.get('useReport'))
           ? { topK: 10, messageRange: 3, scope: 'resource' as const }
           : { topK: 5, messageRange: 2, scope: 'thread' as const };
 
@@ -172,7 +176,7 @@ export const enhancedVectorQueryTool = createTool({
           type: AISpanType.GENERIC,
           name: 'memory_search',
           input: {
-            threadId: validatedInput.threadId,
+            threadId,
             query: validatedInput.query,
             topK: validatedInput.topK,
             recallParams
@@ -181,7 +185,7 @@ export const enhancedVectorQueryTool = createTool({
 
         const { messages, uiMessages } = await searchMemoryMessages(
           memory,
-          validatedInput.threadId,
+          threadId,
           validatedInput.query,
           validatedInput.topK
         );
@@ -193,7 +197,7 @@ export const enhancedVectorQueryTool = createTool({
             uiMessagesFound: uiMessages.length
           },
           metadata: {
-            threadId: validatedInput.threadId,
+            threadId,
             totalResults: messages.length + uiMessages.length
           }
         });
@@ -206,11 +210,11 @@ export const enhancedVectorQueryTool = createTool({
             score: 1.0, // searchMemoryMessages doesn't return score, assume perfect match
             metadata: {
               role: message.role,
-              threadId: validatedInput.threadId,
+              threadId,
               createdAt: message.createdAt,
               // Add other relevant metadata from message if available
             },
-            threadId: validatedInput.threadId,
+            threadId,
           });
         });
 
@@ -221,10 +225,10 @@ export const enhancedVectorQueryTool = createTool({
             score: 1.0, // searchMemoryMessages doesn't return score, assume perfect match
             metadata: {
               role: uiMessage.role,
-              threadId: validatedInput.threadId,
+              threadId,
               // Add other relevant metadata from uiMessage if available
             },
-            threadId: validatedInput.threadId,
+            threadId,
           });
         });
 
@@ -302,10 +306,11 @@ export const enhancedVectorQueryTool = createTool({
 
         // Transform vector results to match our schema with runtime context, minimizing 'any' usage
         vectorResults.forEach((result: { id?: string; score?: number; metadata?: Record<string, unknown> }, index: number) => {
-          const content = String(result.metadata?.text || result.metadata?.content || '');
+          const content = String((Boolean((result.metadata?.text ?? result.metadata?.content))) || '');
           const score = result.score ?? 0;
 
-          if (score >= qualityThreshold) {
+          const newLocal = score >= qualityThreshold;
+          if (newLocal) {
             results.push({
               id: result.id ?? `vec-${index}`,
               content,
@@ -426,9 +431,9 @@ export const hybridVectorSearchTool = createTool({
       });
       const validatedInput = extendedSchema.parse(input);
       // Get runtime context values
-      const userId = (runtimeContext?.get('user-id') as string | undefined) ?? 'anonymous';
-      const sessionId = (runtimeContext?.get('session-id') as string | undefined) ?? 'default';
-      const searchPreference = (runtimeContext?.get('search-preference') as 'semantic' | 'hybrid' | 'metadata' | undefined) ?? 'hybrid';
+      const userId = (runtimeContext?.get('user-id')) ?? 'anonymous';
+      const sessionId = (runtimeContext?.get('session-id')) ?? 'default';
+      const searchPreference = (runtimeContext?.get('search-preference')) ?? 'hybrid';
       logger.info('Hybrid vector search initiated', {
         query: validatedInput.query,
         semanticWeight: validatedInput.semanticWeight,
@@ -477,7 +482,7 @@ export const hybridVectorSearchTool = createTool({
       };
 
       // Apply hybrid scoring if metadata query is provided
-      const hybridScores: z.infer<typeof hybridScoreSchema>[] = [];
+      const hybridScores: Array<z.infer<typeof hybridScoreSchema>> = [];
       if (validatedInput.metadataQuery) {
         semanticResults.results.forEach((result: HybridVectorResult) => {
           const semanticScore = result.score;
@@ -490,8 +495,8 @@ export const hybridVectorSearchTool = createTool({
             metadataScore = matchingKeys.length / Object.keys(validatedInput.metadataQuery).length;
           }
 
-          const combinedScore = (semanticScore * validatedInput.semanticWeight!) +
-                                 (metadataScore * validatedInput.metadataWeight!);
+          const combinedScore = (semanticScore * validatedInput.semanticWeight) +
+                                 (metadataScore * validatedInput.metadataWeight);
 
           hybridScores.push({
             semanticScore,
@@ -525,19 +530,19 @@ export const hybridVectorSearchTool = createTool({
             }
           };
         });
- 
+
         resultsWithScores.sort((a: HybridVectorResult, b: HybridVectorResult) => b.score - a.score);
         semanticResults.results = resultsWithScores;
       }
- 
+
       const processingTime = Date.now() - startTime;
- 
+
       const output = {
         ...semanticResults,
         processingTime,
         hybridScores,
       };
- 
+
       logger.info('Hybrid vector search completed', {
         totalResults: output.totalResults,
         processingTime,
@@ -545,9 +550,9 @@ export const hybridVectorSearchTool = createTool({
         userId,
         sessionId
       });
- 
+
       return output;
- 
+
     } catch (error) {
       logger.error('Hybrid vector search failed', {
         error: error instanceof Error ? error.message : String(error)
@@ -556,7 +561,7 @@ export const hybridVectorSearchTool = createTool({
     }
   }
 });
- 
+
 /**
  * Runtime context for vector query tools to enable dynamic configuration
  * This allows CopilotKit frontend to configure tool behavior via headers
@@ -574,7 +579,7 @@ export const hybridVectorSearchTool = createTool({
  * ```
  */
 export const vectorQueryRuntimeContext = new RuntimeContext<VectorQueryRuntimeContext>();
- 
+
 // Set default runtime context values
 vectorQueryRuntimeContext.set("user-id", "anonymous");
 vectorQueryRuntimeContext.set("session-id", "default");

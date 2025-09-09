@@ -348,7 +348,7 @@ const processAndRetrieveStep = createStep({
               tracingContext,
             });
 
-      const refinedContext = (rerankedResults.messages as { content: string }[]).map((m) => m.content).join('\n\n');
+      const refinedContext = (rerankedResults.messages as ReadonlyArray<{ readonly content: string }>).map((m) => m.content).join('\n\n');
 
       logger.info('RAG processing and retrieval complete.');
       return {
@@ -356,7 +356,7 @@ const processAndRetrieveStep = createStep({
       };
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
-      const errStack = error instanceof Error && error.stack ? error.stack : undefined;
+      const errStack = error instanceof Error && (error.stack !== null) ? error.stack : undefined;
       logger.error('Error in processAndRetrieveStep:', { error: errMsg, stack: errStack });
       return {
         refinedContext: `Error during RAG processing: ${errMsg}`,
@@ -516,9 +516,9 @@ const iterativeResearchLoopWorkflow = createWorkflow({
   })
   .foreach(evaluateAndExtractStep, { concurrency: 1 })
   .map(async ({ getStepResult }) => {
-    const iterationLearnings: { learning: string; followUpQuestions: string[]; source: string }[] =
+    const iterationLearnings: ReadonlyArray<Readonly<{ learning: string; followUpQuestions: string[]; source: string }>> =
       getStepResult(conductWebResearchStep).learnings;
-    const iterationSearchResults: { title?: string; url?: string; content?: string }[] =
+    const iterationSearchResults: ReadonlyArray<Readonly<{ title?: string; url?: string; content?: string }>> =
       getStepResult(conductWebResearchStep).searchResults;
 
     // Evaluation results produced by evaluateAndExtractStep (one per search result in the foreach)
@@ -530,25 +530,33 @@ const iterativeResearchLoopWorkflow = createWorkflow({
       followUpQuestions?: string[];
       processedUrl?: string; // Corrected: Added processedUrl here
     };
-    const evaluateResults: EvaluateResultType[] = (Array.isArray(_rawEvaluateResults) ? _rawEvaluateResults : [_rawEvaluateResults]) as Array<EvaluateResultType>;
+    const evaluateResults: EvaluateResultType[] = (Array.isArray(_rawEvaluateResults) ? _rawEvaluateResults : [_rawEvaluateResults]) as EvaluateResultType[];
 
-    const relevantLearnings: { learning: string; followUpQuestions: string[]; source: string }[] = [];
-    const relevantContent: { title: string; url: string; content: string }[] = [];
+    const relevantLearnings: Array<Readonly<{ learning: string; followUpQuestions: string[]; source: string }>> = [];
+    const relevantContent: Array<{ title: string; url: string; content: string }> = [];
     const newFollowUpQuestions: string[] = [];
 
     for (const evalResult of evaluateResults) {
-      if (evalResult.isRelevant && evalResult.processedUrl) {
-        const originalSearchResult = iterationSearchResults.find(sr => sr.url === evalResult.processedUrl);
-        if (originalSearchResult && originalSearchResult.title && originalSearchResult.url && originalSearchResult.content) {
-          // Push a fully-typed object to satisfy the required shape
+      // Normalize and explicitly guard against null/undefined/empty processedUrl
+      const processedUrl = typeof evalResult.processedUrl === 'string' ? evalResult.processedUrl.trim() : '';
+      if (evalResult.isRelevant && processedUrl !== '') {
+        const originalSearchResult = iterationSearchResults.find((sr: Readonly<{ title?: string; url?: string; content?: string }>) => sr.url === processedUrl);
+        // Explicitly check that title, url, and content are non-empty strings
+        const hasValidTitle = typeof originalSearchResult?.title === 'string' && originalSearchResult.title.trim() !== '';
+        const hasValidUrl = typeof originalSearchResult?.url === 'string' && originalSearchResult.url.trim() !== '';
+        const hasValidContent = typeof originalSearchResult?.content === 'string' && originalSearchResult.content.trim() !== '';
+
+        if (hasValidTitle && hasValidUrl && hasValidContent) {
+          // originalSearchResult is guaranteed to exist and have strings; assert types for the push
+          const sr = originalSearchResult as { title: string; url: string; content: string };
           relevantContent.push({
-            title: originalSearchResult.title,
-            url: originalSearchResult.url,
-            content: originalSearchResult.content,
+            title: sr.title,
+            url: sr.url,
+            content: sr.content,
           });
         }
 
-        const originalLearning = iterationLearnings.find(l => l.source === evalResult.processedUrl);
+        const originalLearning = iterationLearnings.find((l) => l.source === processedUrl);
         if (originalLearning) {
           relevantLearnings.push(originalLearning);
           newFollowUpQuestions.push(...(originalLearning.followUpQuestions ?? []));
@@ -563,8 +571,7 @@ const iterativeResearchLoopWorkflow = createWorkflow({
       iterationCount: _currentIterationCount, // Corrected: Use _currentIterationCount
     };
   })
-  .commit();
-
+  .commit(); // End of iterativeResearchLoopWorkflow
 
 // --- Comprehensive Research Workflow Definition ---
 export const comprehensiveResearchWorkflow = createWorkflow({
@@ -591,11 +598,11 @@ comprehensiveResearchWorkflow
   .dowhile(
     iterativeResearchLoopWorkflow, // Use the named nested workflow
     async ({ inputData }) => {
-      const MAX_ITERATIONS = 3;
-      const hasNewFollowUpQuestions = inputData.newFollowUpQuestions && inputData.newFollowUpQuestions.length > 0;
+      const MAX_ITERATIONS = 7;
+      const hasNewFollowUpQuestions = Array.isArray(inputData.newFollowUpQuestions) && inputData.newFollowUpQuestions.length > 0;
       const notMaxIterations = inputData.iterationCount < MAX_ITERATIONS;
 
-      logger.info(`Loop condition check: hasNewFollowUpQuestions=${hasNewFollowUpQuestions}, notMaxIterations=${notMaxIterations}`);
+      logger.debug(`Loop condition check: hasNewFollowUpQuestions=${hasNewFollowUpQuestions}, notMaxIterations=${notMaxIterations}`);
       return hasNewFollowUpQuestions && notMaxIterations;
     }
   )

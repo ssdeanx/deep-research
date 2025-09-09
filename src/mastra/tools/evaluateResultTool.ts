@@ -23,7 +23,7 @@ export const evaluateResultTool = createTool({
     const evalSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
       name: 'evaluate_result',
-      input: { query: context.query, url: context.result.url, existingUrlsCount: context.existingUrls?.length || 0 }
+      input: { query: context.query, url: context.result.url, existingUrlsCount: context.existingUrls?.length ?? 0 }
     });
         // Check if URL already exists (only if existingUrls was provided)
 
@@ -32,7 +32,7 @@ export const evaluateResultTool = createTool({
       logger.info('Evaluating result', { context });
 
       // Check if URL already exists (only if existingUrls was provided)
-      if (existingUrls && existingUrls.includes(result.url)) {
+      if (existingUrls?.includes(result.url)) {
         evalSpan?.end({ output: { isRelevant: false, reason: 'URL already processed' } });
         return {
           isRelevant: false,

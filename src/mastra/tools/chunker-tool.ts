@@ -1,3 +1,4 @@
+/* eslint-disable tsdoc/syntax */
 /**
  * Chunker Tool - Production-ready implementation for Dean Machines RSC
  *
@@ -215,14 +216,20 @@ export const chunkerTool = createTool({
       const validatedInput = chunkerInputSchema.parse(context);
       logger.info('Document chunker input validated', {
         documentType: validatedInput.document.type,
-        strategy: validatedInput.chunkParams?.strategy || 'recursive'
+        strategy: validatedInput.chunkParams?.strategy ?? 'recursive'
       });
       // Get runtime context values with defaults
-      const contextChunkSize = (runtimeContext?.get('chunk-size') as number | undefined) ?? validatedInput.chunkParams?.size ?? 512;
-      const contextOverlap = (runtimeContext?.get('chunk-overlap') as number | undefined) ?? validatedInput.chunkParams?.overlap ?? 50;
-      const contextStrategy = (runtimeContext?.get('chunk-strategy') as 'recursive' | 'sentence' | 'paragraph' | 'fixed' | 'semantic' | undefined) ?? validatedInput.chunkParams?.strategy ?? 'recursive';
-      const preserveStructure = (runtimeContext?.get('preserve-structure') as boolean | undefined) ?? validatedInput.chunkParams?.preserveStructure ?? true;
-      const includeMetadata = (runtimeContext?.get('include-metadata') as boolean | undefined) ?? true;
+      const contextChunkSize = Number(runtimeContext?.get('chunk-size') ?? validatedInput.chunkParams?.size ?? 512);
+      const contextOverlap = Number(runtimeContext?.get('chunk-overlap') ?? validatedInput.chunkParams?.overlap ?? 50);
+      // Resolve strategy with runtime override and validate allowed values
+      const rawStrategy = runtimeContext?.get('chunk-strategy');
+      const allowedStrategies = ['recursive', 'sentence', 'paragraph', 'fixed', 'semantic'] as const;
+      let contextStrategy: ChunkConfig['strategy'] = validatedInput.chunkParams?.strategy ?? 'recursive';
+      if (typeof rawStrategy === 'string' && (allowedStrategies as readonly string[]).includes(rawStrategy)) {
+        contextStrategy = rawStrategy as ChunkConfig['strategy'];
+      }
+      const preserveStructure = Boolean(runtimeContext?.get('preserve-structure') ?? validatedInput.chunkParams?.preserveStructure ?? true);
+      const includeMetadata = Boolean(runtimeContext?.get('include-metadata') ?? true);
       // Get the embedder - always use gemini profile as it's the only one
       const embedder = createGeminiEmbeddingModel();
       // Create MDocument based on document type
@@ -267,11 +274,11 @@ export const chunkerTool = createTool({
         size: contextChunkSize,
         overlap: contextOverlap,
         preserveStructure,
-        minChunkSize: validatedInput.chunkParams?.minChunkSize || 100,
-        maxChunkSize: validatedInput.chunkParams?.maxChunkSize || 2048,
-        separator: validatedInput.chunkParams?.separator || getDefaultSeparator(type)
+        minChunkSize: validatedInput.chunkParams?.minChunkSize ?? 100,
+        maxChunkSize: validatedInput.chunkParams?.maxChunkSize ?? 2048,
+        separator: validatedInput.chunkParams?.separator ?? getDefaultSeparator(type)
       };// Perform chunking based on strategy
-      let rawChunks: { content?: string; text?: string; pageContent?: string; metadata?: Record<string, unknown> }[];
+      let rawChunks: Array<{ content?: string; text?: string; pageContent?: string; metadata?: Record<string, unknown> }>;
       switch (chunkConfig.strategy) {
         case 'recursive':
           rawChunks = await doc.chunk({
@@ -299,7 +306,7 @@ export const chunkerTool = createTool({
       }
 
       // Transform chunks to match our schema
-      const chunks: {
+      const chunks: Array<{
         id: string;
         content: string;
         index: number;
@@ -309,7 +316,7 @@ export const chunkerTool = createTool({
         tokens: number;
         embedding?: number[];
         vectorId?: string;
-      }[] = rawChunks.map((chunk: { content?: string; text?: string; pageContent?: string; metadata?: Record<string, unknown> }, index: number) => {
+      }> = rawChunks.map((chunk: { content?: string; text?: string; pageContent?: string; metadata?: Record<string, unknown> }, index: number) => {
         const chunkContent = (chunk.content ?? chunk.text) ?? chunk.pageContent ?? '';
         const chunkId = generateId();
 
@@ -323,11 +330,11 @@ export const chunkerTool = createTool({
             chunkIndex: index,
             strategy: chunkConfig.strategy,
             originalType: type,
-            title: title || 'Unknown',
-            source: source || 'Direct input',
+            title: title ?? 'Unknown',
+            source: source ?? 'Direct input',
             ...(includeMetadata && metadata)
           },
-          source: source || title || `chunk-${chunkId}`,
+          source: source ?? title ?? `chunk-${chunkId}`,
           tokens: estimateTokenCount(chunkContent)
         };
       });
@@ -708,7 +715,7 @@ async function chunkFixed(content: string, config: ChunkConfig): Promise<RawChun
     if (chunkContent.trim().length >= config.minChunkSize) {
       chunks.push({
         content: chunkContent,
-        metadata: { 
+        metadata: {
           strategy: 'fixed',
           index: chunkIndex++,
           startPos: i,

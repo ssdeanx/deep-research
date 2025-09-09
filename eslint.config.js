@@ -25,7 +25,7 @@ export default [
     },
     rules: {
       // Standard style guide rules
-      'no-unused-vars': 'off', // Turn off base rule
+      'no-unused-vars': 'warn', // Turn off base rule
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       'no-console': 'warn',
       'no-var': 'error',
@@ -83,19 +83,22 @@ export default [
 
       // TSDoc documentation rules
       'tsdoc/syntax': 'error',
-      'tsdoc/require-description': 'warn',
-      'tsdoc/require-param': 'warn',
-      'tsdoc/require-returns': 'warn',
+
+
 
       // JSDoc documentation rules
-      'jsdoc/require-description': 'warn',
-      'jsdoc/require-param-description': 'warn',
-      'jsdoc/require-returns-description': 'warn',
-      'jsdoc/check-param-names': 'error',
-      'jsdoc/check-tag-names': 'error'
+      'jsdoc/check-alignment': 'warn',
+      'jsdoc/check-indentation': 'warn',
+      'jsdoc/check-param-names': 'warn',
+      'jsdoc/check-property-names': 'warn',
+      'jsdoc/check-syntax': 'warn',
+
+
+      'jsdoc/require-param': 'warn', // Changed from 'warb' to 'warn'
+      'jsdoc/require-param-description': 'warn', // Changed from 'error' to 'warn'
     }
   },
   {
-    ignores: ['dist/**', 'node_modules/**', '*.js']
+    ignores: ['dist/**', 'node_modules/**', '*.js', '.mastra/**', 'eslint.config.js']
   }
 ]

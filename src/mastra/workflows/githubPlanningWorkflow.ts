@@ -147,7 +147,6 @@ const generateGithubTasksStep = createStep({
   },
 });
 
-
 // Define the workflow
 export const githubPlanningWorkflow = createWorkflow({
   id: 'github-planning-workflow',

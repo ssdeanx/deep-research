@@ -56,7 +56,7 @@ export const extractLearningsTool = createTool({
 
       logger.info('Learning extraction response', { result: response.object });
 
-      extractSpan?.end({ output: { learningLength: response.object?.learning?.length || 0, questionsCount: response.object?.followUpQuestions?.length || 0 } });
+      extractSpan?.end({ output: { learningLength: response.object?.learning?.length ?? 0, questionsCount: response.object?.followUpQuestions?.length ?? 0 } });
       return response.object;
     } catch (error) {
       logger.error('Error extracting learnings', {

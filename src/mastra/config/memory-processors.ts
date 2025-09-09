@@ -1,25 +1,26 @@
 /**
  * Enhanced Memory Processors for Mastra Research Agents
- * 
+ *
  * 4 core processors + 4 additional for research workflows: CitationExtractor, MultiPerspective, ConsensusBuilder, ResearchSummarizer.
  * All synchronous, non-mutating, type-safe. Useful for LibSQL memory in research agents, focusing on citation management, multi-perspective analysis, consensus, long context.
  * No integration into agents—processors ready for use in libsql-storage.ts.
  */
 
-import { MemoryProcessor, CoreMessage, MemoryProcessorOpts } from "@mastra/core";
+import type { CoreMessage, MemoryProcessorOpts } from "@mastra/core";
+import { MemoryProcessor } from "@mastra/core";
 import { PinoLogger } from "@mastra/loggers";
 
 const logger = new PinoLogger({ level: 'info' });
 
 // Optimized content extraction with WeakMap caching
-const contentCache = new WeakMap<CoreMessage, string>();
-const lowercaseCache = new WeakMap<CoreMessage, string>();
+const contentCache = new WeakMap<Readonly<CoreMessage>, string>();
+const lowercaseCache = new WeakMap<Readonly<CoreMessage>, string>();
 
 // Lazy evaluation with memoization for expensive operations (Thought 8)
 const similarityCache = new Map<string, number>();
 const patternCache = new Map<string, boolean>();
 
-function extractContent(msg: CoreMessage): string {
+function extractContent(msg: Readonly<CoreMessage>): string {
   if (contentCache.has(msg)) {
     return contentCache.get(msg)!;
   }
@@ -33,10 +34,10 @@ function extractContent(msg: CoreMessage): string {
         return part;
       }
       // Ensure part is a non-null object before accessing properties
-      if (part && typeof part === 'object' && 'type' in part && (part as { type?: string }).type === 'text') {
-        return ((part as { text?: string }).text) || '';
+      if (part !== null && typeof part === 'object' && 'type' in part && (part as { type?: string }).type === 'text') {
+        return ((part as { text?: string }).text) ?? '';
       }
-      if (part && typeof part === 'object' && 'type' in part && (part as { type?: string }).type === 'tool-result') {
+      if (part !== null && typeof part === 'object' && 'type' in part && (part as { type?: string }).type === 'tool-result') {
         const p = part as { content?: unknown };
         return JSON.stringify(p.content ?? part);
       }
@@ -50,7 +51,7 @@ function extractContent(msg: CoreMessage): string {
   return content;
 }
 
-function getLowercaseContent(msg: CoreMessage): string {
+function getLowercaseContent(msg: Readonly<CoreMessage>): string {
   if (lowercaseCache.has(msg)) {
     return lowercaseCache.get(msg)!;
   }
@@ -133,11 +134,12 @@ function computeChecksum(content: string): string {
  * TokenLimiterProcessor: Filters messages exceeding token limit for research context.
  */
 export class TokenLimiterProcessor extends MemoryProcessor {
-  private maxTokens = 1000000;
+  private readonly maxTokens: number = 1000000;
 
-  constructor(options?: { maxTokens?: number }) {
+  constructor({ options }: { options?: { maxTokens?: number; }; } = {}) {
     super({ name: "TokenLimiterProcessor" });
-    if (options?.maxTokens) {
+    // Explicitly handle nullable/zero/NaN cases: ensure maxTokens is a finite positive number
+    if (options && typeof options.maxTokens === 'number' && Number.isFinite(options.maxTokens) && options.maxTokens > 0) {
       this.maxTokens = options.maxTokens;
     }
   }
@@ -211,18 +213,19 @@ export class ErrorCorrectionProcessor extends MemoryProcessor {
  * HierarchicalMemoryProcessor: Filters short episodic vs long semantic research content.
  */
 export class HierarchicalMemoryProcessor extends MemoryProcessor {
-  private threshold = 0.7;
+  private readonly threshold: number = 0.7;
 
   constructor(options?: { threshold?: number }) {
     super({ name: "HierarchicalMemoryProcessor" });
-    if (options?.threshold) {
+    if (typeof options?.threshold === 'number') {
       this.threshold = options.threshold;
     }
   }
 
-  process(messages: CoreMessage[], _opts: MemoryProcessorOpts): CoreMessage[] {
+  process(messages: readonly CoreMessage[], _opts?: Readonly<MemoryProcessorOpts>): CoreMessage[] {
+    void _opts;
     if (!Array.isArray(messages)) {
-      return messages;
+      return messages as CoreMessage[];
     }
 
     return messages.filter(msg => {
@@ -263,7 +266,7 @@ export class HierarchicalMemoryProcessor extends MemoryProcessor {
  * PersonalizationProcessor: Boosts research messages matching user preferences.
  */
 export class PersonalizationProcessor extends MemoryProcessor {
-  private preferences = ['research', 'AI', 'analysis', 'data']; // Default research terms
+  private readonly preferences = ['research', 'AI', 'analysis', 'data']; // Default research terms
 
   constructor(options?: { preferences?: string[] }) {
     super({ name: "PersonalizationProcessor" });
@@ -272,14 +275,15 @@ export class PersonalizationProcessor extends MemoryProcessor {
     }
   }
 
-  process(messages: CoreMessage[], _opts: MemoryProcessorOpts): CoreMessage[] {
+  process(messages: readonly CoreMessage[], _opts?: Readonly<MemoryProcessorOpts>): CoreMessage[] {
+    void _opts;
     if (!Array.isArray(messages)) {
-      return messages;
+      return messages as CoreMessage[];
     }
 
     // Early return for empty arrays
     if (messages.length === 0) {
-      return messages;
+      return messages as CoreMessage[];
     }
 
     const result: CoreMessage[] = [];
@@ -358,7 +362,7 @@ export class CitationExtractorProcessor extends MemoryProcessor {
  * MultiPerspectiveProcessor: Scores messages from multiple research viewpoints (e.g., technical, ethical).
  */
 export class MultiPerspectiveProcessor extends MemoryProcessor {
-  private viewpoints = ['technical', 'ethical', 'practical']; // Research perspectives
+  private readonly viewpoints = ['technical', 'ethical', 'practical']; // Research perspectives
 
   constructor(options?: { viewpoints?: string[] }) {
     super({ name: "MultiPerspectiveProcessor" });
@@ -423,7 +427,7 @@ export class MultiPerspectiveProcessor extends MemoryProcessor {
  * TemporalReasoningProcessor: Handles time-based relationships between research findings and maintains chronological context.
  */
 export class TemporalReasoningProcessor extends MemoryProcessor {
-  private timeWindowHours = 24; // Default 24 hours
+  private readonly timeWindowHours: number = 24; // Default 24 hours
 
   constructor(options?: { timeWindowHours?: number }) {
     super({ name: "TemporalReasoningProcessor" });
@@ -473,7 +477,7 @@ export class TemporalReasoningProcessor extends MemoryProcessor {
  * UncertaintyQuantificationProcessor: Assigns confidence scores to research claims and tracks uncertainty propagation.
  */
 export class UncertaintyQuantificationProcessor extends MemoryProcessor {
-  private minConfidenceThreshold = 0.6;
+  private readonly minConfidenceThreshold: number = 0.6;
 
   constructor(options?: { minConfidenceThreshold?: number }) {
     super({ name: "UncertaintyQuantificationProcessor" });
@@ -525,7 +529,7 @@ export class UncertaintyQuantificationProcessor extends MemoryProcessor {
  * KnowledgeGraphProcessor: Builds and maintains dynamic knowledge graphs from research data.
  */
 export class KnowledgeGraphProcessor extends MemoryProcessor {
-  private graphTerms = ['relationship', 'connection', 'network', 'graph', 'entity', 'link'];
+  private readonly graphTerms = ['relationship', 'connection', 'network', 'graph', 'entity', 'link'];
 
   constructor(options?: { graphTerms?: string[] }) {
     super({ name: "KnowledgeGraphProcessor" });
@@ -574,7 +578,7 @@ export class KnowledgeGraphProcessor extends MemoryProcessor {
  * BayesianBeliefProcessor: Implements Bayesian updating for research hypotheses based on new evidence.
  */
 export class BayesianBeliefProcessor extends MemoryProcessor {
-  private beliefTerms = ['belief', 'hypothesis', 'evidence', 'update', 'probability', 'bayesian'];
+  private readonly beliefTerms = ['belief', 'hypothesis', 'evidence', 'update', 'probability', 'bayesian'];
 
   constructor(options?: { beliefTerms?: string[] }) {
     super({ name: "BayesianBeliefProcessor" });
@@ -621,8 +625,8 @@ export class BayesianBeliefProcessor extends MemoryProcessor {
  * CircuitBreakerProcessor: Provides fault tolerance for memory operations with automatic recovery.
  */
 export class CircuitBreakerProcessor extends MemoryProcessor {
-  private failureThreshold = 3;
-  private recoveryTimeoutMs = 30000;
+  private readonly failureThreshold: number = 3;
+  private readonly recoveryTimeoutMs: number = 30000;
   private failureCount = 0;
   private lastFailureTime = 0;
   private isOpen = false;

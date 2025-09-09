@@ -20,7 +20,7 @@ import { PinoLogger } from "@mastra/loggers";
 import { publisherAgent } from "./agents/publisherAgent";
 import { copywriterAgent } from "./agents/copywriterAgent";
 import { editorAgent } from "./agents/editorAgent";
-import { server } from './mcp/server';
+//import { server } from './mcp/server';
 const logger = new PinoLogger({ level: 'info' });
 
 logger.info('Starting Mastra application')

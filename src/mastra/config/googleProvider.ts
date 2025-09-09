@@ -38,7 +38,6 @@ import { PinoLogger } from "@mastra/loggers";
 
 const logger = new PinoLogger({ name: 'googleProvider', level: 'info' });
 
-
 /**
  * Gemini Model Configuration Constants - Focused on 2.5 Series
  */
@@ -110,7 +109,6 @@ logger.info('Google provider configuration loaded', {
   embeddingModels: Object.keys(GEMINI_CONFIG.EMBEDDING_MODELS).length
 });
 
-
 /**
  * Enhanced base Google model with Gemini 2.5 Flash Lite as default
  * Supports all advanced features via proper AI SDK patterns
@@ -180,13 +178,13 @@ export const baseGoogleModel = (
     if (agentName || tags.length > 0 || Object.keys(metadata).length > 0) {
       // Attach metadata that Langfuse can pick up
       (model as Record<string, unknown>).__langfuseMetadata = {
-        agentName: agentName || 'unknown',
+        agentName: agentName ?? 'unknown',
         tags: [
           'mastra',
           'google',
           'gemini-2.5',
           'dean-machines',
-          ...(agentName ? [agentName] : []),
+          ...((agentName !== null) ? [agentName] : []),
           ...tags
         ],
         metadata: {
@@ -194,14 +192,14 @@ export const baseGoogleModel = (
           provider: 'google',
           framework: 'mastra',
           project: 'dean-machines-rsc',
-          agentName: agentName || 'unknown',
+          agentName: agentName ?? 'unknown',
           thinkingBudget: 'dynamic',
           safetyLevel,
           useSearchGrounding,
           dynamicRetrieval,
           structuredOutputs,
           timestamp: new Date().toISOString(),
-          traceName: traceName || `${agentName || 'agent'}-${modelId}`,
+          traceName: traceName ?? `${agentName ?? 'agent'}-${modelId}`,
           ...metadata
         }
       };
@@ -261,7 +259,7 @@ export function createGemini25Provider(
     };
     mediaResolution?: 'OFF' | 'MEDIA_RESOLUTION_LOW' | 'MEDIA_RESOLUTION_MEDIUM' // This allows more higher quality output per token but will cost most overall
     // Response modalities (for backward compatibility)
-    responseModalities?: ('TEXT' | 'IMAGE')[];
+    responseModalities?: Array<'TEXT' | 'IMAGE'>;
     codeExecution?: boolean; // Enable code execution for models that support it
     // Search and grounding
     useSearchGrounding?: boolean;
@@ -427,16 +425,16 @@ export type { GoogleGenerativeAIProviderOptions, GoogleGenerativeAIProviderSetti
  * ```typescript
  * const cacheManager = createCacheManager();
  * ```
- * 
+ *
  * [EDIT: 2025-06-22] [BY: GitHub Copilot]
  */
 export function createCacheManager(apiKey?: string): GoogleAICacheManager {
-  const key = apiKey || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-  if (!key) {
+  const key = apiKey ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  if (key === undefined) { // Changed from null to undefined as process.env returns undefined for unset variables
     throw new Error('Google AI API key is required for cache manager');
   }
-  
-  logger.info('Creating Google AI cache manager', { hasApiKey: !!key });
+
+  logger.info('Creating Google AI cache manager', { hasApiKey: !!(key ?? "") });
   return new GoogleAICacheManager(key);
 }
 
@@ -474,7 +472,7 @@ export async function createCachedContent(
       ttlSeconds
     });
 
-    if (!name) {
+    if (name === null) {
       throw new Error('Failed to create cached content: no name returned');
     }
 
@@ -596,13 +594,14 @@ export function supportsExplicitCaching(modelId: string): modelId is GoogleModel
  *
  * [EDIT: 2025-06-22] [BY: GitHub Copilot]
  */
-export function extractGroundingMetadata(providerMetadata?: Record<string, unknown>) {
-  if (!providerMetadata?.google || typeof providerMetadata.google !== 'object') {
+export function extractGroundingMetadata(providerMetadata?: Readonly<Record<string, unknown>>) {
+  const googleMetadata = providerMetadata?.google as Record<string, unknown> | undefined;
+  if (!googleMetadata || typeof googleMetadata !== 'object') {
     return null;
   }
 
-  const googleMetadata = providerMetadata.google as GoogleGenerativeAIProviderMetadata;
-  const grounding = googleMetadata.groundingMetadata;
+  const grounding = (googleMetadata as any).groundingMetadata;
+  const safetyRatings = (googleMetadata as any).safetyRatings as any[] | undefined;
 
   interface GroundingSegment {
     text: string | null;
@@ -641,20 +640,21 @@ export function extractGroundingMetadata(providerMetadata?: Record<string, unkno
     confidenceScores?: number[] | null;
   }
 
-    return {
-      searchQueries: grounding?.webSearchQueries || [],
-      searchEntryPoint: grounding?.searchEntryPoint?.renderedContent || null,
-      groundingSupports: grounding?.groundingSupports?.map((support: RawGroundingSupport): GroundingSupport => ({
+  return {
+    searchQueries: grounding?.webSearchQueries ?? [],
+    searchEntryPoint: grounding?.searchEntryPoint?.renderedContent ?? null,
+    groundingSupports:
+      (grounding?.groundingSupports ?? []).map((support: RawGroundingSupport): GroundingSupport => ({
         segment: {
-          text: support.segment?.text || '',
-          startIndex: support.segment?.startIndex ?? 0,
-          endIndex: support.segment?.endIndex ?? 0
+          text: support.segment?.text ?? null,
+          startIndex: support.segment?.startIndex ?? null,
+          endIndex: support.segment?.endIndex ?? null
         },
         groundingChunkIndices: support.groundingChunkIndices ?? [],
-        confidenceScores: support.confidenceScores || []
-      })) || [],
-      safetyRatings: googleMetadata.safetyRatings || []
-    } as GroundingMetadata;
+        confidenceScores: support.confidenceScores ?? []
+      })) ?? [],
+    safetyRatings: safetyRatings ?? []
+  } as GroundingMetadata;
 }
 
 /**
@@ -672,9 +672,14 @@ export function extractGroundingMetadata(providerMetadata?: Record<string, unkno
  */
 export function logCacheUsage(response: Record<string, unknown>, logger: PinoLogger) {
   const responseBody = response?.body as Record<string, unknown> | undefined;
-  const usageMetadata = responseBody?.usageMetadata as Record<string, unknown> | undefined;  if (usageMetadata?.cachedContentTokenCount && typeof usageMetadata.cachedContentTokenCount === 'number' && 
-      usageMetadata.totalTokenCount && typeof usageMetadata.totalTokenCount === 'number') {
-    const cacheHitRate = (usageMetadata.cachedContentTokenCount / usageMetadata.totalTokenCount * 100).toFixed(2);
+  const usageMetadata = responseBody?.usageMetadata as Record<string, unknown> | undefined;
+  if (
+    usageMetadata &&
+    typeof usageMetadata.cachedContentTokenCount === 'number' &&
+    typeof usageMetadata.totalTokenCount === 'number' &&
+    usageMetadata.totalTokenCount > 0
+  ) {
+    const cacheHitRate = ((usageMetadata.cachedContentTokenCount / usageMetadata.totalTokenCount) * 100).toFixed(2);
 
     logger.info('Cache hit detected', {
       cachedTokens: usageMetadata.cachedContentTokenCount,
@@ -700,7 +705,7 @@ export function logCacheUsage(response: Record<string, unknown>, logger: PinoLog
  *   { agentName: 'research-agent' }
  * );
  * ```
- * 
+ *
  * [EDIT: 2025-06-22] [BY: GitHub Copilot]
  */
 export async function searchGroundedGeneration(
@@ -719,29 +724,28 @@ export async function searchGroundedGeneration(
     safetyLevel = 'MODERATE'
   } = options;
 
-  const model = baseGoogleModel(modelId, {
-    useSearchGrounding: true,
-    dynamicRetrieval: true,
-    safetyLevel,
-    agentName,
-    tags: ['search', 'grounding'],
-    traceName: `search-${agentName}`
-  });
+const model = baseGoogleModel(modelId, {
+  useSearchGrounding: true,
+  dynamicRetrieval: true,
+  safetyLevel,
+  agentName,
+  tags: ['search', 'grounding'],
+  traceName: `search-${agentName}`
+});
 
-  try {
-    // Return the configured model and helper for metadata extraction
-    return {
-      model,
-      extractGroundingMetadata: (providerMetadata: Record<string, unknown>) => 
-        extractMetadata ? extractGroundingMetadata(providerMetadata) : null
-    };
-  } catch (error) {
-    logger.error('Search grounded generation failed', {
-      prompt: prompt.substring(0, 100),
-      modelId,
-      agentName,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-    throw error;
+try {
+  // Return the configured model and helper for metadata extraction
+  return {
+    model,
+    extractGroundingMetadata: (providerMetadata?: Readonly<Record<string, unknown>>) =>
+      extractMetadata ? extractGroundingMetadata(providerMetadata) : null
+  };
+} catch (error) {
+  logger.error('searchGroundedGeneration failed', {
+    modelId,
+    error: error instanceof Error ? error.message : String(error)
+  });
+  throw error;
   }
 }
+

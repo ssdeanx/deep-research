@@ -138,19 +138,19 @@ export const graphRAGUpsertTool = createTool({
     const startTime = Date.now();
 
     try {
-      const validatedInput = upsertInputSchema.parse(input) as z.infer<typeof upsertInputSchema>;
-      let effectiveIndexName = validatedInput.useReport ? STORAGE_CONFIG.VECTOR_INDEXES.REPORTS : validatedInput.indexName;
+      const validatedInput = upsertInputSchema.parse(input);
+      let effectiveIndexName = (validatedInput.useReport ?? false) ? STORAGE_CONFIG.VECTOR_INDEXES.REPORTS : validatedInput.indexName;
       // Conditional for report context - safely inspect metadata without using `any`
-      const docMetadata = validatedInput.document.metadata as Record<string, unknown> | undefined;
+      const docMetadata = validatedInput.document.metadata;
       const docUseReport = docMetadata ? docMetadata.useReport : undefined;
       if ((typeof docUseReport === 'boolean' && docUseReport) || runtimeContext?.get('useReport')) {
         effectiveIndexName = STORAGE_CONFIG.VECTOR_INDEXES.REPORTS;
       }
 
       // Get runtime context values
-      const userId = (runtimeContext?.get('userId') as string | undefined) ?? 'anonymous';
-      const sessionId = (runtimeContext?.get('sessionId') as string | undefined) ?? 'default';
-      const debug = (runtimeContext?.get('debug') as boolean | undefined) ?? false;
+      const userId = (runtimeContext?.get('userId')) ?? 'anonymous';
+      const sessionId = (runtimeContext?.get('sessionId')) ?? 'default';
+      const debug = (runtimeContext?.get('debug')) ?? false;
       const vectorProfileName = validatedInput.vectorProfile || 'libsql';
 
       // Get the embedder
@@ -169,7 +169,7 @@ export const graphRAGUpsertTool = createTool({
 
       // Use the chunkerTool for robust document processing - fixed input structure
       // Normalize extractParams shape so that summary.summaries contains only allowed literals
-      interface SummaryObject { summaries?: ('self' | 'prev' | 'next')[]; promptTemplate?: string }
+      interface SummaryObject { summaries?: Array<'self' | 'prev' | 'next'>; promptTemplate?: string }
       const normalizeSummary = (s?: unknown) => {
         if (s === undefined || typeof s === 'boolean') {
           return s;
@@ -181,7 +181,7 @@ export const graphRAGUpsertTool = createTool({
           : undefined;
         return {
           ...(summaries ? { summaries } : {}),
-          ...(maybe.promptTemplate ? { promptTemplate: maybe.promptTemplate } : {})
+          ...((maybe.promptTemplate !== null) ? { promptTemplate: maybe.promptTemplate } : {})
         };
       };
 
@@ -223,7 +223,7 @@ export const graphRAGUpsertTool = createTool({
             indexName: effectiveIndexName,
             createIndex: validatedInput.createIndex,
           },
-          extractParams: normalizeExtractParams(validatedInput.extractParams as ExtractParams | undefined),
+          extractParams: normalizeExtractParams(validatedInput.extractParams),
         },
         runtimeContext,
         tracingContext,
@@ -258,7 +258,7 @@ export const graphRAGUpsertTool = createTool({
       // Create index if needed
       if (validatedInput.createIndex) {
         const idxResult = await createVectorIndex(
-          effectiveIndexName as string,
+          effectiveIndexName,
           STORAGE_CONFIG.DEFAULT_DIMENSION, // Use STORAGE_CONFIG.DEFAULT_DIMENSION
           'cosine'
         );
@@ -286,7 +286,7 @@ export const graphRAGUpsertTool = createTool({
           ...metadata,
           chunkIndex: index,
           totalChunks: chunks.length,
-          strategy: (chunkParams || { strategy: 'recursive' }).strategy,
+          strategy: (chunkParams ?? { strategy: 'recursive' }).strategy,
           chunkSize: chunk.text.length,
           vectorProfile: vectorProfileName, // Include vectorProfile in metadata
         };
@@ -304,7 +304,7 @@ export const graphRAGUpsertTool = createTool({
         // Removed 'as any' to fix typing
       }) : undefined;
       const upsertRes = await upsertVectors(
-        effectiveIndexName as string,
+        effectiveIndexName,
         embeddings,
         metadataArray,
         chunkIds
@@ -399,20 +399,20 @@ export const graphRAGQueryTool = createTool({
     const startTime = Date.now();
 
     try {
-      const validatedInput = queryInputSchema.parse(input) as z.infer<typeof queryInputSchema>;
+      const validatedInput = queryInputSchema.parse(input);
 
       // Get runtime context values
-      const userId = (runtimeContext?.get('userId') as string | undefined) ?? 'anonymous';
-      const sessionId = (runtimeContext?.get('sessionId') as string | undefined) ?? 'default';
-      const debug = (runtimeContext?.get('debug') as boolean | undefined) ?? false;
-      let indexName = validatedInput.useReport ? STORAGE_CONFIG.VECTOR_INDEXES.REPORTS : ((runtimeContext?.get('indexName') as string | undefined) ?? validatedInput.indexName);
+      const userId = (runtimeContext?.get('userId')) ?? 'anonymous';
+      const sessionId = (runtimeContext?.get('sessionId')) ?? 'default';
+      const debug = (runtimeContext?.get('debug')) ?? false;
+      let indexName = (validatedInput.useReport ?? false) ? STORAGE_CONFIG.VECTOR_INDEXES.REPORTS : ((runtimeContext?.get('indexName')) ?? validatedInput.indexName);
       // Conditional for report context
-      if (runtimeContext?.get('useReport') || validatedInput.useReport) {
+      if ((Boolean((runtimeContext?.get('useReport')))) || (validatedInput.useReport ?? false)) {
         indexName = STORAGE_CONFIG.VECTOR_INDEXES.REPORTS;
       }
-      const topK = (runtimeContext?.get('topK') as number | undefined) ?? validatedInput.topK;
-      const threshold = (runtimeContext?.get('threshold') as number | undefined) ?? validatedInput.threshold;
-      const vectorProfileName = validatedInput.vectorProfile || 'gemini';
+      const topK = (runtimeContext?.get('topK')) ?? validatedInput.topK;
+      const threshold = (runtimeContext?.get('threshold')) ?? validatedInput.threshold;
+      const vectorProfileName = validatedInput.vectorProfile || 'libsql';
 
       // Get the embedder for potential use in query processing
 
@@ -447,7 +447,6 @@ export const graphRAGQueryTool = createTool({
       graphRAGContext.set('minScore', validatedInput.minScore);
       graphRAGContext.set('dimension', STORAGE_CONFIG.DEFAULT_DIMENSION); // Use STORAGE_CONFIG.DEFAULT_DIMENSION
 
-
       // Conditional tracing span for graph query if tracing is enabled - fixed typing
       const graphQuerySpan = tracingContext?.currentSpan ? tracingContext.currentSpan.createChildSpan({
         type: AISpanType.GENERIC,
@@ -476,7 +475,7 @@ export const graphRAGQueryTool = createTool({
       type ExtendedMessage = Message & { metadata?: Record<string, unknown> };
 
       const enhancedSources = [
-        ...(graphResult.sources || []),
+        ...(graphResult.sources ?? []),
         ...((memoryResults.messages || []).slice(0, 3).map((msg: ExtendedMessage) => {
           const msgMeta = msg.metadata ?? {};
           return {
@@ -497,9 +496,9 @@ export const graphRAGQueryTool = createTool({
         content?: string;
         vector?: number[];
       }) => ({
-        id: source.id || generateId(),
+        id: source.id ?? generateId(),
         score: source.score ?? 0,
-        content: source.text || source.content || '',
+        content: (source.text ?? source.content) ?? '',
         metadata: source.metadata ?? {},
         vector: validatedInput.includeVector ? source.vector : undefined
       }));
@@ -517,7 +516,7 @@ export const graphRAGQueryTool = createTool({
       }
 
       const result = {
-        relevantContext: graphResult.relevantContext || sources.map((s: { content: string }) => s.content).join('\n\n'),
+        relevantContext: (Boolean(graphResult.relevantContext)) || sources.map((s: { content: string }) => s.content).join('\n\n'),
         sources,
         totalResults,
         graphStats: {
