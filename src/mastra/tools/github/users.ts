@@ -10,7 +10,7 @@ export const getAuthenticatedUser = createTool({
   id: 'getAuthenticatedUser',
   description: 'Gets the authenticated user.',
   inputSchema: z.object({}),
-  execute: async ({ context, tracingContext }) => {
+  execute: async ({ tracingContext }: Readonly<{ context: any; tracingContext?: any }>) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
       name: 'get_authenticated_user',
@@ -46,7 +46,7 @@ export const getUser = createTool({
   inputSchema: z.object({
     username: z.string(),
   }),
-  execute: async ({ context, tracingContext }) => {
+  execute: async ({ context, tracingContext }: Readonly<{ context: { username: string }; tracingContext?: any }>) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
       name: 'get_user',
@@ -82,7 +82,7 @@ export const listUsers = createTool({
   inputSchema: z.object({
     since: z.number().optional(),
   }),
-  execute: async ({ context, tracingContext }) => {
+  execute: async ({ context, tracingContext }: Readonly<{ context: { since?: number }; tracingContext?: any }>) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
       name: 'list_users',

@@ -92,7 +92,7 @@ const createAgentTool = (agentName: keyof typeof agentToolSchemas, description: 
     execute: async (args: unknown) => {
       const agent = mastra.getAgent(agentName as any);
       const result = await agent.generate([{ role: 'user', content: JSON.stringify(args) }]);
-      return { content: [{ type: 'text', text: result.text || JSON.stringify(result, null, 2) }] };
+      return { content: [{ type: 'text', text: result.text ?? JSON.stringify(result, null, 2) }] };
     },
   };
 };
@@ -116,14 +116,14 @@ const server = new Server(
 );
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: allTools.map(tool => ({
+  tools: allTools.map((tool: Readonly<McpTool>) => ({
     name: tool.name,
     description: tool.description,
     inputSchema: zodToJsonSchema(tool.inputSchema),
   })),
 }));
 
-server.setRequestHandler(CallToolRequestSchema, async request => {
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     const tool = allTools.find(t => t.name === request.params.name);
     if (!tool) {
@@ -137,8 +137,9 @@ server.setRequestHandler(CallToolRequestSchema, async request => {
     return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
   } catch (error) {
     if (error instanceof z.ZodError) {
+      const messages = (error.errors as any).map((e: any) => `${(e.path || []).join('.')}: ${e.message}`).join(', ');
       return {
-        content: [{ type: 'text', text: `Invalid arguments: ${error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')}` }],
+        content: [{ type: 'text', text: `Invalid arguments: ${messages}` }],
         isError: true,
       };
     }

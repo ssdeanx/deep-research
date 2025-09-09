@@ -116,7 +116,5 @@ Always provide summaries that capture the core value of the web content without 
      // Langfuse tracing configuration
     }),
   memory,
-
 });
-
 

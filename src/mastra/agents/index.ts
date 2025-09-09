@@ -7,7 +7,6 @@ import { monitorAgent } from './monitorAgent';
 import { planningAgent } from './planningAgent';
 import { qualityAssuranceAgent } from './qualityAssuranceAgent';
 
-
 export { researchAgent,
     reportAgent,
     webSummarizationAgent,

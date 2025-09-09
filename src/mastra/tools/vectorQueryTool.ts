@@ -1,3 +1,4 @@
+/* eslint-disable tsdoc/syntax */
 /**
  * Vector Query Tools for Dean Machines RSC
  *
@@ -158,7 +159,7 @@ export const enhancedVectorQueryTool = createTool({
       let relevantContext = '';
 
       // If threadId is provided, use LibSQL memory search
-      if (validatedInput.threadId !== null) {
+      if (typeof validatedInput.threadId === 'string' && validatedInput.threadId.length > 0) {
         const threadId = validatedInput.threadId;
         logger.info('Searching within thread using LibSQL memory', { threadId });
 

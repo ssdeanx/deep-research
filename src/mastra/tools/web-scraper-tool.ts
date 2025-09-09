@@ -39,7 +39,7 @@ export const webScraperTool = createTool({
     const scrapeSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
       name: 'web_scrape',
-      input: { url: context.url, selector: context.selector, saveMarkdown: context.saveMarkdown, extractAttributesCount: context.extractAttributes?.length || 0 }
+      input: { url: context.url, selector: context.selector, saveMarkdown: context.saveMarkdown, extractAttributesCount: context.extractAttributes?.length ?? 0 }
     });
 
     logger.info('Starting web scraping', { url: context.url, selector: context.selector, saveMarkdown: context.saveMarkdown });
@@ -47,7 +47,7 @@ export const webScraperTool = createTool({
     let rawContent: string | undefined;
     let markdownContent: string | undefined;
     let savedFilePath: string | undefined;
-    const extractedData: Record<string, string>[] = [];
+    const extractedData: Array<Record<string, string>> = [];
     let status = 'failed';
     let errorMessage: string | undefined;
     let scrapedUrl: string = context.url; // Initialize with context.url, will be updated in handler
@@ -97,7 +97,7 @@ export const webScraperTool = createTool({
       // Save markdown content if requested
       if (context.saveMarkdown && markdownContent) {
         try {
-          const fileName = context.markdownFileName || `scraped_${new Date().toISOString().replace(/[:.]/g, '-')}.md`;
+          const fileName = context.markdownFileName ?? `scraped_${new Date().toISOString().replace(/[:.]/g, '-')}.md`;
           const dataDir = path.join(process.cwd(), 'data');
           const fullPath = path.join(dataDir, fileName);
 
@@ -114,7 +114,7 @@ export const webScraperTool = createTool({
         }
       }
 
-      scrapeSpan?.end({ output: { status, extractedDataCount: extractedData.length, contentLength: rawContent?.length || 0, savedFile: !!savedFilePath } });
+      scrapeSpan?.end({ output: { status, extractedDataCount: extractedData.length, contentLength: rawContent?.length ?? 0, savedFile: !!savedFilePath } });
     } catch (error) {
       errorMessage = `Web scraping failed: ${error instanceof Error ? error.message : String(error)}`;
       logger.error(errorMessage);

@@ -109,7 +109,7 @@ export const createProjectCard = createTool({
         params.note = typeof context.note !== 'undefined' ? context.note : null;
       }
 
-      const card = await octokit.request('POST /projects/columns/{column_id}/cards', params as any);
+      const card = await octokit.request('POST /projects/columns/{column_id}/cards', params);
       logger.info('Project card created successfully');
 
       spanName?.end({
@@ -513,7 +513,7 @@ export const listProjects = createTool({
         logger.info('Projects listed successfully for organization');
 
         spanName?.end({
-          output: { projects_count: projects.data?.length || 0 },
+          output: { projects_count: projects.data?.length ?? 0 },
           metadata: { operation: 'list_projects', type: 'organization' }
         });
         return projects.data;
@@ -594,7 +594,7 @@ export const createProject = createTool({
         // Build explicit params to ensure `repo` is a string for the typed octokit request
         const params = {
           owner: context.owner,
-          repo: context.repo as string,
+          repo: context.repo,
           name: context.name,
           ...(typeof context.body !== 'undefined' ? { body: context.body } : {}),
         };

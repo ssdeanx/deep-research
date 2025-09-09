@@ -1,3 +1,4 @@
+/* eslint-disable tsdoc/syntax */
 /**
  * GraphRAG Tool - Production-ready implementation for Dean Machines RSC
  * Uses createGraphRAGTool from @mastra/rag with Upstash Vector store integration
@@ -9,28 +10,32 @@
 
 import { createTool } from '@mastra/core/tools';
 import type { ToolExecutionContext } from '@mastra/core/tools';
-import { createGraphRAGTool, ExtractParams } from '@mastra/rag';
+import type { ExtractParams } from '@mastra/rag';
+import { createGraphRAGTool } from '@mastra/rag';
 import { z } from 'zod';
-import { generateId, Message, UIMessage } from 'ai';
+import type { Message, UIMessage } from 'ai';
+import { generateId } from 'ai';
 import { PinoLogger } from '@mastra/loggers';
 import { RuntimeContext } from "@mastra/core/runtime-context";
 import { AISpanType } from '@mastra/core/ai-tracing';
 
+import type {
+  TracingSpanInput,
+  SpanEndInput
+} from '../config/libsql-storage';
 import {
   upsertVectors,
   createVectorIndex,
   VectorStoreError,
   STORAGE_CONFIG,
-  searchMemoryMessages,
-  TracingSpanInput,
-  SpanEndInput
+  searchMemoryMessages
 } from '../config/libsql-storage';
 //import { pinecone } from '../pinecone';
 import { createGeminiEmbeddingModel } from '../config/googleProvider';
 import { embedMany } from 'ai';
 
 import { chunkerTool } from './chunker-tool';
-import { Memory } from '@mastra/memory';
+import type { Memory } from '@mastra/memory';
 
 const logger = new PinoLogger({ name: 'GraphRAGTool' });
 
@@ -147,10 +152,13 @@ export const graphRAGUpsertTool = createTool({
         effectiveIndexName = STORAGE_CONFIG.VECTOR_INDEXES.REPORTS;
       }
 
-      // Get runtime context values
-      const userId = (runtimeContext?.get('userId')) ?? 'anonymous';
-      const sessionId = (runtimeContext?.get('sessionId')) ?? 'default';
-      const debug = (runtimeContext?.get('debug')) ?? false;
+      // Get runtime context values (coerce runtimeContext values to concrete types)
+      const rawUserId = runtimeContext?.get('userId');
+      const userId = (typeof rawUserId === 'string' && rawUserId.length > 0) ? rawUserId : 'anonymous';
+      const rawSessionId = runtimeContext?.get('sessionId');
+      const sessionId = (typeof rawSessionId === 'string' && rawSessionId.length > 0) ? rawSessionId : 'default';
+      const rawDebug = runtimeContext?.get('debug');
+      const debug = (typeof rawDebug === 'boolean') ? rawDebug : false;
       const vectorProfileName = validatedInput.vectorProfile || 'libsql';
 
       // Get the embedder
@@ -397,21 +405,28 @@ export const graphRAGQueryTool = createTool({
     memory?: Memory;
   }): Promise<z.infer<typeof queryOutputSchema>> => {
     const startTime = Date.now();
-
     try {
-      const validatedInput = queryInputSchema.parse(input);
 
-      // Get runtime context values
-      const userId = (runtimeContext?.get('userId')) ?? 'anonymous';
-      const sessionId = (runtimeContext?.get('sessionId')) ?? 'default';
-      const debug = (runtimeContext?.get('debug')) ?? false;
+    // Validate input early so it can be referenced safely below
+    const validatedInput = queryInputSchema.parse(input);
+
+      // Get runtime context values (coerce runtimeContext values to concrete types)
+      const rawUserId = runtimeContext?.get('userId');
+      const userId = (typeof rawUserId === 'string' && rawUserId.length > 0) ? rawUserId : 'anonymous';
+      const rawSessionId = runtimeContext?.get('sessionId');
+      const sessionId = (typeof rawSessionId === 'string' && rawSessionId.length > 0) ? rawSessionId : 'default';
+      const rawDebug = runtimeContext?.get('debug');
+      const debug = (typeof rawDebug === 'boolean') ? rawDebug : false;
       let indexName = (validatedInput.useReport ?? false) ? STORAGE_CONFIG.VECTOR_INDEXES.REPORTS : ((runtimeContext?.get('indexName')) ?? validatedInput.indexName);
+
       // Conditional for report context
       if ((Boolean((runtimeContext?.get('useReport')))) || (validatedInput.useReport ?? false)) {
         indexName = STORAGE_CONFIG.VECTOR_INDEXES.REPORTS;
       }
-      const topK = (runtimeContext?.get('topK')) ?? validatedInput.topK;
-      const threshold = (runtimeContext?.get('threshold')) ?? validatedInput.threshold;
+      const rawTopK = runtimeContext?.get('topK');
+      const topK = (typeof rawTopK === 'number' && Number.isFinite(rawTopK)) ? rawTopK : validatedInput.topK;
+      const rawThreshold = runtimeContext?.get('threshold');
+      const threshold = (typeof rawThreshold === 'number' && Number.isFinite(rawThreshold)) ? rawThreshold : validatedInput.threshold;
       const vectorProfileName = validatedInput.vectorProfile || 'libsql';
 
       // Get the embedder for potential use in query processing
@@ -516,7 +531,9 @@ export const graphRAGQueryTool = createTool({
       }
 
       const result = {
-        relevantContext: (Boolean(graphResult.relevantContext)) || sources.map((s: { content: string }) => s.content).join('\n\n'),
+        relevantContext: (typeof graphResult.relevantContext === 'string' && graphResult.relevantContext.length > 0)
+          ? graphResult.relevantContext
+          : sources.map((s: { content: string }) => s.content).join('\n\n'),
         sources,
         totalResults,
         graphStats: {

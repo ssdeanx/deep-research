@@ -117,6 +117,7 @@ logger.info('Google provider configuration loaded', {
  * @param options - Model configuration options
  * @returns Configured Google model instance
  */
+
 export const baseGoogleModel = (
   modelId: string = GEMINI_CONFIG.MODELS.GEMINI_2_5_FLASH_LITE,
   options: {
@@ -175,7 +176,7 @@ export const baseGoogleModel = (
     });
 
     // Add Langfuse metadata to the model for automatic tracing
-    if (agentName || tags.length > 0 || Object.keys(metadata).length > 0) {
+    if ((agentName !== null) || tags.length > 0 || Object.keys(metadata).length > 0) {
       // Attach metadata that Langfuse can pick up
       (model as Record<string, unknown>).__langfuseMetadata = {
         agentName: agentName ?? 'unknown',
@@ -207,7 +208,7 @@ export const baseGoogleModel = (
       logger.info('Google model configured with Langfuse metadata', {
         modelId,
         agentName,
-        traceName: traceName || `${agentName || 'agent'}-${modelId}`,
+        traceName: traceName ?? `${agentName ?? 'agent'}-${modelId}`,
         tagsCount: tags.length
       });
     }
@@ -249,6 +250,7 @@ export const baseGoogleModel = (
  * });
  * ```
  */
+
 export function createGemini25Provider(
   modelId: string = GEMINI_CONFIG.MODELS.GEMINI_2_5_FLASH_LITE,
   options: {
@@ -295,6 +297,7 @@ export function createGemini25Provider(
  * @param modelId - Model ID (default: gemini-2.0-flash-exp)
  * @param options - Configuration options
  */
+
 export function createGeminiImageProvider(
   modelId: string = GEMINI_CONFIG.MODELS.GEMINI_2_5_FLASH_LITE,
   options: {
@@ -314,7 +317,9 @@ export function createGeminiImageProvider(
  * Create embedding model with flexible dimensions
  * @param modelId - Embedding model ID
  * @param options - Embedding configuration
+ * @param outputDimensionality - number;
  */
+
 export function createGeminiEmbeddingModel(
   modelId: string = GEMINI_CONFIG.EMBEDDING_MODELS.TEXT_EMBEDDING_004,
   options: {
@@ -363,6 +368,7 @@ export function createGeminiEmbeddingModel(
  * });
  * ```
  */
+
 export function createMastraGoogleProvider(
   modelId: string = GEMINI_CONFIG.MODELS.GEMINI_2_5_FLASH_LITE,
   options: {
@@ -458,6 +464,7 @@ export function createCacheManager(apiKey?: string): GoogleAICacheManager {
  *
  * [EDIT: 2025-06-22] [BY: GitHub Copilot]
  */
+
 export async function createCachedContent(
   cacheManager: GoogleAICacheManager,
   modelId: GoogleModelCacheableId,
@@ -507,6 +514,7 @@ export async function createCachedContent(
  *
  * [EDIT: 2025-06-22] [BY: GitHub Copilot]
  */
+
 export const createCachedGoogleModel = async (
   modelId: GoogleModelCacheableId,
   options: {
@@ -708,6 +716,7 @@ export function logCacheUsage(response: Record<string, unknown>, logger: PinoLog
  *
  * [EDIT: 2025-06-22] [BY: GitHub Copilot]
  */
+
 export async function searchGroundedGeneration(
   prompt: string,
   options: {
@@ -748,4 +757,3 @@ try {
   throw error;
   }
 }
-

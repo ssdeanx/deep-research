@@ -13,7 +13,7 @@ export const listGists = createTool({
     username: z.string().optional(),
   }),
   execute: async ({ context, tracingContext }) => {
-    logger.info(`Listing gists for user: ${context.username || 'current user'}`);
+    logger.info(`Listing gists for user: ${context.username ?? 'current user'}`);
 
     const listSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -22,14 +22,14 @@ export const listGists = createTool({
     });
 
     try {
-      const gists = await octokit.gists.listForUser({ username: context.username || '' });
+      const gists = await octokit.gists.listForUser({ username: context.username ?? '' });
       listSpan?.end({ output: { count: gists.data.length } });
-      logger.info(`Listed ${gists.data.length} gists for user: ${context.username || 'current user'}`);
+      logger.info(`Listed ${gists.data.length} gists for user: ${context.username ?? 'current user'}`);
       return gists.data;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       listSpan?.end({ metadata: { error: errorMessage } });
-      logger.error(`Failed to list gists for user ${context.username || 'current user'}: ${errorMessage}`);
+      logger.error(`Failed to list gists for user ${context.username ?? 'current user'}: ${errorMessage}`);
       throw error;
     }
   },

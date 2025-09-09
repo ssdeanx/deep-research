@@ -20,6 +20,7 @@ import { PinoLogger } from "@mastra/loggers";
 import { publisherAgent } from "./agents/publisherAgent";
 import { copywriterAgent } from "./agents/copywriterAgent";
 import { editorAgent } from "./agents/editorAgent";
+import { assistant } from './agents/assistant';
 //import { server } from './mcp/server';
 const logger = new PinoLogger({ level: 'info' });
 
@@ -44,6 +45,7 @@ export const mastra = new Mastra({
     publisherAgent,
     copywriterAgent,
     editorAgent,
+    assistant,
   },
   workflows: { generateReportWorkflow, researchWorkflow, comprehensiveResearchWorkflow, githubPlanningWorkflow, githubQualityWorkflow },
   vnext_networks: {

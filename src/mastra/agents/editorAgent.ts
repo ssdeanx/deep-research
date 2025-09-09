@@ -8,8 +8,6 @@ const logger = new PinoLogger({ level: 'info' });
 logger.info('Initializing Editor Agent...');
 
 const memory = createResearchMemory();
-
-
 export const editorAgent = new Agent({
   name: "Editor",
   instructions: "You are an editor agent that edits blog post copy.",

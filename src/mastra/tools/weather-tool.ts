@@ -6,11 +6,11 @@ import { AISpanType } from '@mastra/core/ai-tracing';
 const logger = new PinoLogger({ name: 'WeatherTool', level: 'info' });
 
 interface GeocodingResponse {
-  results: {
+  results: Array<{
     latitude: number;
     longitude: number;
     name: string;
-  }[];
+  }>;
 }
 interface WeatherResponse {
   current: {

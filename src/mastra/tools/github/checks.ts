@@ -6,6 +6,8 @@ import { AISpanType } from '@mastra/core/ai-tracing';
 
 const logger = new PinoLogger({ name: 'GitHubChecks', level: 'info' });
 
+logger.info(`Creating check run`);
+
 export const createCheckRun = createTool({
   id: 'createCheckRun',
   description: 'Creates a new check run.',
@@ -26,6 +28,7 @@ export const createCheckRun = createTool({
   }),
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
+      // Log the creation of the check run
       type: AISpanType.GENERIC,
       name: 'create_check_run',
       input: {

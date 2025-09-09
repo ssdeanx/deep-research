@@ -66,7 +66,7 @@ export const rerankTool = createTool({
     runtimeContext?: RuntimeContext<RerankRuntimeContext>;
     tracingContext?: {
       currentSpan?: {
-        createChildSpan(input: { type: AISpanType; name: string; input?: Record<string, unknown> }): { end(options: { output?: Record<string, unknown>; metadata?: Record<string, unknown> }): void };
+        createChildSpan(options?: { type?: AISpanType; name?: string; input?: Record<string, unknown> }): { end(options: { output?: Record<string, unknown>; metadata?: Record<string, unknown> }): void };
       };
       context?: unknown;
       runtimeContext?: RuntimeContext<unknown>;
@@ -79,13 +79,32 @@ export const rerankTool = createTool({
       const parsedInput = rerankInputSchema.parse(input);
 
       // Get runtime context values (with fallbacks to parsed input or defaults)
-      const userId = (runtimeContext?.get('user-id') as string | undefined) ?? 'anonymous';
-      const sessionId = (runtimeContext?.get('session-id') as string | undefined) ?? 'default';
-      const modelPreference = (runtimeContext?.get('model-preference') as string | undefined) ?? 'gemini-2.5-flash-lite-preview-06-17';
-      const semanticWeight = (runtimeContext?.get('semantic-weight') as number | undefined) ?? parsedInput.semanticWeight;
-      const vectorWeight = (runtimeContext?.get('vector-weight') as number | undefined) ?? parsedInput.vectorWeight;
-      const positionWeight = (runtimeContext?.get('position-weight') as number | undefined) ?? parsedInput.positionWeight;
-      const debug = (runtimeContext?.get('debug') as boolean | undefined) ?? false;
+      const userId = (runtimeContext?.get('user-id')) ?? 'anonymous';
+      const sessionId = (runtimeContext?.get('session-id')) ?? 'default';
+      // runtimeContext.get may return unknown; coerce/validate to a string to avoid passing an object to createGemini25Provider
+      const rawModelPreference = runtimeContext?.get('model-preference');
+      const modelPreference = (typeof rawModelPreference === 'string' && rawModelPreference.length > 0)
+        ? rawModelPreference
+        : 'gemini-2.5-flash-lite-preview-06-17';
+
+      // Validate and coerce runtimeContext values to concrete types to satisfy TypeScript
+      const rawSemanticWeight = runtimeContext?.get('semantic-weight');
+      const semanticWeight = typeof rawSemanticWeight === 'number'
+        ? rawSemanticWeight
+        : parsedInput.semanticWeight;
+
+      const rawVectorWeight = runtimeContext?.get('vector-weight');
+      const vectorWeight = typeof rawVectorWeight === 'number'
+        ? rawVectorWeight
+        : parsedInput.vectorWeight;
+
+      const rawPositionWeight = runtimeContext?.get('position-weight');
+      const positionWeight = typeof rawPositionWeight === 'number'
+        ? rawPositionWeight
+        : parsedInput.positionWeight;
+
+      const rawDebug = runtimeContext?.get('debug');
+      const debug = typeof rawDebug === 'boolean' ? rawDebug : false;
 
       if (debug) {
         logger.info('Rerank tool executed with runtime context', {
@@ -99,7 +118,7 @@ export const rerankTool = createTool({
       }
 
       // Determine index based on context
-      let searchIndex = parsedInput.indexName || STORAGE_CONFIG.VECTOR_INDEXES.RESEARCH_DOCUMENTS;
+      let searchIndex = parsedInput.indexName ?? STORAGE_CONFIG.VECTOR_INDEXES.RESEARCH_DOCUMENTS;
       if (runtimeContext?.get('useReport')) {
         searchIndex = STORAGE_CONFIG.VECTOR_INDEXES.REPORTS;
       }
@@ -172,7 +191,7 @@ export const rerankTool = createTool({
         // Map reranked results back to messages (or a more generic format)
         const rerankedMessages = rerankedResults.map((result) => ({
           id: result.result.id,
-          content: result.result.metadata?.text || '',
+          content: result.result.metadata?.text ?? '',
           role: 'assistant',
           metadata: result.result.metadata,
           score: result.score,
@@ -275,8 +294,8 @@ export const rerankTool = createTool({
         rerankingUsed: false,
         rerankingDuration: Date.now() - startTime,
         averageRelevanceScore: 0,
-        userId: runtimeContext?.get('user-id') || 'anonymous',
-        sessionId: runtimeContext?.get('session-id') || 'default'
+        userId: runtimeContext?.get('user-id') ?? 'anonymous',
+        sessionId: runtimeContext?.get('session-id') ?? 'default'
       };
 
       return rerankOutputSchema.parse({

@@ -1,3 +1,4 @@
+/* eslint-disable tsdoc/syntax */
 import * as fs from 'fs/promises';
 import * as path from 'node:path';
 import { z } from 'zod';
@@ -17,6 +18,7 @@ const DATA_DIR = path.join(process.cwd(), 'data');
  * @returns The absolute, validated path.
  * @throws Error if the path is outside the allowed data directory.
  */
+
 function validateDataPath(filePath: string): string {
     const absolutePath = path.resolve(DATA_DIR, filePath);
     if (!absolutePath.startsWith(DATA_DIR)) {
@@ -138,7 +140,7 @@ export const listDataDirTool = createTool({
         const listSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.GENERIC,
             name: 'list_data_directory',
-            input: { dirPath: context.dirPath || '' }
+            input: { dirPath: context.dirPath ?? '' }
         });
 
         try {
@@ -469,7 +471,7 @@ export const backupDataTool = createTool({
         const backupSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.GENERIC,
             name: 'backup_data',
-            input: { sourcePath: context.sourcePath, backupDir: context.backupDir || 'backups' }
+            input: { sourcePath: context.sourcePath, backupDir: context.backupDir ?? 'backups' }
         });
 
         try {

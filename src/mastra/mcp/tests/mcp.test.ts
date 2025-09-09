@@ -7,7 +7,7 @@ import { setTimeout } from 'node:timers/promises';
 const SERVER_START_TIMEOUT = 5000;
 const SERVER_PATH = 'src/mastra/mcp/server.ts';
 
-test('MCP Server Tests', async t => {
+test('MCP Server Tests', async (testContext) => {
   const serverProcess = spawn('tsx', [SERVER_PATH], {
     stdio: ['pipe', 'pipe', 'pipe'],
   });
@@ -34,7 +34,7 @@ test('MCP Server Tests', async t => {
     });
   });
 
-  await t.test('should start the MCP server successfully', async () => {
+  await testContext.test('should start the MCP server successfully', async () => {
     await Promise.race([
       readyPromise,
       setTimeout(SERVER_START_TIMEOUT, undefined, { ref: false }).then(() => {
@@ -52,7 +52,7 @@ test('MCP Server Tests', async t => {
   };
 
   const messageQueue: any[] = [];
-  const messageResolvers: ((message: any) => void)[] = [];
+  const messageResolvers: Array<(message: any) => void> = [];
   let stdoutBuffer = '';
 
   serverProcess.stdout.on('data', (data) => {
@@ -74,7 +74,7 @@ test('MCP Server Tests', async t => {
         } else {
           messageQueue.push(message);
         }
-      } catch (e) {
+      } catch {
         console.log(`Ignoring non-JSON line from stdout: ${line}`);
       }
     }
@@ -91,7 +91,7 @@ test('MCP Server Tests', async t => {
     });
   };
 
-  await t.test('should list all available tools', async () => {
+  await testContext.test('should list all available tools', async () => {
     const requestId = randomUUID();
     sendMessage({
       jsonrpc: '2.0',
@@ -105,10 +105,10 @@ test('MCP Server Tests', async t => {
     assert.ok(response.result.tools.length > 0, 'Should return at least one tool');
     const tool = response.result.tools.find((t: { name: string }) => t.name === 'weatherTool');
     assert.ok(tool, 'weatherTool should be in the list');
-    assert.strictEqual((tool as any).description, 'Get the weather for a location');
+    assert.strictEqual((tool).description, 'Get the weather for a location');
   });
 
-  await t.test('should call a tool with valid arguments', async () => {
+  await testContext.test('should call a tool with valid arguments', async () => {
     const requestId = randomUUID();
     sendMessage({
       jsonrpc: '2.0',
@@ -127,7 +127,7 @@ test('MCP Server Tests', async t => {
     assert.ok(content.temperature, 'Response should contain temperature');
   });
 
-  await t.test('should return an error for a non-existent tool', async () => {
+  await testContext.test('should return an error for a non-existent tool', async () => {
     const requestId = randomUUID();
     sendMessage({
       jsonrpc: '2.0',
@@ -145,7 +145,7 @@ test('MCP Server Tests', async t => {
     assert.ok(response.result.content[0].text.includes('Unknown tool: nonExistentTool'));
   });
 
-  await t.test('should return an error for invalid arguments', async () => {
+  await testContext.test('should return an error for invalid arguments', async () => {
     const requestId = randomUUID();
     sendMessage({
       jsonrpc: '2.0',
@@ -163,7 +163,7 @@ test('MCP Server Tests', async t => {
     assert.ok(response.result.content[0].text.includes('Invalid arguments'));
   });
 
-  t.after(() => {
+  testContext.after(() => {
     serverProcess.kill();
   });
 });
