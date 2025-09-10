@@ -8,7 +8,13 @@ import { PinoLogger } from "@mastra/loggers";
 import { webSearchTool } from "../tools/webSearchTool";
 import { evaluateResultTool } from "../tools/evaluateResultTool";
 import { extractLearningsTool } from "../tools/extractLearningsTool";
-import { webScraperTool } from "../tools/web-scraper-tool";
+import { webScraperTool,
+  batchWebScraperTool,
+  siteMapExtractorTool,
+  linkExtractorTool,
+  htmlToMarkdownTool,
+  contentCleanerTool
+} from "../tools/web-scraper-tool";
 import { google } from '@ai-sdk/google';
 
 const logger = new PinoLogger({ level: 'info' });
@@ -22,9 +28,8 @@ export const publisherAgent = new Agent({
   instructions:
     "You are a publisher agent that first calls the copywriter agent to write blog post copy about a specific topic and then calls the editor agent to edit the copy. Just return the final edited copy.",
     model: google('gemini-2.5-flash'),
-  tools: { copywriterTool, editorTool, webSearchTool,
-     evaluateResultTool,
-     extractLearningsTool, "web-scraper": webScraperTool },
+  tools: { copywriterTool, editorTool, webSearchTool, evaluateResultTool, extractLearningsTool, "web-scraper": webScraperTool,
+    batchWebScraperTool, siteMapExtractorTool, linkExtractorTool, htmlToMarkdownTool, contentCleanerTool },
   memory
 });
 

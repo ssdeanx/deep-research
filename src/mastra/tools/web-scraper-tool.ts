@@ -5,14 +5,219 @@ import { AISpanType } from '@mastra/core/ai-tracing';
 import * as cheerio from "cheerio";
 import { Request, CheerioCrawler } from "crawlee";
 import { marked } from "marked";
-import * as fs from "fs/promises";
-import * as path from "path";
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
+import { JSDOM } from "jsdom";
 
 const logger = new PinoLogger({ name: 'WebScraperTool', level: 'info' });
 
+// Enhanced HTML processing with JSDOM
+class HtmlProcessor {
+  public static readonly DANGEROUS_TAGS = new Set([
+    'script', 'style', 'iframe', 'embed', 'object', 'noscript', 'meta', 'link'
+  ]);
+
+  public static readonly DANGEROUS_ATTRS = new Set([
+    'onload', 'onerror', 'onclick', 'onmouseover', 'onmouseout', 'onkeydown', 'onkeyup', 'onkeypress'
+  ]);
+
+  static sanitizeHtml(html: string): string {
+    try {
+      const dom = new JSDOM(html, { includeNodeLocations: false });
+      const {document} = dom.window;
+
+      // Remove dangerous elements using JSDOM
+      const dangerousElements = document.querySelectorAll('script, style, iframe, embed, object, noscript, meta, link[rel="stylesheet"]');
+      dangerousElements.forEach(element => element.remove());
+
+      // Remove event handler attributes
+      const allElements = document.querySelectorAll('*');
+      allElements.forEach(element => {
+        Array.from(element.attributes).forEach(attr => {
+          if (attr.name.startsWith('on') || this.DANGEROUS_ATTRS.has(attr.name.toLowerCase())) {
+            element.removeAttribute(attr.name);
+          }
+        });
+      });
+
+      return document.body.innerHTML;
+    } catch (error) {
+      logger.warn('JSDOM sanitization failed, falling back to cheerio', { error });
+      // Fallback to cheerio
+      const $ = cheerio.load(html);
+      this.DANGEROUS_TAGS.forEach(tag => $(tag).remove());
+      $('*').each((_i, element) => {
+        const el = $(element);
+        const attrs = el.attr();
+        if (attrs) {
+          Object.keys(attrs).forEach(attr => {
+            if (this.DANGEROUS_ATTRS.has(attr.toLowerCase()) || attr.toLowerCase().startsWith('on')) {
+              el.removeAttr(attr);
+            }
+          });
+        }
+      });
+      return $.html();
+    }
+  }
+
+  static extractTextContent(html: string): string {
+    try {
+      const dom = new JSDOM(html, { includeNodeLocations: false });
+      return dom.window.document.body.textContent?.trim() ?? '';
+    } catch (error) {
+      logger.warn('JSDOM text extraction failed, falling back to cheerio', { error });
+      const $ = cheerio.load(html);
+      return $.text().trim();
+    }
+  }
+
+  static htmlToMarkdown(html: string): string {
+    try {
+      const dom = new JSDOM(html, { includeNodeLocations: true });
+      const {document} = dom.window;
+
+      const convertNode = (node: Node): string => {
+        if (node.nodeType === dom.window.Node.TEXT_NODE) {
+          return node.textContent?.trim() ?? '';
+        }
+
+        if (node.nodeType === dom.window.Node.ELEMENT_NODE) {
+          const element = node as Element;
+          const tagName = element.tagName.toLowerCase();
+
+          switch (tagName) {
+            case 'h1': return `# ${getTextContent(element)}\n\n`;
+            case 'h2': return `## ${getTextContent(element)}\n\n`;
+            case 'h3': return `### ${getTextContent(element)}\n\n`;
+            case 'h4': return `#### ${getTextContent(element)}\n\n`;
+            case 'h5': return `##### ${getTextContent(element)}\n\n`;
+            case 'h6': return `###### ${getTextContent(element)}\n\n`;
+            case 'p': return `${getTextContent(element)}\n\n`;
+            case 'br': return '\n';
+            case 'strong':
+            case 'b': return `**${getTextContent(element)}**`;
+            case 'em':
+            case 'i': return `*${getTextContent(element)}*`;
+            case 'code': return `\`${getTextContent(element)}\``;
+            case 'pre': return `\`\`\`\n${getTextContent(element)}\n\`\`\`\n\n`;
+            case 'a': {
+              const href = element.getAttribute('href');
+              const text = getTextContent(element);
+              return (href !== null) ? `[${text}](${href})` : text;
+            }
+            case 'ul': return `${convertChildren(element)}\n`;
+            case 'ol': return `${convertChildren(element)}\n`;
+            case 'li': return `- ${getTextContent(element)}\n`;
+            case 'blockquote': return `> ${getTextContent(element)}\n\n`;
+            case 'hr': return '---\n\n';
+            case 'img': {
+              // Normalize src/alt and skip images without a usable src
+              const srcAttr = element.getAttribute('src');
+              const altAttr = element.getAttribute('alt') ?? '';
+              const trimmedSrc = (srcAttr ?? '').trim();
+              if (trimmedSrc === '') {
+                return '';
+              }
+              const alt = altAttr.trim();
+              return `![${alt}](${trimmedSrc})`;
+            }
+            case 'table': return convertTable(element);
+            default: return convertChildren(element);
+          }
+        }
+        return '';
+      };
+
+      const convertChildren = (element: Element): string => {
+        let result = '';
+        element.childNodes.forEach(child => {
+          result += convertNode(child);
+        });
+        return result;
+      };
+
+      const getTextContent = (element: Element): string => {
+        let result = '';
+        element.childNodes.forEach(child => {
+          result += convertNode(child);
+        });
+        return result;
+      };
+
+      const convertTable = (table: Element): string => {
+        const rows = Array.from(table.querySelectorAll('tr'));
+        if (rows.length === 0) {
+          return '';
+        }
+
+        let markdown = '';
+        rows.forEach((row, index) => {
+          const cells = Array.from(row.querySelectorAll('td, th'));
+          const cellTexts = cells.map(cell => getTextContent(cell));
+          markdown += '| ' + cellTexts.join(' | ') + ' |\n';
+
+          if (index === 0) {
+            markdown += '| ' + cellTexts.map(() => '---').join(' | ') + ' |\n';
+          }
+        });
+        return markdown + '\n';
+      };
+
+      return convertNode(document.body).trim();
+    } catch (error) {
+      logger.warn('JSDOM conversion failed, using marked fallback', { error });
+      return marked.parse(html) as string;
+    }
+  }
+
+}
+
+// Enhanced error handling utilities
+class ScrapingError extends Error {
+  public readonly code: string;
+  public readonly statusCode?: number;
+  public readonly url?: string;
+
+  constructor(
+    message: string,
+    code: string,
+    statusCode?: number,
+    url?: string
+  ) {
+    super(message);
+    this.code = code;
+    this.statusCode = statusCode;
+    this.url = url;
+    // Include the error code in the message so the property is referenced and available for logs
+    this.message = `${message}${this.code ? ` (code=${this.code})` : ''}`;
+    this.name = 'ScrapingError';
+  }
+}
+
+class ValidationUtils {
+  static validateUrl(url: string): boolean {
+    try {
+      const parsedUrl = new URL(url);
+      return ['http:', 'https:'].includes(parsedUrl.protocol);
+    } catch {
+      return false;
+    }
+  }
+
+  static sanitizeFileName(fileName: string): string {
+    return fileName.replace(/[^a-zA-Z0-9\-_.]/g, '_');
+  }
+
+  static validateFilePath(filePath: string): boolean {
+    const normalizedPath = path.normalize(filePath);
+    return !normalizedPath.includes('../') && !normalizedPath.startsWith('/');
+  }
+}
+
 // Input Schema
 const webScraperInputSchema = z.object({
-  url: z.string().url().describe("The URL of the web page to scrape."),
+  url: z.string().url().refine(ValidationUtils.validateUrl, "Invalid URL format"),
   selector: z.string().optional().describe("CSS selector for the elements to extract (e.g., 'h1', '.product-title'). If not provided, the entire page content will be extracted."),
   extractAttributes: z.array(z.string()).optional().describe("Array of HTML attributes to extract from selected elements (e.g., 'href', 'src', 'alt')."),
   saveMarkdown: z.boolean().optional().describe("Whether to save the scraped content as markdown to the data directory."),
@@ -32,7 +237,7 @@ const webScraperOutputSchema = z.object({
 
 export const webScraperTool = createTool({
   id: "web-scraper",
-  description: "Extracts structured data from web pages using cheerio and crawlee.",
+  description: "Extracts structured data from web pages using JSDOM and Cheerio with enhanced security and error handling.",
   inputSchema: webScraperInputSchema,
   outputSchema: webScraperOutputSchema,
   execute: async ({ context, tracingContext }) => {
@@ -42,7 +247,7 @@ export const webScraperTool = createTool({
       input: { url: context.url, selector: context.selector, saveMarkdown: context.saveMarkdown, extractAttributesCount: context.extractAttributes?.length ?? 0 }
     });
 
-    logger.info('Starting web scraping', { url: context.url, selector: context.selector, saveMarkdown: context.saveMarkdown });
+    logger.info('Starting enhanced web scraping with JSDOM', { url: context.url, selector: context.selector, saveMarkdown: context.saveMarkdown });
 
     let rawContent: string | undefined;
     let markdownContent: string | undefined;
@@ -50,105 +255,983 @@ export const webScraperTool = createTool({
     const extractedData: Array<Record<string, string>> = [];
     let status = 'failed';
     let errorMessage: string | undefined;
-    let scrapedUrl: string = context.url; // Initialize with context.url, will be updated in handler
+    let scrapedUrl: string = context.url;
 
     try {
       const crawler = new CheerioCrawler({
-        async requestHandler({ request, body }) {
-          scrapedUrl = request.url; // Capture the actual URL from the request
-          rawContent = body.toString();
-          if (context.selector !== null) {
-            const $ = cheerio.load(rawContent);
-            $(context.selector).each((_i, element) => {
-              const data = new Map<string, string>();
-              data.set('text', $(element).text().trim());
-              if (context.extractAttributes) {
-                context.extractAttributes.forEach(attr => {
-                  const attrValue = $(element).attr(attr);
-                  if (attrValue !== undefined && typeof attr === "string" &&
-                                        !Object.hasOwn(Object.prototype, attr) &&
-                                        attr !== "__proto__" && attr !== "constructor" && attr !== "prototype") {
+        maxRequestsPerCrawl: 10,
+        maxConcurrency: 10,
+        requestHandlerTimeoutSecs: 30,
+        async requestHandler({ request, body, response }) {
+          try {
+            scrapedUrl = request.url;
+
+            if (typeof (response?.statusCode) === 'number' && Number.isFinite(response.statusCode) && response.statusCode >= 400) {
+              throw new ScrapingError(
+                `HTTP ${response.statusCode}: ${response.statusMessage}`,
+                'HTTP_ERROR',
+                response.statusCode,
+                request.url
+              );
+            }
+
+            rawContent = body.toString();
+
+            // Sanitize HTML using JSDOM
+            rawContent = HtmlProcessor.sanitizeHtml(rawContent);
+
+            if (typeof context.selector === 'string' && context.selector.trim() !== '') {
+              // Use JSDOM for better DOM manipulation
+              const dom = new JSDOM(rawContent, { includeNodeLocations: false });
+              const {document} = dom.window;
+
+              const selector = (context.selector).trim();
+              const elements = document.querySelectorAll(selector);
+              elements.forEach(element => {
+                const data = new Map<string, string>();
+                data.set('text', element.textContent?.trim() ?? '');
+
+                if (context.extractAttributes) {
+                  context.extractAttributes.forEach(attr => {
+                    if (typeof attr === "string" &&
+                        !Object.hasOwn(Object.prototype, attr) &&
+                        attr !== "__proto__" && attr !== "constructor" && attr !== "prototype" &&
+                        !attr.includes('<') && !attr.includes('>')) {
+                      const attrValue = element.getAttribute(attr);
+                      if (attrValue !== null && attrValue !== undefined) {
                         data.set(`attr_${attr}`, attrValue);
-                  }
-                });
-              }
-              extractedData.push(Object.fromEntries(data));
-            });
+                      }
+                    }
+                  });
+                }
+                extractedData.push(Object.fromEntries(data));
+              });
+            }
+
+            status = 'success';
+          } catch (error) {
+            if (error instanceof ScrapingError) {
+              throw error;
+            }
+            throw new ScrapingError(
+              `Request handler failed: ${error instanceof Error ? error.message : String(error)}`,
+              'REQUEST_HANDLER_ERROR',
+              undefined,
+              request.url
+            );
           }
-          status = 'success';
         },
         failedRequestHandler({ request, error }) {
-          errorMessage = `Failed to scrape ${request.url}: ${error instanceof Error ? error.message : String(error)}`;
-          logger.error(errorMessage);
+          const scrapingError = new ScrapingError(
+            `Failed to scrape ${request.url}: ${error instanceof Error ? error.message : String(error)}`,
+            'REQUEST_FAILED',
+            undefined,
+            request.url
+          );
+          errorMessage = scrapingError.message;
+          logger.error(scrapingError.message);
         },
       });
 
       await crawler.run([new Request({ url: context.url })]);
 
-      // Convert HTML to markdown if rawContent exists
-      if (rawContent) {
+      // Enhanced HTML to markdown conversion using JSDOM
+      if (typeof rawContent === 'string' && rawContent.trim().length > 0) {
         try {
-          markdownContent = await marked.parse(rawContent);
+          markdownContent = HtmlProcessor.htmlToMarkdown(rawContent);
         } catch (error) {
-          logger.warn('Failed to convert HTML to markdown', { error: error instanceof Error ? error.message : String(error) });
-          markdownContent = rawContent; // Fallback to raw content
+          logger.warn('Enhanced HTML to markdown conversion failed, using fallback', { error: error instanceof Error ? error.message : String(error) });
+          try {
+            markdownContent = await marked.parse(rawContent);
+          } catch (fallbackError) {
+            logger.warn('Fallback conversion also failed', { error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError) });
+            markdownContent = HtmlProcessor.extractTextContent(rawContent);
+          }
         }
       }
-      // Save markdown content if requested
-      if ((context.saveMarkdown === true) && markdownContent) {
-        try {
-          const fileName = context.markdownFileName ?? `scraped_${new Date().toISOString().replace(/[:.]/g, '-')}.md`;
-          const dataDir = path.join(process.cwd(), 'data');
-          const fullPath = path.join(dataDir, fileName);
+      // Enhanced file saving with security validation
+            if ((context.saveMarkdown === true) && markdownContent !== null && markdownContent !== undefined && markdownContent.trim() !== '') {
+              try {
+                const fileName = (typeof context.markdownFileName === 'string' && context.markdownFileName.trim() !== '')
+                  ? ValidationUtils.sanitizeFileName(context.markdownFileName)
+                  : `scraped_${new Date().toISOString().replace(/[:.]/g, '-')}.md`;
 
-          // Ensure data directory exists
-          await fs.mkdir(dataDir, { recursive: true });
+                const dataDir = path.join(process.cwd(), './data');
+                const fullPath = path.join(dataDir, fileName);
 
-          // Write the markdown content
-          await fs.writeFile(fullPath, markdownContent, 'utf-8');
-          savedFilePath = fileName;
-          logger.info('Markdown content saved', { fileName });
-        } catch (error) {
-          logger.error('Failed to save markdown file', { error: error instanceof Error ? error.message : String(error) });
-          // Don't fail the entire operation if saving fails
+                if (!ValidationUtils.validateFilePath(fullPath)) {
+                  throw new ScrapingError('Invalid file path', 'INVALID_FILE_PATH');
+                }
+
+                await fs.mkdir(dataDir, { recursive: true });
+                await fs.writeFile(fullPath, markdownContent, 'utf-8');
+                savedFilePath = fileName;
+                logger.info('Markdown content saved securely', { fileName });
+              } catch (error) {
+                if (error instanceof ScrapingError) {
+                  throw error;
+                }
+                logger.error('Failed to save markdown file', { error: error instanceof Error ? error.message : String(error) });
+              }
+            }
+
+      scrapeSpan?.end({
+        output: {
+          status,
+          extractedDataCount: extractedData.length,
+          contentLength: rawContent?.length ?? 0,
+          savedFile: !!(typeof savedFilePath === 'string' && savedFilePath.trim().length > 0)
         }
-      }
-      // Save markdown content if requested
-      if ((context.saveMarkdown === true) && markdownContent) {
-        try {
-          const fileName = context.markdownFileName ?? `scraped_${new Date().toISOString().replace(/[:.]/g, '-')}.md`;
-          const dataDir = path.join(process.cwd(), 'data');
-          const fullPath = path.join(dataDir, fileName);
-
-          // Ensure data directory exists
-          await fs.mkdir(dataDir, { recursive: true });
-
-          // Write the markdown content
-          await fs.writeFile(fullPath, markdownContent, 'utf-8');
-          savedFilePath = fileName;
-          logger.info('Markdown content saved', { fileName });
-        } catch (error) {
-          logger.error('Failed to save markdown file', { error: error instanceof Error ? error.message : String(error) });
-          // Don't fail the entire operation if saving fails
-        }
-      }
-
-      scrapeSpan?.end({ output: { status, extractedDataCount: extractedData.length, contentLength: rawContent?.length ?? 0, savedFile: !(savedFilePath === null) } });
+      });
     } catch (error) {
-      errorMessage = `Web scraping failed: ${error instanceof Error ? error.message : String(error)}`;
-      logger.error(errorMessage);
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      scrapeSpan?.end({ metadata: { error: errorMsg } });
+      const scrapingError = error instanceof ScrapingError ? error :
+        new ScrapingError(
+          `Web scraping failed: ${error instanceof Error ? error.message : String(error)}`,
+          'GENERAL_ERROR'
+        );
+
+      errorMessage = scrapingError.message;
+      logger.error(scrapingError.message);
+
+      const errorMsg = scrapingError.message;
+      scrapeSpan?.end({ metadata: { error: errorMsg, code: scrapingError.code } });
     }
 
     return webScraperOutputSchema.parse({
-      url: scrapedUrl, // Use the captured scrapedUrl
+      url: scrapedUrl,
       extractedData,
-      rawContent: (context.selector !== null) ? undefined : rawContent,
+      rawContent: (context.selector !== null)
+        ? undefined
+        : (typeof rawContent === 'string' && rawContent.trim().length > 0 ? rawContent : undefined),
       markdownContent,
       savedFilePath,
       status,
       errorMessage,
     });
+  },
+});
+
+// ===== BATCH WEB SCRAPER TOOL =====
+
+const batchWebScraperInputSchema = z.object({
+  urls: z.array(z.string().url()).describe("Array of URLs to scrape.").max(10, "Maximum 10 URLs allowed for batch scraping"),
+  selector: z.string().optional().describe("CSS selector for elements to extract from each page."),
+  maxConcurrent: z.number().min(1).max(15).optional().describe("Maximum number of concurrent requests (default: 3, max: 15)."),
+  saveResults: z.boolean().optional().describe("Whether to save results to data directory."),
+  baseFileName: z.string().optional().describe("Base filename for saved results (default: 'batch_scrape')."),
+});
+
+const batchWebScraperOutputSchema = z.object({
+  results: z.array(z.object({
+    url: z.string(),
+    success: z.boolean(),
+    extractedData: z.array(z.record(z.string(), z.string())).optional(),
+    markdownContent: z.string().optional(),
+    errorMessage: z.string().optional(),
+  })).describe("Results for each scraped URL."),
+  savedFilePath: z.string().optional().describe("Path to the saved batch results file."),
+  totalProcessed: z.number().describe("Total number of URLs processed."),
+  successful: z.number().describe("Number of successful scrapes."),
+  failed: z.number().describe("Number of failed scrapes."),
+});
+
+export const batchWebScraperTool = createTool({
+  id: "batch-web-scraper",
+  description: "Scrape multiple web pages concurrently with enhanced JSDOM processing and rate limiting.",
+  inputSchema: batchWebScraperInputSchema,
+  outputSchema: batchWebScraperOutputSchema,
+  execute: async ({ context, tracingContext }) => {
+    const batchSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.GENERIC,
+      name: 'batch_web_scrape',
+      input: {
+        urlCount: context.urls.length,
+        selector: context.selector,
+        maxConcurrent: context.maxConcurrent ?? 3,
+        saveResults: context.saveResults
+      }
+    });
+
+    logger.info('Starting enhanced batch web scraping with JSDOM', {
+      urlCount: context.urls.length,
+      maxConcurrent: context.maxConcurrent ?? 3,
+      saveResults: context.saveResults
+    });
+
+    const results: Array<{
+      url: string;
+      success: boolean;
+      extractedData?: Array<Record<string, string>>;
+      markdownContent?: string;
+      errorMessage?: string;
+    }> = [];
+
+    let savedFilePath: string | undefined;
+    const maxConcurrent = Math.min(context.maxConcurrent ?? 3, 5);
+
+    try {
+      for (let i = 0; i < context.urls.length; i += maxConcurrent) {
+        const batch = context.urls.slice(i, i + maxConcurrent);
+        const batchPromises = batch.map(async (url: string) => {
+          try {
+            const crawler = new CheerioCrawler({
+              maxRequestsPerCrawl: 1,
+              requestHandlerTimeoutSecs: 20,
+              async requestHandler({ body }) {
+                const rawContent = body.toString();
+                const sanitizedHtml = HtmlProcessor.sanitizeHtml(rawContent);
+                const extractedData: Array<Record<string, string>> = [];
+
+                if (typeof context.selector === 'string' && context.selector.trim() !== '') {
+                  // Use JSDOM for better element selection
+                  const dom = new JSDOM(sanitizedHtml, { includeNodeLocations: false });
+                  const {document} = dom.window;
+
+                  const selector = context.selector.trim();
+                  const elements = document.querySelectorAll(selector);
+                  elements.forEach(element => {
+                    const data = new Map<string, string>();
+                    data.set('text', element.textContent?.trim() ?? '');
+                    extractedData.push(Object.fromEntries(data));
+                  });
+                }
+
+                const markdownContent = HtmlProcessor.htmlToMarkdown(sanitizedHtml);
+                results.push({
+                  url,
+                  success: true,
+                  extractedData,
+                  markdownContent,
+                });
+              },
+              failedRequestHandler({ error }) {
+                results.push({
+                  url,
+                  success: false,
+                  errorMessage: error instanceof Error ? error.message : String(error),
+                });
+              },
+            });
+
+            await crawler.run([new Request({ url })]);
+          } catch (error) {
+            results.push({
+              url,
+              success: false,
+              errorMessage: error instanceof Error ? error.message : String(error),
+            });
+          }
+        });
+
+        await Promise.all(batchPromises);
+
+        if (i + maxConcurrent < context.urls.length) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+
+      if (context.saveResults ?? false) {
+        try {
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+          const fileName = `${ValidationUtils.sanitizeFileName(context.baseFileName ?? 'batch_scrape')}_${timestamp}.json`;
+          const dataDir = path.join(process.cwd(), './data');
+          const fullPath = path.join(dataDir, fileName);
+
+          if (!ValidationUtils.validateFilePath(fullPath)) {
+            throw new ScrapingError('Invalid file path', 'INVALID_FILE_PATH');
+          }
+
+          await fs.mkdir(dataDir, { recursive: true });
+          await fs.writeFile(fullPath, JSON.stringify(results, null, 2), 'utf-8');
+          savedFilePath = path.relative(path.join(process.cwd(), './docs/data'), fullPath);
+          logger.info('Batch results saved securely', { fileName: savedFilePath });
+        } catch (error) {
+          logger.error('Failed to save batch results', { error: error instanceof Error ? error.message : String(error) });
+        }
+      }
+
+      const successful = results.filter(r => r.success).length;
+      const failed = results.length - successful;
+
+      batchSpan?.end({
+        output: {
+          totalProcessed: results.length,
+          successful,
+          failed,
+          savedFile: typeof savedFilePath === 'string' && savedFilePath.trim().length > 0
+        }
+      });
+
+      return batchWebScraperOutputSchema.parse({
+        results,
+        savedFilePath,
+        totalProcessed: results.length,
+        successful,
+        failed,
+      });
+    } catch (error) {
+      const errorMessage = `Batch scraping failed: ${error instanceof Error ? error.message : String(error)}`;
+      logger.error(errorMessage);
+      batchSpan?.end({ metadata: { error: errorMessage } });
+      throw error;
+    }
+  },
+});
+
+// ===== SITE MAP EXTRACTOR TOOL =====
+
+const siteMapExtractorInputSchema = z.object({
+  url: z.string().url().describe("The base URL of the website to extract sitemap from.").refine(ValidationUtils.validateUrl),
+  maxDepth: z.number().min(1).max(5).optional().describe("Maximum depth to crawl (default: 2, max: 5)."),
+  maxPages: z.number().min(1).max(200).optional().describe("Maximum number of pages to crawl (default: 50, max: 200)."),
+  includeExternal: z.boolean().optional().describe("Whether to include external links (default: false)."),
+  saveMap: z.boolean().optional().describe("Whether to save the site map to data directory."),
+});
+
+const siteMapExtractorOutputSchema = z.object({
+  baseUrl: z.string().describe("The base URL that was crawled."),
+  pages: z.array(z.object({
+    url: z.string(),
+    title: z.string().optional(),
+    depth: z.number(),
+    internalLinks: z.array(z.string()),
+    externalLinks: z.array(z.string()),
+  })).describe("Array of discovered pages with their metadata."),
+  totalPages: z.number().describe("Total number of pages discovered."),
+  savedFilePath: z.string().optional().describe("Path to the saved site map file."),
+});
+
+export const siteMapExtractorTool = createTool({
+  id: "site-map-extractor",
+  description: "Extract a comprehensive site map by crawling internal links with enhanced JSDOM processing and rate limiting.",
+  inputSchema: siteMapExtractorInputSchema,
+  outputSchema: siteMapExtractorOutputSchema,
+  execute: async ({ context, tracingContext }) => {
+    const mapSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.GENERIC,
+      name: 'site_map_extraction',
+      input: {
+        url: context.url,
+        maxDepth: context.maxDepth ?? 2,
+        maxPages: context.maxPages ?? 50,
+        includeExternal: context.includeExternal ?? false
+      }
+    });
+
+    logger.info('Starting enhanced site map extraction with JSDOM', {
+      url: context.url,
+      maxDepth: context.maxDepth ?? 2,
+      maxPages: context.maxPages ?? 50
+    });
+
+    const baseUrl = new URL(context.url);
+    const visited = new Set<string>();
+    const pages: Array<{
+      url: string;
+      title?: string;
+      depth: number;
+      internalLinks: string[];
+      externalLinks: string[];
+    }> = [];
+
+    let savedFilePath: string | undefined;
+
+    try {
+      async function crawlPage(url: string, depth: number): Promise<void> {
+        if (visited.has(url) ||
+            depth > (context.maxDepth ?? 2) ||
+            pages.length >= (context.maxPages ?? 50)) {
+          return;
+        }
+
+        visited.add(url);
+
+        try {
+          const crawler = new CheerioCrawler({
+            maxRequestsPerCrawl: 5,
+            maxConcurrency: 10,
+            requestHandlerTimeoutSecs: 15,
+            async requestHandler({ body }) {
+              const rawContent = body.toString();
+              const sanitizedHtml = HtmlProcessor.sanitizeHtml(rawContent);
+
+              // Use JSDOM for better link extraction
+              const dom = new JSDOM(sanitizedHtml, { includeNodeLocations: false });
+              const {document} = dom.window;
+
+              const title = document.querySelector('title')?.textContent?.trim() ??
+                            document.querySelector('h1')?.textContent?.trim();
+              const internalLinks: string[] = [];
+              const externalLinks: string[] = [];
+
+              const links = document.querySelectorAll('a[href]');
+              links.forEach(link => {
+                const href = link.getAttribute('href');
+                if (href !== null && href !== undefined) {
+                  try {
+                    const absoluteUrl = new URL(href, url).href;
+                    const linkUrl = new URL(absoluteUrl);
+
+                    if (linkUrl.hostname === baseUrl.hostname) {
+                      if (!visited.has(absoluteUrl)) {
+                        internalLinks.push(absoluteUrl);
+                      }
+                    } else if (context.includeExternal ?? true) {
+                      externalLinks.push(absoluteUrl);
+                    }
+                  } catch {
+                    // Invalid URL, skip silently
+                  }
+                }
+              });
+
+              pages.push({
+                url,
+                title,
+                depth,
+                internalLinks,
+                externalLinks,
+              });
+
+              for (const link of internalLinks) {
+                if (!visited.has(link) && pages.length < (context.maxPages ?? 50)) {
+                  await crawlPage(link, depth + 1);
+                  await new Promise(resolve => setTimeout(resolve, 200));
+                }
+              }
+            },
+            failedRequestHandler({ error }) {
+              logger.warn(`Failed to crawl ${url}`, { error: error instanceof Error ? error.message : String(error) });
+            },
+          });
+
+          await crawler.run([new Request({ url })]);
+        } catch (error) {
+          logger.warn(`Error crawling ${url}`, { error: error instanceof Error ? error.message : String(error) });
+        }
+      }
+
+      await crawlPage(context.url, 0);
+
+      if (context.saveMap ?? false) {
+        try {
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+          const fileName = `sitemap_${baseUrl.hostname}_${timestamp}.json`;
+          const dataDir = path.join(process.cwd(), './docs/data');
+          const fullPath = path.join(dataDir, fileName);
+
+          if (!ValidationUtils.validateFilePath(fullPath)) {
+            throw new ScrapingError('Invalid file path', 'INVALID_FILE_PATH');
+          }
+
+          await fs.mkdir(dataDir, { recursive: true });
+          await fs.writeFile(fullPath, JSON.stringify({
+            baseUrl: context.url,
+            crawledAt: new Date().toISOString(),
+            pages
+          }, null, 2), 'utf-8');
+
+          savedFilePath = path.relative(path.join(process.cwd(), './docs/data'), fullPath);
+          logger.info('Site map saved securely', { fileName: savedFilePath });
+        } catch (error) {
+          logger.error('Failed to save site map', { error: error instanceof Error ? error.message : String(error) });
+        }
+      }
+
+      mapSpan?.end({
+        output: {
+          totalPages: pages.length,
+          savedFile: typeof savedFilePath === 'string' && savedFilePath.trim().length > 0
+        }
+      });
+
+      return siteMapExtractorOutputSchema.parse({
+        baseUrl: context.url,
+        pages,
+        totalPages: pages.length,
+        savedFilePath,
+      });
+    } catch (error) {
+      const errorMessage = `Site map extraction failed: ${error instanceof Error ? error.message : String(error)}`;
+      logger.error(errorMessage);
+      mapSpan?.end({ metadata: { error: errorMessage } });
+      throw error;
+    }
+  },
+});
+
+// ===== LINK EXTRACTOR TOOL =====
+
+const linkExtractorInputSchema = z.object({
+  url: z.string().url().describe("The URL of the web page to extract links from.").refine(ValidationUtils.validateUrl),
+  linkTypes: z.array(z.enum(['internal', 'external', 'all'])).optional().describe("Types of links to extract (default: ['all'])."),
+  includeAnchors: z.boolean().optional().describe("Whether to include anchor text with links (default: true)."),
+  filterPatterns: z.array(z.string()).optional().describe("Regex patterns to filter links by href."),
+});
+
+const linkExtractorOutputSchema = z.object({
+  url: z.string().describe("The URL that was analyzed."),
+  links: z.array(z.object({
+    href: z.string(),
+    text: z.string(),
+    type: z.enum(['internal', 'external']),
+    isValid: z.boolean(),
+  })).describe("Array of extracted links with metadata."),
+  summary: z.object({
+    total: z.number(),
+    internal: z.number(),
+    external: z.number(),
+    invalid: z.number(),
+  }).describe("Summary statistics of extracted links."),
+});
+
+export const linkExtractorTool = createTool({
+  id: "link-extractor",
+  description: "Extract and analyze all links from a web page with enhanced JSDOM processing and filtering.",
+  inputSchema: linkExtractorInputSchema,
+  outputSchema: linkExtractorOutputSchema,
+  execute: async ({ context, tracingContext }) => {
+    const linkSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.GENERIC,
+      name: 'link_extraction',
+      input: {
+        url: context.url,
+        linkTypes: context.linkTypes ?? ['all'],
+        includeAnchors: context.includeAnchors ?? true,
+        filterCount: context.filterPatterns?.length ?? 0
+      }
+    });
+
+    logger.info('Starting enhanced link extraction with JSDOM', {
+      url: context.url,
+      linkTypes: context.linkTypes ?? ['all']
+    });
+
+    try {
+      let rawContent: string | undefined;
+      let scrapedUrl: string = context.url;
+
+      const crawler = new CheerioCrawler({
+        maxRequestsPerCrawl: 10,
+        maxConcurrency: 10,
+        requestHandlerTimeoutSecs: 20,
+        async requestHandler({ request, body }) {
+          scrapedUrl = request.url;
+          rawContent = body.toString();
+        },
+        failedRequestHandler({ error }) {
+          throw new ScrapingError(
+            `Failed to fetch ${context.url}: ${error instanceof Error ? error.message : String(error)}`,
+            'FETCH_FAILED',
+            undefined,
+            context.url
+          );
+        },
+      });
+
+      await crawler.run([new Request({ url: context.url })]);
+
+      if (typeof rawContent !== 'string' || rawContent.trim().length === 0) {
+        throw new ScrapingError('Failed to retrieve page content', 'NO_CONTENT');
+      }
+
+      const sanitizedHtml = HtmlProcessor.sanitizeHtml(rawContent);
+
+      // Use JSDOM for comprehensive link extraction
+      const dom = new JSDOM(sanitizedHtml, { includeNodeLocations: false });
+      const {document} = dom.window;
+      const baseUrl = new URL(scrapedUrl);
+
+      const links: Array<{
+        href: string;
+        text: string;
+        type: 'internal' | 'external';
+        isValid: boolean;
+      }> = [];
+
+      const linkElements = document.querySelectorAll('a[href]');
+      linkElements.forEach(link => {
+        const href = link.getAttribute('href');
+        const text = link.textContent?.trim() ?? href ?? '';
+
+        if (href !== null && href !== undefined) {
+          try {
+            const absoluteUrl = new URL(href, scrapedUrl).href;
+            const linkUrl = new URL(absoluteUrl);
+
+            if (context.filterPatterns) {
+              const matchesFilter = context.filterPatterns.some(pattern => {
+                try {
+                  return new RegExp(pattern).test(absoluteUrl);
+                } catch {
+                  return false;
+                }
+              });
+              if (!matchesFilter) {
+                return;
+              }
+            }
+
+            const isInternal = linkUrl.hostname === baseUrl.hostname;
+            const linkType = isInternal ? 'internal' : 'external';
+
+            const requestedTypes = context.linkTypes ?? ['all'];
+            if (!requestedTypes.includes('all') && !requestedTypes.includes(linkType)) {
+              return;
+            }
+
+            links.push({
+              href: absoluteUrl,
+              text: context.includeAnchors !== false ? text : '',
+              type: linkType,
+              isValid: true,
+            });
+          } catch {
+            links.push({
+              href,
+              text: context.includeAnchors !== false ? text : '',
+              type: 'external',
+              isValid: false,
+            });
+          }
+        }
+      });
+
+      const summary = {
+        total: links.length,
+        internal: links.filter(l => l.type === 'internal').length,
+        external: links.filter(l => l.type === 'external').length,
+        invalid: links.filter(l => !l.isValid).length,
+      };
+
+      linkSpan?.end({
+        output: {
+          linkCount: links.length,
+          summary
+        }
+      });
+
+      return linkExtractorOutputSchema.parse({
+        url: scrapedUrl,
+        links,
+        summary,
+      });
+    } catch (error) {
+      const errorMessage = `Link extraction failed: ${error instanceof Error ? error.message : String(error)}`;
+      logger.error(errorMessage);
+      linkSpan?.end({ metadata: { error: errorMessage } });
+      throw error;
+    }
+  },
+});
+
+// ===== HTML TO MARKDOWN CONVERTER TOOL =====
+
+const htmlToMarkdownInputSchema = z.object({
+  html: z.string().describe("The HTML content to convert to markdown."),
+  saveToFile: z.boolean().optional().describe("Whether to save the markdown to a file."),
+  fileName: z.string().optional().describe("Filename for the saved markdown (relative to data directory)."),
+});
+
+const htmlToMarkdownOutputSchema = z.object({
+  markdown: z.string().describe("The converted markdown content."),
+  savedFilePath: z.string().optional().describe("Path to the saved file if saveToFile was true."),
+});
+
+export const htmlToMarkdownTool = createTool({
+  id: "html-to-markdown",
+  description: "Convert HTML content to well-formatted markdown with enhanced JSDOM parsing and security.",
+  inputSchema: htmlToMarkdownInputSchema,
+  outputSchema: htmlToMarkdownOutputSchema,
+  execute: async ({ context, tracingContext }) => {
+    const convertSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.GENERIC,
+      name: 'html_to_markdown',
+      input: {
+        htmlLength: context.html.length,
+        saveToFile: context.saveToFile,
+        fileName: context.fileName
+      }
+    });
+
+    logger.info('Converting HTML to markdown with enhanced JSDOM processing', {
+      htmlLength: context.html.length,
+      saveToFile: context.saveToFile
+    });
+
+    let savedFilePath: string | undefined;
+
+    try {
+      const sanitizedHtml = HtmlProcessor.sanitizeHtml(context.html);
+      const markdown = HtmlProcessor.htmlToMarkdown(sanitizedHtml);
+
+      if (context.saveToFile === true) {
+        try {
+          const providedName = context.fileName;
+          const fileName = (typeof providedName === 'string' && providedName.trim().length > 0)
+            ? ValidationUtils.sanitizeFileName(providedName)
+            : `converted_${new Date().toISOString().replace(/[:.]/g, '-')}.md`;
+          const dataDir = path.join(process.cwd(), './docs/data');
+          const fullPath = path.join(dataDir, fileName);
+
+          if (!ValidationUtils.validateFilePath(fullPath)) {
+            throw new ScrapingError('Invalid file path', 'INVALID_FILE_PATH');
+          }
+
+          await fs.mkdir(dataDir, { recursive: true });
+          await fs.writeFile(fullPath, markdown, 'utf-8');
+          savedFilePath = path.relative(path.join(process.cwd(), './docs/data'), fullPath);
+          logger.info('Markdown saved securely', { fileName: savedFilePath });
+        } catch (error) {
+          if (error instanceof ScrapingError) {
+            throw error;
+          }
+          logger.error('Failed to save markdown file', { error: error instanceof Error ? error.message : String(error) });
+        }
+      }
+
+      convertSpan?.end({
+        output: {
+          markdownLength: markdown.length,
+          savedFile: typeof savedFilePath === 'string' && savedFilePath.trim().length > 0
+        }
+      });
+
+      return htmlToMarkdownOutputSchema.parse({
+        markdown,
+        savedFilePath,
+      });
+    } catch (error) {
+      const errorMessage = `HTML to markdown conversion failed: ${error instanceof Error ? error.message : String(error)}`;
+      logger.error(errorMessage);
+      convertSpan?.end({ metadata: { error: errorMessage } });
+      throw error;
+    }
+  },
+});
+
+// ===== SCRAPED CONTENT MANAGER TOOL =====
+
+const listScrapedContentInputSchema = z.object({
+  pattern: z.string().optional().describe("Pattern to filter files (e.g., '*.md', 'scraped_*')."),
+  includeMetadata: z.boolean().optional().describe("Whether to include file metadata (default: true)."),
+});
+
+const listScrapedContentOutputSchema = z.object({
+  files: z.array(z.object({
+    name: z.string(),
+    path: z.string(),
+    size: z.number().optional(),
+    modified: z.string().optional(),
+    created: z.string().optional(),
+  })).describe("Array of scraped content files."),
+  totalFiles: z.number().describe("Total number of files found."),
+  totalSize: z.number().describe("Total size of all files in bytes."),
+});
+
+export const listScrapedContentTool = createTool({
+  id: "list-scraped-content",
+  description: "List all scraped content files stored in the data directory with enhanced security.",
+  inputSchema: listScrapedContentInputSchema,
+  outputSchema: listScrapedContentOutputSchema,
+  execute: async ({ context, tracingContext }) => {
+    const listSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.GENERIC,
+      name: 'list_scraped_content',
+      input: { pattern: context.pattern, includeMetadata: context.includeMetadata ?? true }
+    });
+
+    logger.info('Listing scraped content with security validation', { pattern: context.pattern });
+
+    try {
+      const dataDir = path.join(process.cwd(), './docs/data');
+
+      try {
+        await fs.access(dataDir);
+      } catch {
+        return listScrapedContentOutputSchema.parse({
+          files: [],
+          totalFiles: 0,
+          totalSize: 0,
+        });
+      }
+
+      const items = await fs.readdir(dataDir, { withFileTypes: true });
+      const files: Array<{
+        name: string;
+        path: string;
+        size?: number;
+        modified?: string;
+        created?: string;
+      }> = [];
+
+      let totalSize = 0;
+
+      for (const item of items) {
+        if (item.isFile()) {
+          if (typeof context.pattern === 'string' && context.pattern.trim() !== '') {
+            try {
+              const patternStr = context.pattern.trim();
+              const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              // support '*' as a wildcard by escaping other regex chars and replacing '*' with '.*'
+              const regexStr = patternStr.split('*').map(escapeRegExp).join('.*');
+              const regex = new RegExp('^' + regexStr + '$');
+              if (!regex.test(item.name)) {
+                continue;
+              }
+            } catch {
+              // Invalid regex, skip filtering
+            }
+          }
+
+          const filePath = path.join(dataDir, item.name);
+          const relativePath = path.relative(dataDir, filePath);
+
+          let metadata;
+          if (context.includeMetadata !== false) {
+            try {
+              const stats = await fs.stat(filePath);
+              metadata = {
+                size: stats.size,
+                modified: stats.mtime.toISOString(),
+                created: stats.birthtime.toISOString(),
+              };
+              totalSize += stats.size;
+            } catch {
+              // Can't get metadata, continue without it
+            }
+          }
+
+          files.push({
+            name: item.name,
+            path: relativePath,
+            ...metadata,
+          });
+        }
+      }
+
+      listSpan?.end({
+        output: {
+          totalFiles: files.length,
+          totalSize
+        }
+      });
+
+      return listScrapedContentOutputSchema.parse({
+        files,
+        totalFiles: files.length,
+        totalSize,
+      });
+    } catch (error) {
+      const errorMessage = `Failed to list scraped content: ${error instanceof Error ? error.message : String(error)}`;
+      logger.error(errorMessage);
+      listSpan?.end({ metadata: { error: errorMessage } });
+      throw error;
+    }
+  },
+});
+
+// ===== CONTENT CLEANER TOOL =====
+
+const contentCleanerInputSchema = z.object({
+  html: z.string().describe("The HTML content to clean."),
+  removeScripts: z.boolean().optional().describe("Remove script tags (default: true)."),
+  removeStyles: z.boolean().optional().describe("Remove style tags (default: true)."),
+  removeComments: z.boolean().optional().describe("Remove HTML comments (default: true)."),
+  preserveStructure: z.boolean().optional().describe("Preserve document structure (default: true)."),
+});
+
+const contentCleanerOutputSchema = z.object({
+  cleanedHtml: z.string().describe("The cleaned HTML content."),
+  originalSize: z.number().describe("Original HTML size in characters."),
+  cleanedSize: z.number().describe("Cleaned HTML size in characters."),
+  reductionPercent: z.number().describe("Percentage of content removed."),
+});
+
+export const contentCleanerTool = createTool({
+  id: "content-cleaner",
+  description: "Clean HTML content by removing unwanted elements with enhanced JSDOM processing and security.",
+  inputSchema: contentCleanerInputSchema,
+  outputSchema: contentCleanerOutputSchema,
+  execute: async ({ context, tracingContext }) => {
+    const cleanSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.GENERIC,
+      name: 'content_cleaning',
+      input: {
+        htmlLength: context.html.length,
+        removeScripts: context.removeScripts ?? true,
+        removeStyles: context.removeStyles ?? true,
+        removeComments: context.removeComments ?? true
+      }
+    });
+
+    logger.info('Cleaning HTML content with enhanced JSDOM security', {
+      originalLength: context.html.length,
+      removeScripts: context.removeScripts ?? true,
+      removeStyles: context.removeStyles ?? true
+    });
+
+    try {
+      const dom = new JSDOM(context.html, {
+        includeNodeLocations: false,
+        runScripts: 'dangerously',
+      });
+
+      const {document} = dom.window;
+      const originalSize = context.html.length;
+
+      // Remove dangerous elements using JSDOM
+      const dangerousElements = document.querySelectorAll('script, style, iframe, embed, object, noscript, meta, link[rel="stylesheet"]');
+      dangerousElements.forEach(element => element.remove());
+
+      // Remove event handler attributes
+      const allElements = document.querySelectorAll('*');
+      allElements.forEach(element => {
+        Array.from(element.attributes).forEach(attr => {
+          if (attr.name.startsWith('on') || HtmlProcessor.DANGEROUS_ATTRS.has(attr.name.toLowerCase())) {
+            element.removeAttribute(attr.name);
+          }
+        });
+      });
+
+      // Remove HTML comments
+      if (context.removeComments !== false) {
+        const removeComments = (node: Node) => {
+          const childNodes = Array.from(node.childNodes);
+          childNodes.forEach(child => {
+            if (child.nodeType === dom.window.Node.COMMENT_NODE) {
+              child.remove();
+            } else if (child.nodeType === dom.window.Node.ELEMENT_NODE) {
+              removeComments(child);
+            }
+          });
+        };
+        removeComments(document.body);
+      }
+
+      const cleanedHtml = context.preserveStructure !== false ? document.body.innerHTML : document.body.textContent ?? '';
+      const cleanedSize = cleanedHtml.length;
+      const reductionPercent = originalSize > 0 ? ((originalSize - cleanedSize) / originalSize) * 100 : 0;
+
+      cleanSpan?.end({
+        output: {
+          originalSize,
+          cleanedSize,
+          reductionPercent: Math.round(reductionPercent * 100) / 100
+        }
+      });
+
+      return contentCleanerOutputSchema.parse({
+        cleanedHtml,
+        originalSize,
+        cleanedSize,
+        reductionPercent: Math.round(reductionPercent * 100) / 100,
+      });
+    } catch (error) {
+      const errorMessage = `Content cleaning failed: ${error instanceof Error ? error.message : String(error)}`;
+      logger.error(errorMessage);
+      cleanSpan?.end({ metadata: { error: errorMessage } });
+      throw error;
+    }
   },
 });

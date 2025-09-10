@@ -12,7 +12,13 @@ import { extractLearningsTool } from '../tools/extractLearningsTool';
 //import { graphRAGUpsertTool, graphRAGTool, graphRAGQueryTool } from '../tools/graphRAG';
 //import { rerankTool } from '../tools/rerank-tool';
 //import { weatherTool } from '../tools/weather-tool';
-import { webScraperTool } from '../tools/web-scraper-tool';
+import { webScraperTool,
+  batchWebScraperTool,
+  siteMapExtractorTool,
+  linkExtractorTool,
+  htmlToMarkdownTool,
+  contentCleanerTool
+} from "../tools/web-scraper-tool";
 //import { webSearchTool } from '../tools/webSearchTool';
 
 const logger = new PinoLogger({ level: 'info' });
@@ -52,6 +58,11 @@ export const assistant = new Agent({
     listDataDirTool,
     evaluateResultTool,
     extractLearningsTool,
+    batchWebScraperTool,
+    siteMapExtractorTool,
+    linkExtractorTool,
+    htmlToMarkdownTool,
+    contentCleanerTool,
     //vectorQueryTool,
     //chunkerTool,
     //graphRAGUpsertTool,

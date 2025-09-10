@@ -7,7 +7,13 @@ import { extractLearningsTool } from '../tools/extractLearningsTool';
 import { graphRAGUpsertTool, graphRAGTool, graphRAGQueryTool } from '../tools/graphRAG';
 //import { rerankTool } from '../tools/rerank-tool';
 import { weatherTool } from '../tools/weather-tool';
-import { webScraperTool } from '../tools/web-scraper-tool';
+import { webScraperTool,
+  batchWebScraperTool,
+  siteMapExtractorTool,
+  linkExtractorTool,
+  htmlToMarkdownTool,
+  contentCleanerTool
+} from "../tools/web-scraper-tool";
 import { webSearchTool } from '../tools/webSearchTool';
 //import { createGemini25Provider } from '../config/googleProvider';
 import { createResearchMemory } from '../config/libsql-storage';
@@ -67,6 +73,11 @@ Remember: Your knowledge comes from both your training data and the information 
   tools: {
 //    vectorQueryTool,
 //    chunkerTool,
+    batchWebScraperTool,
+    siteMapExtractorTool,
+    linkExtractorTool,
+    htmlToMarkdownTool,
+    contentCleanerTool,
     readDataFileTool,
     writeDataFileTool,
     deleteDataFileTool,
