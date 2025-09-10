@@ -2,9 +2,14 @@ import { Agent } from "@mastra/core/agent";
 
 import { copywriterTool } from "../tools/copywriter-agent-tool";
 import { editorTool } from "../tools/editor-agent-tool";
-import { createGemini25Provider } from '../config/googleProvider';
+//import { createGemini25Provider } from '../config/googleProvider';
 import { createResearchMemory } from '../config/libsql-storage';
 import { PinoLogger } from "@mastra/loggers";
+import { webSearchTool } from "../tools/webSearchTool";
+import { evaluateResultTool } from "../tools/evaluateResultTool";
+import { extractLearningsTool } from "../tools/extractLearningsTool";
+import { webScraperTool } from "../tools/web-scraper-tool";
+import { google } from '@ai-sdk/google';
 
 const logger = new PinoLogger({ level: 'info' });
 
@@ -15,18 +20,10 @@ export const publisherAgent = new Agent({
   name: "publisherAgent",
   instructions:
     "You are a publisher agent that first calls the copywriter agent to write blog post copy about a specific topic and then calls the editor agent to edit the copy. Just return the final edited copy.",
-    model: createGemini25Provider('gemini-2.5-flash', {
-    responseModalities: ["TEXT"],
-    thinkingConfig: {
-      thinkingBudget: -1,
-      includeThoughts: true,
-    },
-    mediaResolution: "MEDIA_RESOLUTION_LOW",
-    useSearchGrounding: false, // We use our own vector search
-    dynamicRetrieval: false,
-    safetyLevel: 'OFF',
-  }),
-  tools: { copywriterTool, editorTool },
+    model: google('gemini-2.5-flash'),
+  tools: { copywriterTool, editorTool, webSearchTool,
+     evaluateResultTool,
+     extractLearningsTool, "web-scraper": webScraperTool },
   memory
 });
 

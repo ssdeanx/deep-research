@@ -4,7 +4,7 @@ import { webScraperTool } from '../tools/web-scraper-tool';
 import { webSearchTool } from '../tools/webSearchTool';
 import { evaluateResultTool } from '../tools/evaluateResultTool';
 import { extractLearningsTool } from '../tools/extractLearningsTool';
-import { createGemini25Provider } from '../config/googleProvider';
+import { google } from '@ai-sdk/google';
 import { createResearchMemory } from '../config/libsql-storage';
 import { ContentSimilarityMetric, CompletenessMetric, TextualDifferenceMetric, KeywordCoverageMetric, ToneConsistencyMetric } from "@mastra/evals/nlp";
 import { PinoLogger } from "@mastra/loggers";
@@ -100,18 +100,7 @@ Always maintain detailed records of your planning activities and decisions for a
     keywordCoverage: new KeywordCoverageMetric(), // Keywords will be provided at runtime for evaluation
     toneConsistency: new ToneConsistencyMetric(),
   },
-  model: createGemini25Provider('gemini-2.5-flash-lite', {
-    responseModalities: ["TEXT"],
-    thinkingConfig: {
-      thinkingBudget: -1,
-      includeThoughts: true,
-    },
-    useSearchGrounding: true,
-    dynamicRetrieval: true,
-    safetyLevel: 'OFF',
-    structuredOutputs: false,
-    mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
-  }),
+  model: google('gemini-2.5-flash-lite'),
   tools: {
     readDataFileTool,
     writeDataFileTool,

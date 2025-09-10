@@ -1,6 +1,6 @@
 import { Agent } from '@mastra/core/agent';
 
-import { createGemini25Provider } from '../config/googleProvider';
+import { google } from '@ai-sdk/google';
 import { createResearchMemory } from '../config/libsql-storage';
 import { ContentSimilarityMetric, CompletenessMetric, TextualDifferenceMetric, KeywordCoverageMetric, ToneConsistencyMetric } from "@mastra/evals/nlp";
 import { PinoLogger } from "@mastra/loggers";
@@ -92,13 +92,7 @@ Always maintain detailed logs of your quality assurance activities and analysis 
     keywordCoverage: new KeywordCoverageMetric(), // Keywords will be provided at runtime for evaluation
     toneConsistency: new ToneConsistencyMetric(),
   },
-  model: createGemini25Provider('gemini-2.5-flash-lite', {
-    responseModalities: ["TEXT"],
-    thinkingConfig: {
-      thinkingBudget: -1,
-      includeThoughts: true,
-    },
-  }),
+  model: google('gemini-2.5-flash-lite'),
   memory,
 });
 

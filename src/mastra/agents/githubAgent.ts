@@ -1,9 +1,10 @@
 import { Agent } from '@mastra/core';
-import { createGemini25Provider } from '../config/googleProvider';
+
 import { createResearchMemory } from '../config/libsql-storage';
 import * as githubTools from '../tools/github';
 import { PinoLogger } from '@mastra/loggers';
 import { CompletenessMetric, ContentSimilarityMetric, KeywordCoverageMetric, TextualDifferenceMetric, ToneConsistencyMetric } from '@mastra/evals/nlp';
+import { google } from '@ai-sdk/google';
 
 const logger = new PinoLogger({ level: 'info' });
 
@@ -64,17 +65,7 @@ You possess the advanced capability to delegate tasks and request analysis from 
 - **Copilot Enterprise Required:** These features will only function in repositories that are part of an organization with an active GitHub Copilot Enterprise subscription. If an action fails, you should suggest this as a potential cause.
 - **Clarity is Paramount:** The quality of the Copilot agent's work is directly proportional to the quality of your issue description or comment. Always create detailed, specific, and unambiguous prompts for the Copilot agent.
 `,
-  model: createGemini25Provider('gemini-2.5-flash', {
-    responseModalities: ['TEXT'],
-    thinkingConfig: {
-      thinkingBudget: -1,
-      includeThoughts: true,
-    },
-    useSearchGrounding: true,
-    dynamicRetrieval: true,
-    safetyLevel: 'OFF',
-    structuredOutputs: true,
-  }),
+  model: google('gemini-2.5-flash'),
   tools: {
     ...githubTools,
   },
