@@ -12,6 +12,7 @@ const memory = createResearchMemory();
 
 export const evaluationAgent = new Agent({
   name: 'Evaluation Agent',
+  description: 'An expert evaluation agent. Your task is to evaluate whether search results are relevant to a research query.',
   instructions: `You are an expert evaluation agent. Your task is to evaluate whether search results are relevant to a research query.
 
   When evaluating search results:

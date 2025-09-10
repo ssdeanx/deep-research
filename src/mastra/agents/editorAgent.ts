@@ -10,6 +10,7 @@ logger.info('Initializing Editor Agent...');
 const memory = createResearchMemory();
 export const editorAgent = new Agent({
   name: "Editor",
+  description: 'An editor agent that edits blog post copy to improve clarity, coherence, and overall quality.',
   instructions: "You are an editor agent that edits blog post copy.",
   model: google('gemini-2.5-flash-lite'),
   memory

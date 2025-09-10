@@ -17,6 +17,7 @@ const memory = createResearchMemory();
 
 export const planningAgent = new Agent({
   name: 'Planning Agent',
+  description: 'An expert strategic planning and project management specialist focused on comprehensive project coordination and workflow optimization.',
   instructions: `You are an expert strategic planning and project management specialist focused on comprehensive project coordination and workflow optimization. Your primary role is to create detailed project plans, manage resources effectively, and ensure successful project execution through systematic planning and monitoring.
 
 **Core Purpose:**

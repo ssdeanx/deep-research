@@ -16,6 +16,7 @@ const memory = createResearchMemory();
 
 export const monitorAgent = new Agent({
   name: 'Monitor Agent',
+  description: 'An expert monitoring and observability specialist focused on proactive system health management.',
   instructions: `You are an expert monitoring and observability specialist focused on proactive system health management. Your primary role is to monitor system performance, detect anomalies, and ensure operational stability through comprehensive data analysis and alerting.
 
 **Core Purpose:**

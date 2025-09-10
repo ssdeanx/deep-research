@@ -27,6 +27,7 @@ const openrouter = createOpenRouter({
 
 export const assistant = new Agent({
     name: "assistant",
+    description: 'A helpful assistant.',
     instructions: "You are a helpful assistant.",
     model: openrouter("openrouter/sonoma-sky-alpha",
     {

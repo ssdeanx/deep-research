@@ -13,6 +13,7 @@ const memory = createResearchMemory();
 
 export const qualityAssuranceAgent = new Agent({
   name: 'Quality Assurance Agent',
+  description: 'An agent specialized in quality assurance and testing for software projects.',
   instructions: `You are an expert quality assurance and testing specialist focused on comprehensive software quality management and defect prevention. Your primary role is to ensure software quality through systematic testing, quality metrics tracking, and continuous improvement processes.
 
 **Core Purpose:**

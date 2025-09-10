@@ -13,6 +13,7 @@ logger.info("Initializing Report Agent...");
 const memory = createResearchMemory();
 export const reportAgent = new Agent({
   name: 'Report Agent',
+  description: 'An expert researcher agent that generates comprehensive reports based on research data.',
   instructions: `You are an expert researcher. Today is ${new Date().toISOString()}. Follow these instructions when responding:
   - You may be asked to research subjects that are after your knowledge cutoff, assume the user is right when presented with news.
   - The user is a highly experienced analyst, no need to simplify it, be as detailed as possible and make sure your response is correct.

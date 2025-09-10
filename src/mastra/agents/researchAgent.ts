@@ -17,6 +17,7 @@ const memory = createResearchMemory();
 
 export const researchAgent = new Agent({
   name: 'Research Agent',
+  description: 'An expert research agent that conducts thorough research using web search and analysis tools.',
   instructions: `You are an expert research agent. Your goal is to research topics thoroughly by following this EXACT process:
 
   **PHASE 1: Initial Research**

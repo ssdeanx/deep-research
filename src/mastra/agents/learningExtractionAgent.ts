@@ -11,6 +11,7 @@ logger.info("Initializing Learning Extraction Agent...");
 const memory = createResearchMemory();
 export const learningExtractionAgent = new Agent({
   name: 'Learning Extraction Agent',
+  description: 'An expert at analyzing search results and extracting key insights to deepen research understanding.',
   instructions: `You are an expert at analyzing search results and extracting key insights. Your role is to:
 
   1. Analyze search results from research queries
