@@ -14,6 +14,6 @@
     "outDir": ".mastra",
     "paths": { "@/*": ["./src/*"] }
   },
-  "include": ["src/**/*", "tests/**/*"],
-  "exclude": ["node_modules", ".mastra", "vitest.config.js"]
+  "include": ["src/**/*", "tests/**/*", "globalSetup.ts", "eslint.config.js", "prettier.config.js", "testSetup.ts"],
+  "exclude": ["node_modules", ".mastra","vitest.config.ts"]
 }

@@ -10,7 +10,7 @@ import { pipeline } from 'stream/promises';
 
 const logger = new PinoLogger({ name: 'DataFileManager', level: 'info' });
 
-const DATA_DIR = path.join(process.cwd(), 'data');
+const DATA_DIR = path.join(process.cwd(), './docs/data');
 
 /**
  * Ensures the given filePath is within the DATA_DIR.
@@ -44,11 +44,12 @@ export const readDataFileTool = createTool({
         try {
             const { fileName } = context;
             const fullPath = validateDataPath(fileName);
-            // Defensive: Ensure fullPath is within DATA_DIR before reading
-            if (!fullPath.startsWith(DATA_DIR)) {
+            // Resolve the real path to protect against symlink/relative attacks, then validate it is inside DATA_DIR.
+            const realFullPath = await fs.realpath(fullPath);
+            if (!realFullPath.startsWith(DATA_DIR)) {
                 throw new Error(`Access denied: File path "${fileName}" is outside the allowed data directory.`);
             }
-            const content = await fs.readFile(fullPath, 'utf-8');
+            const content = await fs.readFile(realFullPath, 'utf-8');
             logger.info(`Read file: ${fileName}`);
             readSpan?.end({ output: { fileSize: content.length } });
             return content;
@@ -78,13 +79,18 @@ export const writeDataFileTool = createTool({
         try {
             const { fileName, content } = context;
             const fullPath = validateDataPath(fileName);
-            const dirPath = path.dirname(fullPath);
-            // Defensive: Ensure dirPath is within DATA_DIR before creating directory
-            if (!dirPath.startsWith(DATA_DIR)) {
-                throw new Error(`Access denied: Directory path "${dirPath}" is outside the allowed data directory.`);
+            // Resolve the real path to protect against symlink/relative attacks, then validate it is inside DATA_DIR.
+            const realFullPath = await fs.realpath(fullPath);
+            if (!realFullPath.startsWith(DATA_DIR)) {
+                throw new Error(`Access denied: File path "${fileName}" is outside the allowed data directory.`);
             }
-            await fs.mkdir(dirPath, { recursive: true });
-            await fs.writeFile(fullPath, content, 'utf-8');
+            const realDirPath = path.dirname(realFullPath);
+            // Defensive: Ensure realDirPath is within DATA_DIR before creating directory
+            if (!realDirPath.startsWith(DATA_DIR)) {
+                throw new Error(`Access denied: Directory path "${realDirPath}" is outside the allowed data directory.`);
+            }
+            await fs.mkdir(realDirPath, { recursive: true });
+            await fs.writeFile(realFullPath, content, 'utf-8');
             logger.info(`Written to file: ${fileName}`);
             writeSpan?.end({ output: { success: true } });
             return `File ${fileName} written successfully.`;
@@ -140,7 +146,7 @@ export const listDataDirTool = createTool({
         const listSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.GENERIC,
             name: 'list_data_directory',
-            input: { dirPath: context.dirPath ?? '' }
+            input: { dirPath: context.dirPath ?? './docs/data' }
         });
 
         try {

@@ -7,7 +7,6 @@ import { AISpanType } from '@mastra/core/ai-tracing';
 
 const logger = new PinoLogger({ level: 'info' });
 
-
 // Initialize Exa client
 const exa = new Exa(process.env.EXA_API_KEY);
 
@@ -58,7 +57,7 @@ export const webSearchTool = createTool({
           // Skip if content is too short or missing
           if (!result.text || result.text.length < 100) {
             processedResults.push({
-              title: result.title || '',
+              title: result.title ?? '',
               url: result.url,
               content: result.text || 'No content available',
             });
@@ -71,7 +70,7 @@ export const webSearchTool = createTool({
               role: 'user',
               content: `Please summarize the following web content for research query: "${query}"
 
-Title: ${result.title || 'No title'}
+Title: ${result.title ?? 'No title'}
 URL: ${result.url}
 Content: ${result.text.substring(0, 8000)}...
 
@@ -80,12 +79,12 @@ Provide a concise summary that captures the key information relevant to the rese
           ]);
 
           processedResults.push({
-            title: result.title || '',
+            title: result.title ?? '',
             url: result.url,
             content: summaryResponse.text,
           });
 
-          logger.info(`Summarized content for: ${result.title || result.url}`);
+          logger.info(`Summarized content for: ${result.title ?? result.url}`);
         } catch (summaryError) {
           logger.error('Error summarizing content', {
             error: summaryError instanceof Error ? summaryError.message : String(summaryError),
@@ -93,7 +92,7 @@ Provide a concise summary that captures the key information relevant to the rese
           });
           // Fallback to truncated original content
           processedResults.push({
-            title: result.title || '',
+            title: result.title ?? '',
             url: result.url,
             content: result.text ? result.text.substring(0, 500) + '...' : 'Content unavailable',
           });

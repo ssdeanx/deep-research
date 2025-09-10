@@ -1,8 +1,5 @@
 import { Agent } from '@mastra/core/agent';
-import { readDataFileTool, writeDataFileTool, listDataDirTool, searchDataFilesTool, getDataFileInfoTool } from '../tools/data-file-manager';
-import { webScraperTool } from '../tools/web-scraper-tool';
-import { evaluateResultTool } from '../tools/evaluateResultTool';
-import { extractLearningsTool } from '../tools/extractLearningsTool';
+
 import { createGemini25Provider } from '../config/googleProvider';
 import { createResearchMemory } from '../config/libsql-storage';
 import { ContentSimilarityMetric, CompletenessMetric, TextualDifferenceMetric, KeywordCoverageMetric, ToneConsistencyMetric } from "@mastra/evals/nlp";
@@ -95,27 +92,13 @@ Always maintain detailed logs of your quality assurance activities and analysis 
     keywordCoverage: new KeywordCoverageMetric(), // Keywords will be provided at runtime for evaluation
     toneConsistency: new ToneConsistencyMetric(),
   },
-  model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17', {
+  model: createGemini25Provider('gemini-2.5-flash-lite', {
     responseModalities: ["TEXT"],
     thinkingConfig: {
       thinkingBudget: -1,
       includeThoughts: true,
     },
-    useSearchGrounding: true,
-    dynamicRetrieval: true,
-    safetyLevel: 'OFF',
-    structuredOutputs: true,
   }),
-  tools: {
-    readDataFileTool,
-    writeDataFileTool,
-    listDataDirTool,
-    searchDataFilesTool,
-    getDataFileInfoTool,
-    webScraperTool,
-    evaluateResultTool,
-    extractLearningsTool,
-  },
   memory,
 });
 

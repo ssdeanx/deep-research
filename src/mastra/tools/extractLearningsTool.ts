@@ -28,8 +28,14 @@ export const extractLearningsTool = createTool({
     try {
       const { query, result } = context;
 
-      const learningExtractionAgent = mastra!.getAgent('learningExtractionAgent');
-
+      if (!mastra) {
+        throw new Error('Mastra instance not found');
+      }
+      const learningExtractionAgent = mastra.getAgent('learningExtractionAgent');
+      if (!learningExtractionAgent) {
+        throw new Error('learningExtractionAgent not found on mastra instance');
+      }
+      logger.info('Extracting learnings from search result', { title: result.title, url: result.url });
       const response = await learningExtractionAgent.generate(
         [
           {
@@ -39,7 +45,7 @@ export const extractLearningsTool = createTool({
 
             Title: ${result.title}
             URL: ${result.url}
-            Content: ${result.content.substring(0, 1500)}...
+            Content: ${result.content.substring(0, 8000)}...
 
             Respond with a JSON object containing:
             - learning: string with the key insight from the content

@@ -91,7 +91,7 @@ Always maintain detailed logs of your monitoring activities and analysis for aud
     useSearchGrounding: true,
     dynamicRetrieval: true,
     safetyLevel: 'OFF',
-    structuredOutputs: true,
+
   }),
   tools: {
     readDataFileTool,

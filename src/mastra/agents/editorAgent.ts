@@ -18,10 +18,6 @@ export const editorAgent = new Agent({
       includeThoughts: true,
     },
     mediaResolution: "MEDIA_RESOLUTION_LOW",
-    useSearchGrounding: false, // We use our own vector search
-    dynamicRetrieval: false,
-    safetyLevel: 'OFF',
-    structuredOutputs: true,
   }),
   memory
 });

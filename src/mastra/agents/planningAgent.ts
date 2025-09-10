@@ -100,7 +100,7 @@ Always maintain detailed records of your planning activities and decisions for a
     keywordCoverage: new KeywordCoverageMetric(), // Keywords will be provided at runtime for evaluation
     toneConsistency: new ToneConsistencyMetric(),
   },
-  model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17', {
+  model: createGemini25Provider('gemini-2.5-flash-lite', {
     responseModalities: ["TEXT"],
     thinkingConfig: {
       thinkingBudget: -1,
@@ -109,7 +109,8 @@ Always maintain detailed records of your planning activities and decisions for a
     useSearchGrounding: true,
     dynamicRetrieval: true,
     safetyLevel: 'OFF',
-    structuredOutputs: true,
+    structuredOutputs: false,
+    mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
   }),
   tools: {
     readDataFileTool,

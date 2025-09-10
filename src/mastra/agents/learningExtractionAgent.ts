@@ -47,7 +47,7 @@ export const learningExtractionAgent = new Agent({
       // Safety settings level
       safetyLevel: 'OFF', // Options: 'STRICT', 'MODERATE', 'PERMISSIVE', 'OFF'
       // Structured outputs for better tool integration
-      structuredOutputs: true, // Enable structured JSON responses
+
       // Cached content for cost optimization (if you have cached content)
       // cachedContent: 'your-cache-id', // Uncomment if using explicit caching
       // Langfuse tracing configuration

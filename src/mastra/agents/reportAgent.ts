@@ -2,7 +2,7 @@ import { Agent } from '@mastra/core/agent';
 //import { createGemini25Provider } from '../config/googleProvider';
 import { createResearchMemory } from '../config/libsql-storage';
 import { ContentSimilarityMetric, CompletenessMetric, TextualDifferenceMetric, KeywordCoverageMetric, ToneConsistencyMetric } from "@mastra/evals/nlp";
-import { AISpanType } from '@mastra/core/ai-tracing';
+
 import { PinoLogger } from "@mastra/loggers";
 import { google } from '@ai-sdk/google';
 
@@ -45,64 +45,3 @@ export const reportAgent = new Agent({
   model: google('gemini-2.5-flash'),
   memory,
 });
-
-// Attach execute at runtime to avoid violating the AgentConfig type
-// Use a loose type so TypeScript won't error if AgentConfig doesn't include 'execute'
-(reportAgent as any).execute = async ({ messages, runtimeContext, tracingContext }: { messages: any[]; runtimeContext?: any; tracingContext?: any }) => {
-  const startTime = Date.now();
-
-  // Create main span for agent execution
-  const agentSpan = tracingContext?.currentSpan?.createChildSpan({
-    type: AISpanType.AGENT_RUN,
-    name: 'report_agent_execution',
-    input: {
-      messageCount: messages.length,
-      firstMessage: messages[0]?.content?.substring(0, 100) + '...',
-      hasMemory: !!memory
-    }
-  });
-
-  try {
-    // Execute the agent with tracing context
-    const result = await reportAgent.generate(messages, {
-      runtimeContext,
-      tracingContext
-    });
-
-    const processingTime = Date.now() - startTime;
-
-    // Update span with results
-    agentSpan?.end({
-      output: {
-        responseLength: result.text?.length || 0,
-        processingTime,
-        success: true
-      },
-      metadata: {
-        agentName: 'reportAgent',
-        messageCount: messages.length,
-        processingTime,
-        hasStructuredOutput: !!result.object
-      }
-    });
-
-    return result;
-  } catch (error) {
-    const processingTime = Date.now() - startTime;
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-    // Update span with error
-    agentSpan?.end({
-      output: {
-        success: false,
-        processingTime
-      },
-      metadata: {
-        error: errorMessage,
-        agentName: 'reportAgent'
-      }
-    });
-
-    throw error;
-  }
-};

@@ -25,7 +25,6 @@ export const publisherAgent = new Agent({
     useSearchGrounding: false, // We use our own vector search
     dynamicRetrieval: false,
     safetyLevel: 'OFF',
-    structuredOutputs: true,
   }),
   tools: { copywriterTool, editorTool },
   memory

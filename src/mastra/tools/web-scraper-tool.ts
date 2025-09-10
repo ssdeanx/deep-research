@@ -57,21 +57,22 @@ export const webScraperTool = createTool({
         async requestHandler({ request, body }) {
           scrapedUrl = request.url; // Capture the actual URL from the request
           rawContent = body.toString();
-          if (context.selector) {
+          if (context.selector !== null) {
             const $ = cheerio.load(rawContent);
             $(context.selector).each((_i, element) => {
-              const data: Record<string, string> = {};
-              data.text = $(element).text().trim();
+              const data = new Map<string, string>();
+              data.set('text', $(element).text().trim());
               if (context.extractAttributes) {
                 context.extractAttributes.forEach(attr => {
                   const attrValue = $(element).attr(attr);
-                  if (attrValue && (typeof attr === "string" &&
-                                        !Object.hasOwn(Object.prototype, attr))) {
-                        data[attr] = attrValue;
+                  if (attrValue !== undefined && typeof attr === "string" &&
+                                        !Object.hasOwn(Object.prototype, attr) &&
+                                        attr !== "__proto__" && attr !== "constructor" && attr !== "prototype") {
+                        data.set(`attr_${attr}`, attrValue);
                   }
                 });
               }
-              extractedData.push(data);
+              extractedData.push(Object.fromEntries(data));
             });
           }
           status = 'success';
@@ -93,9 +94,27 @@ export const webScraperTool = createTool({
           markdownContent = rawContent; // Fallback to raw content
         }
       }
-
       // Save markdown content if requested
-      if (context.saveMarkdown && markdownContent) {
+      if ((context.saveMarkdown === true) && markdownContent) {
+        try {
+          const fileName = context.markdownFileName ?? `scraped_${new Date().toISOString().replace(/[:.]/g, '-')}.md`;
+          const dataDir = path.join(process.cwd(), 'data');
+          const fullPath = path.join(dataDir, fileName);
+
+          // Ensure data directory exists
+          await fs.mkdir(dataDir, { recursive: true });
+
+          // Write the markdown content
+          await fs.writeFile(fullPath, markdownContent, 'utf-8');
+          savedFilePath = fileName;
+          logger.info('Markdown content saved', { fileName });
+        } catch (error) {
+          logger.error('Failed to save markdown file', { error: error instanceof Error ? error.message : String(error) });
+          // Don't fail the entire operation if saving fails
+        }
+      }
+      // Save markdown content if requested
+      if ((context.saveMarkdown === true) && markdownContent) {
         try {
           const fileName = context.markdownFileName ?? `scraped_${new Date().toISOString().replace(/[:.]/g, '-')}.md`;
           const dataDir = path.join(process.cwd(), 'data');
@@ -114,7 +133,7 @@ export const webScraperTool = createTool({
         }
       }
 
-      scrapeSpan?.end({ output: { status, extractedDataCount: extractedData.length, contentLength: rawContent?.length ?? 0, savedFile: !!savedFilePath } });
+      scrapeSpan?.end({ output: { status, extractedDataCount: extractedData.length, contentLength: rawContent?.length ?? 0, savedFile: !(savedFilePath === null) } });
     } catch (error) {
       errorMessage = `Web scraping failed: ${error instanceof Error ? error.message : String(error)}`;
       logger.error(errorMessage);
@@ -125,7 +144,7 @@ export const webScraperTool = createTool({
     return webScraperOutputSchema.parse({
       url: scrapedUrl, // Use the captured scrapedUrl
       extractedData,
-      rawContent: context.selector ? undefined : rawContent,
+      rawContent: (context.selector !== null) ? undefined : rawContent,
       markdownContent,
       savedFilePath,
       status,

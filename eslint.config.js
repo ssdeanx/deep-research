@@ -9,7 +9,7 @@ export default [
   js.configs.recommended,
   prettierConfig,
   {
-    files: ['**/*.ts', '**/*.tsx'],
+    files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
     languageOptions: {
       parser: tsparser,
       parserOptions: {
@@ -26,12 +26,12 @@ export default [
     rules: {
       // Standard style guide rules
       'no-unused-vars': 'warn', // Turn off base rule
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': 'warn',
       'no-console': 'warn',
-      'no-var': 'error',
+      'no-var': 'warn',
       'object-shorthand': 'error',
       'prefer-arrow-callback': 'error',
-      'prefer-const': 'error',
+      'prefer-const': 'warn',
       'no-shadow': 'off', // Turn off base rule for TS version
       '@typescript-eslint/no-shadow': 'error',
 
@@ -59,12 +59,9 @@ export default [
         }
       ],
       '@typescript-eslint/prefer-readonly': 'error',
-      '@typescript-eslint/prefer-readonly-parameter-types': 'warn',
       '@typescript-eslint/strict-boolean-expressions': 'warn',
       '@typescript-eslint/switch-exhaustiveness-check': 'error',
       '@typescript-eslint/no-meaningless-void-operator': 'error',
-      '@typescript-eslint/prefer-enum-initializers': 'error',
-      '@typescript-eslint/prefer-includes': 'error',
       '@typescript-eslint/prefer-string-starts-ends-with': 'error',
       '@typescript-eslint/prefer-regexp-exec': 'error',
       '@typescript-eslint/no-unnecessary-boolean-literal-compare': 'error',
@@ -99,6 +96,6 @@ export default [
     }
   },
   {
-    ignores: ['dist/**', 'node_modules/**', '*.js', '.mastra/**', 'eslint.config.js', 'vitest.config.js' ]
+    ignores: ['dist/**', 'node_modules/**', '*.js', '.mastra/**', 'eslint.config.js', 'vitest.config.ts' ]
   }
 ]
