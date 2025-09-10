@@ -99,6 +99,6 @@ export default [
     }
   },
   {
-    ignores: ['dist/**', 'node_modules/**', '*.js', '.mastra/**', 'eslint.config.js']
+    ignores: ['dist/**', 'node_modules/**', '*.js', '.mastra/**', 'eslint.config.js', 'vitest.config.js' ]
   }
 ]

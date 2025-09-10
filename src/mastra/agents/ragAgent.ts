@@ -1,11 +1,11 @@
 import { Agent } from '@mastra/core/agent';
-import { vectorQueryTool } from '../tools/vectorQueryTool';
-import { chunkerTool } from '../tools/chunker-tool';
+//import { vectorQueryTool } from '../tools/vectorQueryTool';
+//import { chunkerTool } from '../tools/chunker-tool';
 import { readDataFileTool, writeDataFileTool, deleteDataFileTool, listDataDirTool } from '../tools/data-file-manager';
 import { evaluateResultTool } from '../tools/evaluateResultTool';
 import { extractLearningsTool } from '../tools/extractLearningsTool';
 import { graphRAGUpsertTool, graphRAGTool, graphRAGQueryTool } from '../tools/graphRAG';
-import { rerankTool } from '../tools/rerank-tool';
+//import { rerankTool } from '../tools/rerank-tool';
 import { weatherTool } from '../tools/weather-tool';
 import { webScraperTool } from '../tools/web-scraper-tool';
 import { webSearchTool } from '../tools/webSearchTool';
@@ -64,8 +64,8 @@ Remember: Your knowledge comes from both your training data and the information 
   },
   model: google('gemini-2.5-flash',),
   tools: {
-    vectorQueryTool,
-    chunkerTool,
+//    vectorQueryTool,
+//    chunkerTool,
     readDataFileTool,
     writeDataFileTool,
     deleteDataFileTool,
@@ -75,7 +75,7 @@ Remember: Your knowledge comes from both your training data and the information 
     graphRAGUpsertTool,
     graphRAGTool,
     graphRAGQueryTool,
-    rerankTool,
+//    rerankTool,
     weatherTool,
     webScraperTool,
     webSearchTool,
