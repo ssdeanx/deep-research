@@ -6,19 +6,28 @@
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │                           Mastra Deep Research System                           │
 ├─────────────────────────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────┐ │
-│  │  Workflows  │  │   Agents    │  │   Tools     │  │ Memory Proc │  │ Tracing │ │
-│  │             │  │             │  │             │  │             │  │         │ │
-│  │ • Research  │  │ • Research  │  │ • Web       │  │ • TokenLim  │  │ • Open  │ │
-│  │ • Report    │  │ • Report    │  │ • Vector    │  │ • Personal  │  │ • Tel   │ │
-│  │ • Comprehen│  │ • Evaluation │  │ • Chunking  │  │ • ErrorCorr │  │ • Child │ │
-│  │ • Generate  │  │ • Learning  │  │ • Rerank    │  │ • Circuit   │  │ • Spans │ │
-│  │             │  │ • Web Sum   │  │ • Graph RAG │  │ • Bayesian  │  │ • Perf  │ │
-│  │             │  │ • RAG       │  │ • Data File │  │ • Knowledge │  │ • Error │ │
-│  │             │  │ • GitHub    │  │ • Weather   │  └─────────────┘  └─────────┘ │
-│  │             │  │ • Copilot   │  │ • GitHub    │                               │
-│  │             │  │ • Integration│  │ • 14 Tools │                               │
-│  └─────────────┘                   └─────────────┘                               │
+│  ┌─────────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌───────┐ │
+│  │   React Frontend│  │  Mastra     │  │   Agents    │  │   Tools     │  │ Memory│ │
+│  │   (Vite + TS)   │  │  Backend    │  │             │  │             │  │ Proc  │ │
+│  │                 │  │             │  │ • Research  │  │ • Web       │  │       │ │
+│  │ • Vite 7.1+     │  │ • Node.js   │  │ • Report    │  │ • Vector    │  │ • 11  │ │
+│  │ • React 19.1+   │  │ • Express   │  │ • Evaluation│  │ • Chunking  │  │ • Proc│ │
+│  │ • TypeScript    │  │ • API Routes│  │ • Learning  │  │ • Rerank    │  │       │ │
+│  │ • Tailwind v4.1 │  │ • WebSocket │  │ • Web Sum   │  │ • Graph RAG │  │       │ │
+│  │ • shadcn/ui 47  │  │ • MCP Server│  │ • RAG       │  │ • Data File │  │       │ │
+│  │ • Components    │  │ • Tracing   │  │ • GitHub    │  │ • Weather   │  │       │ │
+│  └─────────────────┘  └─────────────┘  │ • Copilot   │  │ • GitHub    │  └───────┘ │
+│                                         │ • Integration│  │ • 14 Tools │           │
+│  ┌─────────────────┐  ┌─────────────┐  └─────────────┘  └─────────────┘           │
+│  │   Workflows     │  │ Integration │                                                     │
+│  │                 │  │             │                                                     │
+│  │ • Research      │  │ • MCP       │                                                     │
+│  │ • Report        │  │ • WebSocket │                                                     │
+│  │ • Comprehen     │  │ • OpenTel   │                                                     │
+│  │ • Generate      │  │ • Streaming │                                                     │
+│  │ • GitHub Plan   │  │ • GitHub API│                                                     │
+│  │ • GitHub Qual   │  │ • Real-time │                                                     │
+│  └─────────────────┘  └─────────────┘                                                     │
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────┐ │
 │  │   RAG Pipeline  │  │   Dual Storage  │  │ Google AI 2.5   │  │   Caching   │ │
@@ -43,6 +52,60 @@
 │  │ • Integration│  │ • Integration│  │ • REST API │  │ • Context   │  │ • Metrics│ │
 │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘  └─────────┘ │
 └─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Frontend Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                           React Frontend Architecture                           │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────┐ │
+│  │   App Router    │  │   Page          │  │   UI Components │  │   State      │ │
+│  │   (React Router)│  │   Components    │  │   (shadcn/ui)   │  │   Management │ │
+│  │                 │  │                 │  │                 │  │             │ │
+│  │ • Route Config  │  │ • Home Page     │  │ • 47 Components │  │ • React      │ │
+│  │ • Nested Routes │  │ • Research Page │  │ • Button/Card   │  │ • Hooks      │ │
+│  │ • Data Loading  │  │ • Agents Page   │  │ • Dialog/Table  │  │ • Context    │ │
+│  │ • Error Bounds  │  │ • Workflows Page│  │ • Form/Input    │  │ • TypeScript │ │
+│  │ • Code Splitting│  │ • Layout Comp   │  │ • Responsive    │  │ • Props      │ │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘  └─────────────┘ │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────┐ │
+│  │   Styling       │  │   Build System  │  │   Development   │  │   API        │ │
+│  │   (Tailwind)    │  │   (Vite)        │  │   Tools          │  │   Integration │ │
+│  │                 │  │                 │  │                 │  │             │ │
+│  │ • CSS v4.1      │  │ • HMR           │  │ • ESLint        │  │ • Mastra      │ │
+│  │ • OKLCH Colors  │  │ • TypeScript    │  │ • Prettier      │  │ • Client      │ │
+│  │ • Text Shadows  │  │ • Optimization  │  │ • Vitest        │  │ • REST/WebSock│ │
+│  │ • Container Q   │  │ • Bundle Split  │  │ • Playwright    │  │ • Error Handle│ │
+│  │ • Dark Mode     │  │ • ESBuild       │  │ • Chromatic     │  │ • Type Safety │ │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘  └─────────────┘ │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Frontend-Backend Data Flow
+
+```
+┌─────────────────┐         ┌─────────────────┐         ┌─────────────────┐
+│   User Interface │         │   Mastra Client  │         │   Backend API    │
+│                 │         │                 │         │                 │
+│ • React Components│◄────────│ • TypeScript    │────────►│ • REST Endpoints │
+│ • Form Inputs    │         │ • Error Handling │         │ • WebSocket      │
+│ • UI Interactions│         │ • Request/Resp  │         │ • Real-time      │
+│ • State Updates  │         │ • Caching        │         │ • Streaming      │
+└─────────────────┘         └─────────────────┘         └─────────────────┘
+          │                           │                           │
+          │                           │                           │
+          ▼                           ▼                           ▼
+┌─────────────────┐         ┌─────────────────┐         ┌─────────────────┐
+│   Local State   │         │   API Responses │         │   Database       │
+│                 │         │                 │         │                 │
+│ • React Hooks   │◄────────│ • JSON Data     │◄────────│ • LibSQL         │
+│ • Context       │         │ • Error States  │         │ • Vector Store   │
+│ • Loading       │         │ • Cache Data    │         │ • File Storage   │
+│ • User Prefs    │         │ • Real-time     │         │ • Cache Layer    │
+└─────────────────┘         └─────────────────┘         └─────────────────┘
 ```
 
 ## RAG Pipeline Architecture

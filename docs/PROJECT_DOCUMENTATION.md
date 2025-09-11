@@ -1,5 +1,72 @@
 # Mastra Deep Research System Documentation
 
+## Frontend Architecture
+
+The system includes a modern React frontend that provides an intuitive interface for interacting with the Mastra backend:
+
+### Technology Stack
+- **React 19.1+**: Latest React with concurrent features and automatic batching
+- **Vite 7.1+**: Lightning-fast build tool with HMR and optimized production builds
+- **TypeScript 5.9+**: Full type safety with advanced language features
+- **Tailwind CSS v4.1**: CSS-first configuration with OKLCH colors, text shadows, and modern utilities
+- **shadcn/ui**: 47 pre-built, accessible UI components with Radix UI primitives
+- **React Router v7.8+**: Modern routing with nested routes and data loading
+
+### Frontend Components
+
+#### Core Application Structure
+```
+src/
+├── app/                    # Main application
+│   ├── App.tsx            # Main router configuration
+│   ├── Layout.tsx         # Navigation and layout
+│   ├── main.tsx           # React entry point
+│   ├── global.css         # Tailwind CSS with shadcn/ui variables
+│   └── pages/             # Page components
+│       ├── Home.tsx       # Landing page
+│       ├── Research.tsx   # Research interface
+│       ├── Agents.tsx     # Agent management
+│       └── Workflows.tsx  # Workflow monitoring
+├── components/
+│   └── ui/                # 47 shadcn/ui components
+└── lib/
+    ├── mastra.ts          # Mastra client configuration
+    └── utils.ts           # Utility functions
+```
+
+#### Key Features
+- **Responsive Design**: Mobile-first approach with container queries
+- **Dark Mode**: Automatic theme switching with CSS custom properties
+- **Real-time Updates**: Live workflow status and agent responses
+- **Error Boundaries**: Comprehensive error handling and user feedback
+- **Loading States**: Skeleton components and progressive loading
+- **Accessibility**: WCAG compliant with keyboard navigation and screen reader support
+
+### Frontend-Backend Integration
+
+#### Mastra Client Configuration
+```typescript
+// lib/mastra.ts
+import { MastraClient } from "@mastra/client-js";
+
+export const mastraClient = new MastraClient({
+  baseUrl: import.meta.env.VITE_MASTRA_API_URL || "http://localhost:4111",
+});
+```
+
+#### API Communication
+- **RESTful Endpoints**: Direct API calls for agent and workflow operations
+- **Real-time Streaming**: WebSocket connections for live updates
+- **Error Handling**: Comprehensive error boundaries and retry logic
+- **Caching**: React Query for efficient data fetching and caching
+- **Type Safety**: End-to-end TypeScript integration
+
+### UI Component Library
+
+The system uses shadcn/ui, a comprehensive component library built on Radix UI primitives with 47 available components including Button, Card, Dialog, Table, and many more for building modern, accessible user interfaces.
+
+---
+
 ## Project Overview
 
 The Mastra Deep Research System is an AI-powered research and analysis platform built using the Mastra framework. It provides comprehensive research capabilities through specialized agents, tools, and workflows that enable thorough investigation of topics with web search integration, content summarization, and structured reporting.

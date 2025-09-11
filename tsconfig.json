@@ -12,8 +12,9 @@
     "skipLibCheck": true,
     "noEmit": true,
     "outDir": ".mastra",
+    "jsx": "react-jsx",
     "paths": { "@/*": ["./src/*"] }
   },
-  "include": ["src/**/*", "tests/**/*", "globalSetup.ts", "eslint.config.js", "prettier.config.js", "testSetup.ts"],
-  "exclude": ["node_modules", ".mastra","vitest.config.ts"]
+  "include": ["src/mastra/**/*", "src/app/lib/utils.ts", "src/app/components/**/*", "src/app/hooks/**/*", "src/app/api/routes/**/*", "src/pages/**/*", "src/app/**/*", "src/components/ui/**/*", "lib/**/*", "tests/**/*", "globalSetup.ts", "eslint.config.js", "prettier.config.js", "testSetup.ts", "vitest.config.ts", "vite.config.ts", "vite-env.d.ts"],
+  "exclude": ["node_modules", ".mastra", "dist", "src/pages", "src/lib", "src/routes", "src/App.tsx", "src/main.tsx"]
 }
