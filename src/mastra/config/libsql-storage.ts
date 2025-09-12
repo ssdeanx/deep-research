@@ -20,6 +20,7 @@ import {
   HierarchicalMemoryProcessor
 } from "./memory-processors";
 import type { RegisteredLogger } from "@mastra/core/logger";
+import z from "zod";
 
 export interface TracingSpanInput {
   type: AISpanType;
@@ -74,6 +75,17 @@ export const STORAGE_CONFIG = {
     REPORTS: "reports"
   }
 } as const;
+
+const userProfileSchema = z.object({
+ name: z.string().optional(),
+ location: z.string().optional(),
+ timezone: z.string().optional(),
+ preferences: z.object({
+ communicationStyle: z.string().optional(),
+ projectGoal: z.string().optional(),
+ deadlines: z.array(z.string()).optional(),
+ }).optional(),
+});
 
 /**
  * LibSQL Storage Configuration
@@ -383,14 +395,7 @@ export const createResearchMemory = () => {
       lastMessages: 500,
       workingMemory: {
         enabled: true,
-        template: `# User Research Context
-- **Research Interests**: Research topics and domains
-- **Preferred Sources**: Trusted websites, publications, or platforms
-- **Methodology Preferences**: Preferred research approaches or tools
-- **Previous Research**: Summary of completed research sessions
-- **Follow-up Questions**: Outstanding questions from previous research
-- **Knowledge Gaps**: Areas needing further investigation
-- **Contact Information**: Professional details for collaboration`,
+        schema: userProfileSchema,
       },
       semanticRecall: {
         topK: 5,
@@ -402,7 +407,7 @@ export const createResearchMemory = () => {
       },
         },
         processors: [
-      new PersonalizationProcessor({ preferences: ['researcher'] }),
+      new PersonalizationProcessor({ preferences: ['any'] }),
       new TokenLimiterProcessor({ options: { maxTokens: 1000000 } }),
       new CircuitBreakerProcessor({ failureThreshold: 0.5 }),
       new CitationExtractorProcessor({ component: logger as unknown as RegisteredLogger, name: 'citation-extractor' }),
