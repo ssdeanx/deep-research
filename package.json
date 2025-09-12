@@ -61,6 +61,7 @@
     "@mastra/rag": "^1.2.4",
     "@mastra/schema-compat": "^0.11.3",
     "@mastra/voice-google": "^0.11.4",
+    "@mastra/voice-google-gemini-live": "^0.10.10",
     "@octokit/core": "^7.0.3",
     "@octokit/rest": "^22.0.0",
     "@octokit/types": "^14.1.0",
