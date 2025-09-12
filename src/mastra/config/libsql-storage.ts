@@ -466,7 +466,7 @@ export const createReportMemory = () => {
  */
 export interface ExtractParams {
   title?: boolean | {
-    nodes?: number;
+    summaries?: Array<"self" | "prev" | "next">;
     nodeTemplate?: string;
     combineTemplate?: string;
   };
@@ -723,7 +723,7 @@ export async function queryVectors(
     return results.map(result => ({
       id: result.id,
       score: result.score,
-      metadata: result.metadata ?? {}
+      metadata: result.metadata ?? {},
     })) as QueryResult[];
   } catch (error) {
     const processingTime = Date.now() - startTime;
@@ -971,7 +971,7 @@ export const updateUserWorkingMemory = async (memory: Memory, userId: string, up
       resourceId: userId,
       workingMemory: updates.workingMemory,
       metadata: {
-        ... (updates.metadata as Record<string, unknown>),
+        ... (updates.metadata!),
         updatedAt: new Date(), // Moved updatedAt back into metadata
         // resourceId: userId // This property is not needed here, as it's already resourceId
       }
