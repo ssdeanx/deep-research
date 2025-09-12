@@ -6,6 +6,12 @@ import { AISpanType } from '@mastra/core/ai-tracing';
 
 const logger = new PinoLogger({ level: 'info' });
 
+const listRepoEventsOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.array(z.any()).optional(),
+  errorMessage: z.string().optional().describe('Error message for failed repository events listing')
+}).strict();
+
 export const listRepoEvents = createTool({
   id: 'listRepoEvents',
   description: 'Lists events for a repository.',
@@ -13,6 +19,7 @@ export const listRepoEvents = createTool({
     owner: z.string(),
     repo: z.string(),
   }),
+  outputSchema: listRepoEventsOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -28,7 +35,7 @@ export const listRepoEvents = createTool({
         output: { events_count: events.data?.length || 0 },
         metadata: { operation: 'list_repo_events' }
       });
-      return events.data;
+      return listRepoEventsOutputSchema.parse({ status: 'success', data: events.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error listing repository events');
@@ -38,10 +45,16 @@ export const listRepoEvents = createTool({
           operation: 'list_repo_events'
         }
       });
-      throw error;
+      return listRepoEventsOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const listPublicEventsOutputSchema = z.object({
+  status: z.union([z.literal('success'), z.literal('error')]),
+  data: z.array(z.record(z.string(), z.unknown())).optional(),
+  errorMessage: z.string().optional().describe('Error for public events retrieval')
+}).strict();
 
 export const listPublicEvents = createTool({
   id: 'listPublicEvents',
@@ -50,6 +63,7 @@ export const listPublicEvents = createTool({
     per_page: z.number().optional(),
     page: z.number().optional(),
   }),
+  outputSchema: listPublicEventsOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -65,7 +79,7 @@ export const listPublicEvents = createTool({
         output: { events_count: events.data?.length || 0 },
         metadata: { operation: 'list_public_events' }
       });
-      return events.data;
+      return listPublicEventsOutputSchema.parse({ status: 'success', data: events.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error listing public events');
@@ -75,10 +89,16 @@ export const listPublicEvents = createTool({
           operation: 'list_public_events'
         }
       });
-      throw error;
+      return listPublicEventsOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const listRepoNotificationsOutputSchema = z.object({
+  status: z.union([z.literal('success'), z.literal('error')]),
+  data: z.array(z.object({ id: z.string(), reason: z.string() })).optional(),
+  errorMessage: z.string().optional().describe('Details on notification listing failure')
+}).strict();
 
 export const listRepoNotifications = createTool({
   id: 'listRepoNotifications',
@@ -91,6 +111,7 @@ export const listRepoNotifications = createTool({
     since: z.string().optional(),
     before: z.string().optional(),
   }),
+  outputSchema: listRepoNotificationsOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -113,7 +134,7 @@ export const listRepoNotifications = createTool({
         output: { notifications_count: notifications.data?.length || 0 },
         metadata: { operation: 'list_repo_notifications' }
       });
-      return notifications.data;
+      return listRepoNotificationsOutputSchema.parse({ status: 'success', data: notifications.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error listing repository notifications');
@@ -123,10 +144,16 @@ export const listRepoNotifications = createTool({
           operation: 'list_repo_notifications'
         }
       });
-      throw error;
+      return listRepoNotificationsOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const markRepoNotificationsAsReadOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({ success: z.literal(true) }),
+  errorMessage: z.string().optional().describe('Failure in marking notifications read')
+}).strict();
 
 export const markRepoNotificationsAsRead = createTool({
   id: 'markRepoNotificationsAsRead',
@@ -136,6 +163,7 @@ export const markRepoNotificationsAsRead = createTool({
     repo: z.string(),
     last_read_at: z.string().optional(),
   }),
+  outputSchema: markRepoNotificationsAsReadOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -151,7 +179,7 @@ export const markRepoNotificationsAsRead = createTool({
         output: { success: true },
         metadata: { operation: 'mark_repo_notifications_as_read' }
       });
-      return { success: true };
+      return markRepoNotificationsAsReadOutputSchema.parse({ status: 'success', data: { success: true } });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error marking repository notifications as read');
@@ -161,10 +189,22 @@ export const markRepoNotificationsAsRead = createTool({
           operation: 'mark_repo_notifications_as_read'
         }
       });
-      throw error;
+      return markRepoNotificationsAsReadOutputSchema.parse({ status: 'error', data: { success: false }, errorMessage });
     }
   },
 });
+
+const getRepoSubscriptionOutputSchema = z.object({
+  status: z.union([z.literal('success'), z.literal('error')]),
+  data: z.object({
+    subscribed: z.boolean(),
+    ignored: z.boolean(),
+    reason: z.string().nullable(),
+    created_at: z.string().optional(),
+    url: z.string().optional()
+  }).passthrough(),
+  errorMessage: z.string().optional().describe('Subscription retrieval error')
+}).strict();
 
 export const getRepoSubscription = createTool({
   id: 'getRepoSubscription',
@@ -173,6 +213,7 @@ export const getRepoSubscription = createTool({
     owner: z.string(),
     repo: z.string(),
   }),
+  outputSchema: getRepoSubscriptionOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -188,7 +229,7 @@ export const getRepoSubscription = createTool({
         output: { subscribed: subscription.data.subscribed, ignored: subscription.data.ignored },
         metadata: { operation: 'get_repo_subscription' }
       });
-      return subscription.data;
+      return getRepoSubscriptionOutputSchema.parse({ status: 'success', data: subscription.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error getting repository subscription');
@@ -198,10 +239,19 @@ export const getRepoSubscription = createTool({
           operation: 'get_repo_subscription'
         }
       });
-      throw error;
+      return getRepoSubscriptionOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const setRepoSubscriptionOutputSchema = z.object({
+  status: z.union([z.literal('success'), z.literal('error')]),
+  data: z.object({
+    subscribed: z.boolean(),
+    ignored: z.boolean()
+  }).passthrough(),
+  errorMessage: z.string().optional().describe('Error updating subscription')
+}).strict();
 
 export const setRepoSubscription = createTool({
   id: 'setRepoSubscription',
@@ -212,6 +262,7 @@ export const setRepoSubscription = createTool({
     subscribed: z.boolean().optional(),
     ignored: z.boolean().optional(),
   }),
+  outputSchema: setRepoSubscriptionOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -232,7 +283,7 @@ export const setRepoSubscription = createTool({
         output: { subscribed: subscription.data.subscribed, ignored: subscription.data.ignored },
         metadata: { operation: 'set_repo_subscription' }
       });
-      return subscription.data;
+      return setRepoSubscriptionOutputSchema.parse({ status: 'success', data: subscription.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error setting repository subscription');
@@ -242,10 +293,16 @@ export const setRepoSubscription = createTool({
           operation: 'set_repo_subscription'
         }
       });
-      throw error;
+      return setRepoSubscriptionOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const deleteRepoSubscriptionOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({ success: z.boolean() }),
+  errorMessage: z.string().optional().describe('Details on subscription deletion failure')
+}).strict();
 
 export const deleteRepoSubscription = createTool({
   id: 'deleteRepoSubscription',
@@ -254,6 +311,7 @@ export const deleteRepoSubscription = createTool({
     owner: z.string(),
     repo: z.string(),
   }),
+  outputSchema: deleteRepoSubscriptionOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -269,7 +327,7 @@ export const deleteRepoSubscription = createTool({
         output: { success: true },
         metadata: { operation: 'delete_repo_subscription' }
       });
-      return { success: true };
+      return deleteRepoSubscriptionOutputSchema.parse({ status: 'success', data: { success: true } });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error deleting repository subscription');
@@ -279,7 +337,7 @@ export const deleteRepoSubscription = createTool({
           operation: 'delete_repo_subscription'
         }
       });
-      throw error;
+      return deleteRepoSubscriptionOutputSchema.parse({ status: 'error', data: { success: false }, errorMessage });
     }
   },
 });

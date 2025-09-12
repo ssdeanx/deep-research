@@ -6,6 +6,31 @@ import { AISpanType } from '@mastra/core/ai-tracing';
 
 const logger = new PinoLogger({ level: 'info' });
 
+const getCommitOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    sha: z.string(),
+    message: z.string(),
+    author: z.object({
+      name: z.string(),
+      email: z.string(),
+      date: z.string()
+    }),
+    committer: z.object({
+      name: z.string(),
+      email: z.string(),
+      date: z.string()
+    }),
+    tree: z.object({
+      sha: z.string()
+    }),
+    parents: z.array(z.object({
+      sha: z.string()
+    })).optional()
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error getting commit')
+}).strict();
+
 export const getCommit = createTool({
   id: 'getCommit',
   description: 'Gets a commit.',
@@ -14,6 +39,7 @@ export const getCommit = createTool({
     repo: z.string(),
     commit_sha: z.string(),
   }),
+  outputSchema: getCommitOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -29,7 +55,7 @@ export const getCommit = createTool({
         output: { commit_sha: commit.data.sha, message: commit.data.message?.substring(0, 50) },
         metadata: { operation: 'get_commit' }
       });
-      return commit.data;
+      return getCommitOutputSchema.parse({ status: 'success', data: commit.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error getting commit');
@@ -39,10 +65,34 @@ export const getCommit = createTool({
           operation: 'get_commit'
         }
       });
-      throw error;
+      return getCommitOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const createCommitOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    sha: z.string(),
+    tree: z.object({
+      sha: z.string()
+    }),
+    parents: z.array(z.object({
+      sha: z.string()
+    })).optional(),
+    author: z.object({
+      name: z.string(),
+      email: z.string(),
+      date: z.string()
+    }).optional(),
+    committer: z.object({
+      name: z.string(),
+      email: z.string(),
+      date: z.string()
+    }).optional()
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error creating commit')
+}).strict();
 
 export const createCommit = createTool({
   id: 'createCommit',
@@ -64,17 +114,36 @@ export const createCommit = createTool({
       date: z.string().optional(),
     }).optional(),
   }),
+  outputSchema: createCommitOutputSchema,
   execute: async ({ context }) => {
     try {
       const commit = await octokit.git.createCommit(context);
       logger.info('Commit created successfully');
-      return commit.data;
+      return createCommitOutputSchema.parse({ status: 'success', data: commit.data });
     } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error creating commit');
-      throw error;
+      return createCommitOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const getTreeOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    sha: z.string(),
+    url: z.string(),
+    tree: z.array(z.object({
+      path: z.string(),
+      mode: z.string(),
+      type: z.enum(['blob', 'tree', 'commit']),
+      sha: z.string(),
+      size: z.number().optional(),
+      url: z.string()
+    }))
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error getting tree')
+}).strict();
 
 export const getTree = createTool({
   id: 'getTree',
@@ -85,6 +154,7 @@ export const getTree = createTool({
     tree_sha: z.string(),
     recursive: z.union([z.boolean(), z.string()]).optional(),
   }),
+  outputSchema: getTreeOutputSchema,
   execute: async ({ context }) => {
     try {
       // Octokit expects the 'recursive' query param as a string (e.g. "1"), so coerce boolean input to string.
@@ -97,13 +167,23 @@ export const getTree = createTool({
       };
       const tree = await octokit.git.getTree(params as any);
       logger.info('Tree retrieved successfully');
-      return tree.data;
+      return getTreeOutputSchema.parse({ status: 'success', data: tree.data });
     } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error getting tree');
-      throw error;
+      return getTreeOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const createTreeOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    sha: z.string(),
+    url: z.string()
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error creating tree')
+}).strict();
 
 export const createTree = createTool({
   id: 'createTree',
@@ -120,17 +200,31 @@ export const createTree = createTool({
     })),
     base_tree: z.string().optional(),
   }),
+  outputSchema: createTreeOutputSchema,
   execute: async ({ context }) => {
     try {
       const tree = await octokit.git.createTree(context);
       logger.info('Tree created successfully');
-      return tree.data;
+      return createTreeOutputSchema.parse({ status: 'success', data: tree.data });
     } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error creating tree');
-      throw error;
+      return createTreeOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const getBlobOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    content: z.unknown(),
+    encoding: z.string(),
+    sha: z.string(),
+    size: z.number(),
+    url: z.string()
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error getting blob')
+}).strict();
 
 export const getBlob = createTool({
   id: 'getBlob',
@@ -140,17 +234,31 @@ export const getBlob = createTool({
     repo: z.string(),
     file_sha: z.string(),
   }),
+  outputSchema: getBlobOutputSchema,
   execute: async ({ context }) => {
     try {
       const blob = await octokit.git.getBlob(context);
       logger.info('Blob retrieved successfully');
-      return blob.data;
+      return getBlobOutputSchema.parse({ status: 'success', data: blob.data });
     } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error getting blob');
-      throw error;
+      return getBlobOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const createBlobOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    content: z.unknown(),
+    encoding: z.string(),
+    sha: z.string(),
+    size: z.number(),
+    url: z.string()
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error creating blob')
+}).strict();
 
 export const createBlob = createTool({
   id: 'createBlob',
@@ -161,17 +269,32 @@ export const createBlob = createTool({
     content: z.string(),
     encoding: z.enum(['utf-8', 'base64']).optional(),
   }),
+  outputSchema: createBlobOutputSchema,
   execute: async ({ context }) => {
     try {
       const blob = await octokit.git.createBlob(context);
       logger.info('Blob created successfully');
-      return blob.data;
+      return createBlobOutputSchema.parse({ status: 'success', data: blob.data });
     } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error creating blob');
-      throw error;
+      return createBlobOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const getRefOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    ref: z.string(),
+    object: z.object({
+      sha: z.string(),
+      type: z.string(),
+      url: z.string()
+    })
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error getting ref')
+}).strict();
 
 export const getRef = createTool({
   id: 'getRef',
@@ -181,6 +304,7 @@ export const getRef = createTool({
     repo: z.string(),
     ref: z.string(),
   }),
+  outputSchema: getRefOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -196,7 +320,7 @@ export const getRef = createTool({
         output: { ref: ref.data.ref, sha: ref.data.object?.sha },
         metadata: { operation: 'get_ref' }
       });
-      return ref.data;
+      return getRefOutputSchema.parse({ status: 'success', data: ref.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error getting reference');
@@ -206,10 +330,23 @@ export const getRef = createTool({
           operation: 'get_ref'
         }
       });
-      throw error;
+      return getRefOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const createRefOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    ref: z.string(),
+    object: z.object({
+      sha: z.string(),
+      type: z.string(),
+      url: z.string()
+    })
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error creating ref')
+}).strict();
 
 export const createRef = createTool({
   id: 'createRef',
@@ -220,6 +357,7 @@ export const createRef = createTool({
     ref: z.string(),
     sha: z.string(),
   }),
+  outputSchema: createRefOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -235,7 +373,7 @@ export const createRef = createTool({
         output: { ref: ref.data.ref, sha: ref.data.object?.sha },
         metadata: { operation: 'create_ref' }
       });
-      return ref.data;
+      return createRefOutputSchema.parse({ status: 'success', data: ref.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error creating reference');
@@ -245,10 +383,23 @@ export const createRef = createTool({
           operation: 'create_ref'
         }
       });
-      throw error;
+      return createRefOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const updateRefOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    ref: z.string(),
+    object: z.object({
+      sha: z.string(),
+      type: z.string(),
+      url: z.string()
+    })
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error updating ref')
+}).strict();
 
 export const updateRef = createTool({
   id: 'updateRef',
@@ -260,6 +411,7 @@ export const updateRef = createTool({
     sha: z.string(),
     force: z.boolean().optional(),
   }),
+  outputSchema: updateRefOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -275,7 +427,7 @@ export const updateRef = createTool({
         output: { ref: ref.data.ref, sha: ref.data.object?.sha },
         metadata: { operation: 'update_ref' }
       });
-      return ref.data;
+      return updateRefOutputSchema.parse({ status: 'success', data: ref.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error updating reference');
@@ -285,10 +437,16 @@ export const updateRef = createTool({
           operation: 'update_ref'
         }
       });
-      throw error;
+      return updateRefOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const deleteRefOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({ success: z.boolean() }).optional(),
+  errorMessage: z.string().optional().describe('Error deleting ref')
+}).strict();
 
 export const deleteRef = createTool({
   id: 'deleteRef',
@@ -298,6 +456,7 @@ export const deleteRef = createTool({
     repo: z.string(),
     ref: z.string(),
   }),
+  outputSchema: deleteRefOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -313,7 +472,7 @@ export const deleteRef = createTool({
         output: { success: true },
         metadata: { operation: 'delete_ref' }
       });
-      return { success: true };
+      return deleteRefOutputSchema.parse({ status: 'success', data: { success: true } });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error deleting reference');
@@ -323,7 +482,7 @@ export const deleteRef = createTool({
           operation: 'delete_ref'
         }
       });
-      throw error;
+      return deleteRefOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });

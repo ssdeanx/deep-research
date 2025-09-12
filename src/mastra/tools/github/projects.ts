@@ -6,12 +6,32 @@ import { AISpanType } from '@mastra/core/ai-tracing';
 
 const logger = new PinoLogger({ level: 'info' });
 
+const listProjectCardsOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.array(z.object({
+    id: z.number(),
+    node_id: z.string(),
+    url: z.string(),
+    project_url: z.string(),
+    column_url: z.string(),
+    creator: z.object({
+      login: z.string()
+    }),
+    created_at: z.string(),
+    updated_at: z.string(),
+    archived: z.boolean(),
+    content_url: z.string().optional()
+  })).optional(),
+  errorMessage: z.string().optional().describe('Error listing project cards')
+}).strict();
+
 export const listProjectCards = createTool({
   id: 'listProjectCards',
   description: 'Lists project cards.',
   inputSchema: z.object({
     column_id: z.number(),
   }),
+  outputSchema: listProjectCardsOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -25,7 +45,7 @@ export const listProjectCards = createTool({
         output: { cards_count: cards.data?.length || 0 },
         metadata: { operation: 'list_project_cards' }
       });
-      return cards.data;
+      return listProjectCardsOutputSchema.parse({ status: 'success', data: cards.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error listing project cards');
@@ -35,10 +55,29 @@ export const listProjectCards = createTool({
           operation: 'list_project_cards'
         }
       });
-      throw error;
+      return listProjectCardsOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const getProjectCardOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    id: z.number(),
+    node_id: z.string(),
+    url: z.string(),
+    project_url: z.string(),
+    column_url: z.string(),
+    creator: z.object({
+      login: z.string()
+    }),
+    created_at: z.string(),
+    updated_at: z.string(),
+    archived: z.boolean(),
+    content_url: z.string().optional()
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error getting project card')
+}).strict();
 
 export const getProjectCard = createTool({
   id: 'getProjectCard',
@@ -46,6 +85,7 @@ export const getProjectCard = createTool({
   inputSchema: z.object({
     card_id: z.number(),
   }),
+  outputSchema: getProjectCardOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -61,7 +101,7 @@ export const getProjectCard = createTool({
         output: { card_id: card.data?.id },
         metadata: { operation: 'get_project_card' }
       });
-      return card.data;
+      return getProjectCardOutputSchema.parse({ status: 'success', data: card.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error getting project card');
@@ -71,10 +111,29 @@ export const getProjectCard = createTool({
           operation: 'get_project_card'
         }
       });
-      throw error;
+      return getProjectCardOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const createProjectCardOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    id: z.number(),
+    node_id: z.string(),
+    url: z.string(),
+    project_url: z.string(),
+    column_url: z.string(),
+    creator: z.object({
+      login: z.string()
+    }),
+    created_at: z.string(),
+    updated_at: z.string(),
+    archived: z.boolean(),
+    content_url: z.string().optional()
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error creating project card')
+}).strict();
 
 export const createProjectCard = createTool({
   id: 'createProjectCard',
@@ -85,6 +144,7 @@ export const createProjectCard = createTool({
     content_id: z.number().optional(),
     content_type: z.string().optional(),
   }),
+  outputSchema: createProjectCardOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -116,7 +176,7 @@ export const createProjectCard = createTool({
         output: { card_id: card.data?.id },
         metadata: { operation: 'create_project_card' }
       });
-      return card.data;
+      return createProjectCardOutputSchema.parse({ status: 'success', data: card.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error creating project card');
@@ -126,10 +186,29 @@ export const createProjectCard = createTool({
           operation: 'create_project_card'
         }
       });
-      throw error;
+      return createProjectCardOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const updateProjectCardOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    id: z.number(),
+    node_id: z.string(),
+    url: z.string(),
+    project_url: z.string(),
+    column_url: z.string(),
+    creator: z.object({
+      login: z.string()
+    }),
+    created_at: z.string(),
+    updated_at: z.string(),
+    archived: z.boolean(),
+    content_url: z.string().optional()
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error updating project card')
+}).strict();
 
 export const updateProjectCard = createTool({
   id: 'updateProjectCard',
@@ -139,6 +218,7 @@ export const updateProjectCard = createTool({
     note: z.string().optional(),
     archived: z.boolean().optional(),
   }),
+  outputSchema: updateProjectCardOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -158,7 +238,7 @@ export const updateProjectCard = createTool({
         output: { card_id: card.data?.id },
         metadata: { operation: 'update_project_card' }
       });
-      return card.data;
+      return updateProjectCardOutputSchema.parse({ status: 'success', data: card.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error updating project card');
@@ -168,10 +248,18 @@ export const updateProjectCard = createTool({
           operation: 'update_project_card'
         }
       });
-      throw error;
+      return updateProjectCardOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const deleteProjectCardOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    success: z.boolean()
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error deleting project card')
+}).strict();
 
 export const deleteProjectCard = createTool({
   id: 'deleteProjectCard',
@@ -179,6 +267,7 @@ export const deleteProjectCard = createTool({
   inputSchema: z.object({
     card_id: z.number(),
   }),
+  outputSchema: deleteProjectCardOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -194,7 +283,7 @@ export const deleteProjectCard = createTool({
         output: { success: true },
         metadata: { operation: 'delete_project_card' }
       });
-      return { success: true };
+      return deleteProjectCardOutputSchema.parse({ status: 'success', data: { success: true } });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error deleting project card');
@@ -204,10 +293,29 @@ export const deleteProjectCard = createTool({
           operation: 'delete_project_card'
         }
       });
-      throw error;
+      return deleteProjectCardOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const moveProjectCardOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    id: z.number(),
+    node_id: z.string(),
+    url: z.string(),
+    project_url: z.string(),
+    column_url: z.string(),
+    creator: z.object({
+      login: z.string()
+    }),
+    created_at: z.string(),
+    updated_at: z.string(),
+    archived: z.boolean(),
+    content_url: z.string().optional()
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error moving project card')
+}).strict();
 
 export const moveProjectCard = createTool({
   id: 'moveProjectCard',
@@ -217,6 +325,7 @@ export const moveProjectCard = createTool({
     position: z.string(),
     column_id: z.number().optional(),
   }),
+  outputSchema: moveProjectCardOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -236,7 +345,7 @@ export const moveProjectCard = createTool({
         output: { card_id: card.data?.id },
         metadata: { operation: 'move_project_card' }
       });
-      return card.data;
+      return moveProjectCardOutputSchema.parse({ status: 'success', data: card.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error moving project card');
@@ -246,10 +355,23 @@ export const moveProjectCard = createTool({
           operation: 'move_project_card'
         }
       });
-      throw error;
+      return moveProjectCardOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const listProjectColumnsOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.array(z.object({
+    id: z.number(),
+    node_id: z.string(),
+    name: z.string(),
+    url: z.string(),
+    project_url: z.string(),
+    cards_url: z.string()
+  })).optional(),
+  errorMessage: z.string().optional().describe('Error listing project columns')
+}).strict();
 
 export const listProjectColumns = createTool({
   id: 'listProjectColumns',
@@ -257,6 +379,7 @@ export const listProjectColumns = createTool({
   inputSchema: z.object({
     project_id: z.number(),
   }),
+  outputSchema: listProjectColumnsOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -272,7 +395,7 @@ export const listProjectColumns = createTool({
         output: { columns_count: columns.data?.length || 0 },
         metadata: { operation: 'list_project_columns' }
       });
-      return columns.data;
+      return listProjectColumnsOutputSchema.parse({ status: 'success', data: columns.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error listing project columns');
@@ -282,10 +405,23 @@ export const listProjectColumns = createTool({
           operation: 'list_project_columns'
         }
       });
-      throw error;
+      return listProjectColumnsOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const getProjectColumnOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    id: z.number(),
+    node_id: z.string(),
+    name: z.string(),
+    url: z.string(),
+    project_url: z.string(),
+    cards_url: z.string()
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error getting project column')
+}).strict();
 
 export const getProjectColumn = createTool({
   id: 'getProjectColumn',
@@ -293,6 +429,7 @@ export const getProjectColumn = createTool({
   inputSchema: z.object({
     column_id: z.number(),
   }),
+  outputSchema: getProjectColumnOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -308,7 +445,7 @@ export const getProjectColumn = createTool({
         output: { column_id: column.data?.id },
         metadata: { operation: 'get_project_column' }
       });
-      return column.data;
+      return getProjectColumnOutputSchema.parse({ status: 'success', data: column.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error getting project column');
@@ -318,10 +455,23 @@ export const getProjectColumn = createTool({
           operation: 'get_project_column'
         }
       });
-      throw error;
+      return getProjectColumnOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const createProjectColumnOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    id: z.number(),
+    node_id: z.string(),
+    name: z.string(),
+    url: z.string(),
+    project_url: z.string(),
+    cards_url: z.string()
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error creating project column')
+}).strict();
 
 export const createProjectColumn = createTool({
   id: 'createProjectColumn',
@@ -330,6 +480,7 @@ export const createProjectColumn = createTool({
     project_id: z.number(),
     name: z.string(),
   }),
+  outputSchema: createProjectColumnOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -348,7 +499,7 @@ export const createProjectColumn = createTool({
         output: { column_id: column.data?.id },
         metadata: { operation: 'create_project_column' }
       });
-      return column.data;
+      return createProjectColumnOutputSchema.parse({ status: 'success', data: column.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error creating project column');
@@ -358,10 +509,22 @@ export const createProjectColumn = createTool({
           operation: 'create_project_column'
         }
       });
-      throw error;
+      return createProjectColumnOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+const updateProjectColumnOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    id: z.number(),
+    node_id: z.string(),
+    name: z.string(),
+    url: z.string(),
+    project_url: z.string(),
+    cards_url: z.string()
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error updating project column')
+}).strict();
 
 export const updateProjectColumn = createTool({
   id: 'updateProjectColumn',
@@ -370,6 +533,7 @@ export const updateProjectColumn = createTool({
     column_id: z.number(),
     name: z.string(),
   }),
+  outputSchema: updateProjectColumnOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -388,7 +552,7 @@ export const updateProjectColumn = createTool({
         output: { column_id: column.data?.id },
         metadata: { operation: 'update_project_column' }
       });
-      return column.data;
+      return updateProjectColumnOutputSchema.parse({ status: 'success', data: column.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error updating project column');
@@ -398,10 +562,17 @@ export const updateProjectColumn = createTool({
           operation: 'update_project_column'
         }
       });
-      throw error;
+      return updateProjectColumnOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+const deleteProjectColumnOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    success: z.boolean()
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error deleting project column')
+}).strict();
 
 export const deleteProjectColumn = createTool({
   id: 'deleteProjectColumn',
@@ -424,7 +595,7 @@ export const deleteProjectColumn = createTool({
         output: { success: true },
         metadata: { operation: 'delete_project_column' }
       });
-      return { success: true };
+      return deleteProjectColumnOutputSchema.parse({ status: 'success', data: { success: true } });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error deleting project column');
@@ -434,10 +605,22 @@ export const deleteProjectColumn = createTool({
           operation: 'delete_project_column'
         }
       });
-      throw error;
+      return deleteProjectColumnOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+const moveProjectColumnOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    id: z.number(),
+    node_id: z.string(),
+    name: z.string(),
+    url: z.string(),
+    project_url: z.string(),
+    cards_url: z.string()
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error moving project column')
+}).strict();
 
 export const moveProjectColumn = createTool({
   id: 'moveProjectColumn',
@@ -446,6 +629,7 @@ export const moveProjectColumn = createTool({
     column_id: z.number(),
     position: z.string(),
   }),
+  outputSchema: moveProjectColumnOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -464,7 +648,7 @@ export const moveProjectColumn = createTool({
         output: { column_id: column.data?.id },
         metadata: { operation: 'move_project_column' }
       });
-      return column.data;
+      return moveProjectColumnOutputSchema.parse({ status: 'success', data: column.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error moving project column');
@@ -474,10 +658,29 @@ export const moveProjectColumn = createTool({
           operation: 'move_project_column'
         }
       });
-      throw error;
+      return moveProjectColumnOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+const listProjectsOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.array(z.object({
+    id: z.number(),
+    node_id: z.string(),
+    name: z.string(),
+    body: z.string().nullable(),
+    state: z.string(),
+    html_url: z.string(),
+    columns_url: z.string(),
+    created_at: z.string(),
+    updated_at: z.string(),
+    closed_at: z.string().nullable(),
+    organization_permission: z.string().optional(),
+    private: z.boolean().optional(),
+    owner_url: z.string().optional()
+  })).optional(),
+  errorMessage: z.string().optional().describe('Error listing projects')
+}).strict();
 
 export const listProjects = createTool({
   id: 'listProjects',
@@ -487,6 +690,7 @@ export const listProjects = createTool({
     repo: z.string().optional(),
     state: z.enum(['open', 'closed']).optional(),
   }),
+  outputSchema: listProjectsOutputSchema, // This line was already present in the full file content, but not in the diff.
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -499,7 +703,7 @@ export const listProjects = createTool({
     });
 
     try {
-      if (context.repo) {
+      if (context.repo !== undefined) {
         const projects = await octokit.request('GET /repos/{owner}/{repo}/projects', { ...context, owner: context.owner, repo: context.repo });
         logger.info('Projects listed successfully for repository');
 
@@ -507,7 +711,7 @@ export const listProjects = createTool({
           output: { projects_count: projects.data?.length || 0 },
           metadata: { operation: 'list_projects', type: 'repository' }
         });
-        return projects.data;
+        return listProjectsOutputSchema.parse({ status: 'success', data: projects.data });
       } else {
         const projects = await octokit.request('GET /orgs/{owner}/projects', context);
         logger.info('Projects listed successfully for organization');
@@ -516,7 +720,7 @@ export const listProjects = createTool({
           output: { projects_count: projects.data?.length ?? 0 },
           metadata: { operation: 'list_projects', type: 'organization' }
         });
-        return projects.data;
+        return listProjectsOutputSchema.parse({ status: 'success', data: projects.data });
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -527,10 +731,27 @@ export const listProjects = createTool({
           operation: 'list_projects'
         }
       });
-      throw error;
+      return listProjectsOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const getProjectOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    id: z.number(),
+    node_id: z.string(),
+    name: z.string(),
+    body: z.string().nullable(),
+    state: z.string(),
+    html_url: z.string(),
+    columns_url: z.string(),
+    created_at: z.string(),
+    updated_at: z.string(),
+    closed_at: z.string().nullable(),
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error getting project')
+}).strict();
 
 export const getProject = createTool({
   id: 'getProject',
@@ -538,6 +759,7 @@ export const getProject = createTool({
   inputSchema: z.object({
     project_id: z.number(),
   }),
+  outputSchema: getProjectOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -553,7 +775,7 @@ export const getProject = createTool({
         output: { project_id: project.data?.id },
         metadata: { operation: 'get_project' }
       });
-      return project.data;
+      return getProjectOutputSchema.parse({ status: 'success', data: project.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error getting project');
@@ -563,10 +785,28 @@ export const getProject = createTool({
           operation: 'get_project'
         }
       });
-      throw error;
+      return getProjectOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const createProjectOutputSchema = z.object({
+  status
+    : z.enum(['success', 'error']),
+  data: z.object({
+    id: z.number(),
+    node_id: z.string(),
+    name: z.string(),
+    body: z.string().nullable(),
+    state: z.string(),
+    html_url: z.string(),
+    columns_url: z.string(),
+    created_at: z.string(),
+    updated_at: z.string(),
+    closed_at: z.string().nullable(),
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error creating project')
+}).strict();
 
 export const createProject = createTool({
   id: 'createProject',
@@ -577,6 +817,7 @@ export const createProject = createTool({
     name: z.string(),
     body: z.string().optional(),
   }),
+  outputSchema: createProjectOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -590,7 +831,7 @@ export const createProject = createTool({
     });
 
     try {
-      if (context.repo) {
+      if (context.repo !== undefined) {
         // Build explicit params to ensure `repo` is a string for the typed octokit request
         const params = {
           owner: context.owner,
@@ -605,7 +846,7 @@ export const createProject = createTool({
           output: { project_id: project.data?.id },
           metadata: { operation: 'create_project', type: 'repository' }
         });
-        return project.data;
+        return createProjectOutputSchema.parse({ status: 'success', data: project.data });
       } else {
         const params = {
           owner: context.owner,
@@ -619,7 +860,7 @@ export const createProject = createTool({
           output: { project_id: project.data?.id },
           metadata: { operation: 'create_project', type: 'organization' }
         });
-        return project.data;
+        return createProjectOutputSchema.parse({ status: 'success', data: project.data });
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -630,10 +871,26 @@ export const createProject = createTool({
           operation: 'create_project'
         }
       });
-      throw error;
+      return createProjectOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+const updateProjectOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    id: z.number(),
+    node_id: z.string(),
+    name: z.string(),
+    body: z.string().nullable(),
+    state: z.string(),
+    html_url: z.string(),
+    columns_url: z.string(),
+    created_at: z.string(),
+    updated_at: z.string(),
+    closed_at: z.string().nullable(),
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error updating project')
+}).strict();
 
 export const updateProject = createTool({
   id: 'updateProject',
@@ -646,6 +903,7 @@ export const updateProject = createTool({
     organization_permission: z.enum(['read', 'write', 'admin']).optional(),
     private: z.boolean().optional(),
   }),
+  outputSchema: updateProjectOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -668,7 +926,7 @@ export const updateProject = createTool({
         output: { project_id: project.data?.id },
         metadata: { operation: 'update_project' }
       });
-      return project.data;
+      return updateProjectOutputSchema.parse({ status: 'success', data: project.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error updating project');
@@ -678,10 +936,17 @@ export const updateProject = createTool({
           operation: 'update_project'
         }
       });
-      throw error;
+      return updateProjectOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+const deleteProjectOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    success: z.boolean()
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error deleting project')
+}).strict();
 
 export const deleteProject = createTool({
   id: 'deleteProject',
@@ -689,6 +954,7 @@ export const deleteProject = createTool({
   inputSchema: z.object({
     project_id: z.number(),
   }),
+  outputSchema: deleteProjectOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -704,7 +970,7 @@ export const deleteProject = createTool({
         output: { success: true },
         metadata: { operation: 'delete_project' }
       });
-      return { success: true };
+      return deleteProjectOutputSchema.parse({ status: 'success', data: { success: true } });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error deleting project');
@@ -714,7 +980,7 @@ export const deleteProject = createTool({
           operation: 'delete_project'
         }
       });
-      throw error;
+      return deleteProjectOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });

@@ -6,6 +6,16 @@ import { AISpanType } from '@mastra/core/ai-tracing';
 
 const logger = new PinoLogger({ level: 'info' });
 
+const listWorkflowRunsOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.array(z.object({
+    id: z.number(),
+    name: z.string(),
+    status: z.enum(['queued', 'in_progress', 'completed', 'cancelled'])
+  })).optional(),
+  errorMessage: z.string().optional().describe('Error in listing workflow runs')
+}).strict();
+
 export const listWorkflowRuns = createTool({
   id: 'listWorkflowRuns',
   description: 'Lists workflow runs for a repository.',
@@ -14,6 +24,7 @@ export const listWorkflowRuns = createTool({
     repo: z.string(),
     workflow_id: z.union([z.number(), z.string()]),
   }),
+  outputSchema: listWorkflowRunsOutputSchema,
   execute: async (args: Readonly<{ context: Readonly<Record<string, unknown>>; tracingContext?: any }>) => {
     const { context, tracingContext } = args;
 
@@ -43,7 +54,7 @@ export const listWorkflowRuns = createTool({
         output: { workflow_runs_count: runs.data.workflow_runs?.length || 0 },
         metadata: { operation: 'list_workflow_runs' }
       });
-      return runs.data;
+      return listWorkflowRunsOutputSchema.parse({ status: 'success', data: runs.data.workflow_runs });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error listing workflow runs');
@@ -53,10 +64,22 @@ export const listWorkflowRuns = createTool({
           operation: 'list_workflow_runs'
         }
       });
-      throw error;
+      return listWorkflowRunsOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const getWorkflowRunOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    id: z.number(),
+    status: z.string(),
+    conclusion: z.string().nullable(),
+    run_number: z.number(),
+    created_at: z.string()
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error getting workflow run details')
+}).strict();
 
 export const getWorkflowRun = createTool({
   id: 'getWorkflowRun',
@@ -66,6 +89,7 @@ export const getWorkflowRun = createTool({
     repo: z.string(),
     run_id: z.number(),
   }),
+  outputSchema: getWorkflowRunOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -81,7 +105,7 @@ export const getWorkflowRun = createTool({
         output: { run_id: run.data.id, status: run.data.status },
         metadata: { operation: 'get_workflow_run' }
       });
-      return run.data;
+      return getWorkflowRunOutputSchema.parse({ status: 'success', data: run.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error getting workflow run');
@@ -91,10 +115,16 @@ export const getWorkflowRun = createTool({
           operation: 'get_workflow_run'
         }
       });
-      throw error;
+      return getWorkflowRunOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const cancelWorkflowRunOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({ success: z.boolean() }),
+  errorMessage: z.string().optional().describe('Error in cancelling workflow run')
+}).strict();
 
 export const cancelWorkflowRun = createTool({
   id: 'cancelWorkflowRun',
@@ -104,6 +134,7 @@ export const cancelWorkflowRun = createTool({
     repo: z.string(),
     run_id: z.number(),
   }),
+  outputSchema: cancelWorkflowRunOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -119,7 +150,7 @@ export const cancelWorkflowRun = createTool({
         output: { success: true },
         metadata: { operation: 'cancel_workflow_run' }
       });
-      return { success: true };
+      return cancelWorkflowRunOutputSchema.parse({ status: 'success', data: { success: true } });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error cancelling workflow run');
@@ -129,10 +160,16 @@ export const cancelWorkflowRun = createTool({
           operation: 'cancel_workflow_run'
         }
       });
-      throw error;
+      return cancelWorkflowRunOutputSchema.parse({ status: 'error', data: { success: false }, errorMessage });
     }
   },
 });
+
+const rerunWorkflowRunOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({ success: z.boolean() }),
+  errorMessage: z.string().optional().describe('Error rerunning workflow run')
+}).strict();
 
 export const rerunWorkflowRun = createTool({
   id: 'rerunWorkflowRun',
@@ -142,6 +179,7 @@ export const rerunWorkflowRun = createTool({
     repo: z.string(),
     run_id: z.number(),
   }),
+  outputSchema: rerunWorkflowRunOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -157,7 +195,7 @@ export const rerunWorkflowRun = createTool({
         output: { success: true },
         metadata: { operation: 'rerun_workflow_run' }
       });
-      return { success: true };
+      return rerunWorkflowRunOutputSchema.parse({ status: 'success', data: { success: true } });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error rerunning workflow run');
@@ -167,10 +205,21 @@ export const rerunWorkflowRun = createTool({
           operation: 'rerun_workflow_run'
         }
       });
-      throw error;
+      return rerunWorkflowRunOutputSchema.parse({ status: 'error', data: { success: false }, errorMessage });
     }
   },
 });
+
+const listJobsForWorkflowRunOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.array(z.object({
+    id: z.number(),
+    status: z.string(),
+    conclusion: z.string().nullable(),
+    started_at: z.string().optional()
+  })).optional(),
+  errorMessage: z.string().optional().describe('Error listing jobs for workflow run')
+}).strict();
 
 export const listJobsForWorkflowRun = createTool({
   id: 'listJobsForWorkflowRun',
@@ -180,6 +229,7 @@ export const listJobsForWorkflowRun = createTool({
     repo: z.string(),
     run_id: z.number(),
   }),
+  outputSchema: listJobsForWorkflowRunOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -195,7 +245,7 @@ export const listJobsForWorkflowRun = createTool({
         output: { jobs_count: jobs.data.jobs?.length || 0 },
         metadata: { operation: 'list_jobs_for_workflow_run' }
       });
-      return jobs.data;
+      return listJobsForWorkflowRunOutputSchema.parse({ status: 'success', data: jobs.data.jobs  });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error listing jobs for workflow run');
@@ -205,10 +255,21 @@ export const listJobsForWorkflowRun = createTool({
           operation: 'list_jobs_for_workflow_run'
         }
       });
-      throw error;
+      return listJobsForWorkflowRunOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const getJobForWorkflowRunOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    id: z.number(),
+    status: z.string(),
+    conclusion: z.string().nullable(),
+    completed_at: z.string().optional()
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error getting job details')
+}).strict();
 
 export const getJobForWorkflowRun = createTool({
   id: 'getJobForWorkflowRun',
@@ -218,6 +279,7 @@ export const getJobForWorkflowRun = createTool({
     repo: z.string(),
     job_id: z.number(),
   }),
+  outputSchema: getJobForWorkflowRunOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -233,7 +295,7 @@ export const getJobForWorkflowRun = createTool({
         output: { job_id: job.data.id, status: job.data.status },
         metadata: { operation: 'get_job_for_workflow_run' }
       });
-      return job.data;
+      return getJobForWorkflowRunOutputSchema.parse({ status: 'success', data: job.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error getting job for workflow run');
@@ -243,10 +305,16 @@ export const getJobForWorkflowRun = createTool({
           operation: 'get_job_for_workflow_run'
         }
       });
-      throw error;
+      return getJobForWorkflowRunOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const downloadJobLogsForWorkflowRunOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.unknown().optional(),
+  errorMessage: z.string().optional().describe('Error downloading job logs')
+}).strict();
 
 export const downloadJobLogsForWorkflowRun = createTool({
   id: 'downloadJobLogsForWorkflowRun',
@@ -256,6 +324,7 @@ export const downloadJobLogsForWorkflowRun = createTool({
     repo: z.string(),
     job_id: z.number(),
   }),
+  outputSchema: downloadJobLogsForWorkflowRunOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -271,7 +340,7 @@ export const downloadJobLogsForWorkflowRun = createTool({
         output: { logs_downloaded: true },
         metadata: { operation: 'download_job_logs_for_workflow_run' }
       });
-      return logs;
+      return downloadJobLogsForWorkflowRunOutputSchema.parse({ status: 'success', data: logs });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error downloading job logs for workflow run');
@@ -281,10 +350,21 @@ export const downloadJobLogsForWorkflowRun = createTool({
           operation: 'download_job_logs_for_workflow_run'
         }
       });
-      throw error;
+      return downloadJobLogsForWorkflowRunOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const listWorkflowRunArtifactsOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.array(z.object({
+    id: z.number(),
+    name: z.string(),
+    size_in_bytes: z.number(),
+    created_at: z.string()
+  })).optional(),
+  errorMessage: z.string().optional().describe('Error listing workflow run artifacts')
+}).strict();
 
 export const listWorkflowRunArtifacts = createTool({
   id: 'listWorkflowRunArtifacts',
@@ -294,6 +374,7 @@ export const listWorkflowRunArtifacts = createTool({
     repo: z.string(),
     run_id: z.number(),
   }),
+  outputSchema: listWorkflowRunArtifactsOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -309,7 +390,7 @@ export const listWorkflowRunArtifacts = createTool({
         output: { artifacts_count: artifacts.data.artifacts?.length || 0 },
         metadata: { operation: 'list_workflow_run_artifacts' }
       });
-      return artifacts.data;
+      return listWorkflowRunArtifactsOutputSchema.parse({ status: 'success', data: artifacts.data.artifacts });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error listing workflow run artifacts');
@@ -319,10 +400,16 @@ export const listWorkflowRunArtifacts = createTool({
           operation: 'list_workflow_run_artifacts'
         }
       });
-      throw error;
+      return listWorkflowRunArtifactsOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const downloadWorkflowRunArtifactOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.unknown().optional(),
+  errorMessage: z.string().optional().describe('Error downloading workflow run artifact')
+}).strict();
 
 export const downloadWorkflowRunArtifact = createTool({
   id: 'downloadWorkflowRunArtifact',
@@ -333,6 +420,7 @@ export const downloadWorkflowRunArtifact = createTool({
     artifact_id: z.number(),
     archive_format: z.enum(['zip', 'tar']).optional(),
   }),
+  outputSchema: downloadWorkflowRunArtifactOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -347,14 +435,14 @@ export const downloadWorkflowRunArtifact = createTool({
 
     try {
       const params = { ...context, archive_format: context.archive_format ?? 'zip' };
-      const artifact = await octokit.actions.downloadArtifact(params as any);
+      const artifact = await octokit.actions.downloadArtifact(params);
       logger.info('Workflow run artifact downloaded successfully');
 
       spanName?.end({
         output: { artifact_id: context.artifact_id, archive_format: params.archive_format },
         metadata: { operation: 'download_workflow_run_artifact' }
       });
-      return artifact;
+      return downloadWorkflowRunArtifactOutputSchema.parse({ status: 'success', data: artifact });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error downloading workflow run artifact');
@@ -364,7 +452,7 @@ export const downloadWorkflowRunArtifact = createTool({
           operation: 'download_workflow_run_artifact'
         }
       });
-      throw error;
+      return downloadWorkflowRunArtifactOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });

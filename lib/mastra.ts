@@ -13,6 +13,15 @@ export const getGithubAgent = () => mastraClient.getAgent("githubAgent");
 export const getReportAgent = () => mastraClient.getAgent("reportAgent");
 export const getRagAgent = () => mastraClient.getAgent("ragAgent");
 
+export const getCopywriterAgent = () => mastraClient.getAgent("copywriterAgent");
+export const getEditorAgent = () => mastraClient.getAgent("editorAgent");
+export const getEvaluationAgent = () => mastraClient.getAgent("evaluationAgent");
+export const getLearningExtractionAgent = () => mastraClient.getAgent("learningExtractionAgent");
+export const getMonitorAgent = () => mastraClient.getAgent("monitorAgent");
+export const getPlanningAgent = () => mastraClient.getAgent("planningAgent");
+export const getPublisherAgent = () => mastraClient.getAgent("publisherAgent");
+export const getQualityAssuranceAgent = () => mastraClient.getAgent("qualityAssuranceAgent");
+export const getWebSummarizationAgent = () => mastraClient.getAgent("webSummarizationAgent");
 // Workflow helpers
 export const getResearchWorkflow = () => mastraClient.getWorkflow("researchWorkflow");
 export const getReportWorkflow = () => mastraClient.getWorkflow("generateReportWorkflow");

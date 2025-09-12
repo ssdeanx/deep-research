@@ -53,6 +53,7 @@
     "@mastra/client-js": "^0.12.3",
     "@mastra/core": "^0.16.3",
     "@mastra/evals": "^0.13.6",
+    "@mastra/langfuse": "^0.0.7",
     "@mastra/libsql": "^0.14.1",
     "@mastra/loggers": "^0.10.11",
     "@mastra/mcp": "^0.12.0",

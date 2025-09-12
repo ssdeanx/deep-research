@@ -6,10 +6,23 @@ import { AISpanType } from '@mastra/core/ai-tracing';
 
 const logger = new PinoLogger({ level: 'info' });
 
+const listRepositoriesOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.array(z.object({
+    id: z.number(),
+    name: z.string(),
+    full_name: z.string(),
+    private: z.boolean(),
+    html_url: z.string()
+  })).optional(),
+  errorMessage: z.string().optional().describe('Error listing repositories')
+}).strict();
+
 export const listRepositories = createTool({
   id: 'listRepositories',
   description: 'Lists the repositories for the authenticated user.',
   inputSchema: z.object({}),
+  outputSchema: listRepositoriesOutputSchema,
   execute: async ({ tracingContext }) => {
     const listSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -21,15 +34,27 @@ export const listRepositories = createTool({
       const repos = await octokit.repos.listForAuthenticatedUser();
       logger.info('Repositories listed successfully'); // Corrected logging as per user's instruction
       listSpan?.end({ output: { count: repos.data.length } });
-      return repos.data;
+      return listRepositoriesOutputSchema.parse({ status: 'success', data: repos.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       listSpan?.end({ metadata: { error: errorMessage } });
       logger.info('Error listing repositories'); // Corrected logging as per user's instruction
-      throw error;
+      return listRepositoriesOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const createRepositoryOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    id: z.number(),
+    name: z.string(),
+    full_name: z.string(),
+    private: z.boolean(),
+    html_url: z.string()
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error creating repository')
+}).strict();
 
 export const createRepository = createTool({
   id: 'createRepository',
@@ -39,6 +64,7 @@ export const createRepository = createTool({
     description: z.string().optional(),
     private: z.boolean().optional(),
   }),
+  outputSchema: createRepositoryOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const createSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -50,15 +76,27 @@ export const createRepository = createTool({
       const repo = await octokit.repos.createForAuthenticatedUser(context);
       logger.info('Repository created successfully'); // Corrected logging as per user's instruction
       createSpan?.end({ output: { repoName: repo.data.name, repoId: repo.data.id } });
-      return repo.data;
+      return createRepositoryOutputSchema.parse({ status: 'success', data: repo.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       createSpan?.end({ metadata: { error: errorMessage } });
       logger.info('Error creating repository'); // Corrected logging as per user's instruction
-      throw error;
+      return createRepositoryOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const getRepositoryOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    id: z.number(),
+    name: z.string(),
+    full_name: z.string(),
+    private: z.boolean(),
+    html_url: z.string()
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error getting repository')
+}).strict();
 
 export const getRepository = createTool({
   id: 'getRepository',
@@ -67,14 +105,24 @@ export const getRepository = createTool({
     owner: z.string(),
     repo: z.string(),
   }),
-  execute: async ({ context }) => {
+  outputSchema: getRepositoryOutputSchema,
+  execute: async ({ context, tracingContext }) => {
+    const getSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.GENERIC,
+      name: 'get_repository',
+      input: { owner: context.owner, repo: context.repo }
+    });
+
     try {
       const repo = await octokit.repos.get(context);
       logger.info('Repository retrieved successfully'); // Corrected logging as per user's instruction
-      return repo.data;
+      getSpan?.end({ output: { repoName: repo.data.name, repoId: repo.data.id } });
+      return getRepositoryOutputSchema.parse({ status: 'success', data: repo.data });
     } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      getSpan?.end({ metadata: { error: errorMessage } });
       logger.info('Error getting repository'); // Corrected logging as per user's instruction
-      throw error;
+      return getRepositoryOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });

@@ -8,6 +8,16 @@ const logger = new PinoLogger({ name: 'GitHubChecks', level: 'info' });
 
 logger.info(`Creating check run`);
 
+const createCheckRunOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    id: z.number(),
+    status: z.string(),
+    url: z.string()
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error creating check run')
+}).strict();
+
 export const createCheckRun = createTool({
   id: 'createCheckRun',
   description: 'Creates a new check run.',
@@ -26,6 +36,7 @@ export const createCheckRun = createTool({
       text: z.string().optional(),
     }).optional(),
   }),
+  outputSchema: createCheckRunOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       // Log the creation of the check run
@@ -48,7 +59,7 @@ export const createCheckRun = createTool({
         output: { check_run_id: checkRun.data.id, status: checkRun.data.status },
         metadata: { operation: 'create_check_run' }
       });
-      return checkRun.data;
+      return createCheckRunOutputSchema.parse({ status: 'success', data: checkRun.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       spanName?.end({
@@ -57,10 +68,21 @@ export const createCheckRun = createTool({
           operation: 'create_check_run'
         }
       });
-      throw error;
+      return createCheckRunOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const getCheckRunOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    id: z.number(),
+    status: z.string(),
+    conclusion: z.string().nullable(),
+    url: z.string()
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error getting check run')
+}).strict();
 
 export const getCheckRun = createTool({
   id: 'getCheckRun',
@@ -70,6 +92,7 @@ export const getCheckRun = createTool({
     repo: z.string(),
     check_run_id: z.number(),
   }),
+  outputSchema: getCheckRunOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -84,7 +107,7 @@ export const getCheckRun = createTool({
         output: { check_run_id: checkRun.data.id, status: checkRun.data.status },
         metadata: { operation: 'get_check_run' }
       });
-      return checkRun.data;
+      return getCheckRunOutputSchema.parse({ status: 'success', data: checkRun.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       spanName?.end({
@@ -93,10 +116,20 @@ export const getCheckRun = createTool({
           operation: 'get_check_run'
         }
       });
-      throw error;
+      return getCheckRunOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const updateCheckRunOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    id: z.number(),
+    status: z.string(),
+    conclusion: z.string().optional()
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error updating check run')
+}).strict();
 
 export const updateCheckRun = createTool({
   id: 'updateCheckRun',
@@ -116,6 +149,7 @@ export const updateCheckRun = createTool({
       text: z.string().optional(),
     }).optional(),
   }),
+  outputSchema: updateCheckRunOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -137,7 +171,7 @@ export const updateCheckRun = createTool({
         output: { check_run_id: checkRun.data.id, status: checkRun.data.status },
         metadata: { operation: 'update_check_run' }
       });
-      return checkRun.data;
+      return updateCheckRunOutputSchema.parse({ status: 'success', data: checkRun.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       spanName?.end({
@@ -146,10 +180,22 @@ export const updateCheckRun = createTool({
           operation: 'update_check_run'
         }
       });
-      throw error;
+      return updateCheckRunOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const listCheckRunsForRefOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    check_runs: z.array(z.object({
+      id: z.number(),
+      name: z.string(),
+      status: z.string()
+    }))
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error listing check runs for ref')
+}).strict();
 
 export const listCheckRunsForRef = createTool({
   id: 'listCheckRunsForRef',
@@ -159,6 +205,7 @@ export const listCheckRunsForRef = createTool({
     repo: z.string(),
     ref: z.string(),
   }),
+  outputSchema: listCheckRunsForRefOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -173,7 +220,7 @@ export const listCheckRunsForRef = createTool({
         output: { check_runs_count: checkRuns.data.check_runs?.length || 0 },
         metadata: { operation: 'list_check_runs_for_ref' }
       });
-      return checkRuns.data;
+      return listCheckRunsForRefOutputSchema.parse({ status: 'success', data: checkRuns.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       spanName?.end({
@@ -182,10 +229,22 @@ export const listCheckRunsForRef = createTool({
           operation: 'list_check_runs_for_ref'
         }
       });
-      throw error;
+      return listCheckRunsForRefOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const listCheckSuitesForRefOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    check_suites: z.array(z.object({
+      id: z.number(),
+      status: z.string(),
+      conclusion: z.string().nullable()
+    }))
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error listing check suites for ref')
+}).strict();
 
 export const listCheckSuitesForRef = createTool({
   id: 'listCheckSuitesForRef',
@@ -195,6 +254,7 @@ export const listCheckSuitesForRef = createTool({
     repo: z.string(),
     ref: z.string(),
   }),
+  outputSchema: listCheckSuitesForRefOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -209,7 +269,7 @@ export const listCheckSuitesForRef = createTool({
         output: { check_suites_count: checkSuites.data.check_suites?.length || 0 },
         metadata: { operation: 'list_check_suites_for_ref' }
       });
-      return checkSuites.data;
+      return listCheckSuitesForRefOutputSchema.parse({ status: 'success', data: checkSuites.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       spanName?.end({
@@ -218,10 +278,20 @@ export const listCheckSuitesForRef = createTool({
           operation: 'list_check_suites_for_ref'
         }
       });
-      throw error;
+      return listCheckSuitesForRefOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const getCheckSuiteOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    id: z.number(),
+    status: z.string(),
+    conclusion: z.string().nullable()
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error getting check suite')
+}).strict();
 
 export const getCheckSuite = createTool({
   id: 'getCheckSuite',
@@ -231,6 +301,7 @@ export const getCheckSuite = createTool({
     repo: z.string(),
     check_suite_id: z.number(),
   }),
+  outputSchema: getCheckSuiteOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -245,7 +316,7 @@ export const getCheckSuite = createTool({
         output: { check_suite_id: checkSuite.data.id, status: checkSuite.data.status },
         metadata: { operation: 'get_check_suite' }
       });
-      return checkSuite.data;
+      return getCheckSuiteOutputSchema.parse({ status: 'success', data: checkSuite.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       spanName?.end({
@@ -254,10 +325,20 @@ export const getCheckSuite = createTool({
           operation: 'get_check_suite'
         }
       });
-      throw error;
+      return getCheckSuiteOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const createCheckSuiteOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    id: z.number(),
+    status: z.string(),
+    conclusion: z.string().nullable().optional()
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error creating check suite')
+}).strict();
 
 export const createCheckSuite = createTool({
   id: 'createCheckSuite',
@@ -267,6 +348,7 @@ export const createCheckSuite = createTool({
     repo: z.string(),
     head_sha: z.string(),
   }),
+  outputSchema: createCheckSuiteOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -281,7 +363,7 @@ export const createCheckSuite = createTool({
         output: { check_suite_id: checkSuite.data.id, status: checkSuite.data.status },
         metadata: { operation: 'create_check_suite' }
       });
-      return checkSuite.data;
+      return createCheckSuiteOutputSchema.parse({ status: 'success', data: checkSuite.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       spanName?.end({
@@ -290,7 +372,7 @@ export const createCheckSuite = createTool({
           operation: 'create_check_suite'
         }
       });
-      throw error;
+      return createCheckSuiteOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });

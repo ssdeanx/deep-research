@@ -21,6 +21,8 @@ import { publisherAgent } from "./agents/publisherAgent";
 import { copywriterAgent } from "./agents/copywriterAgent";
 import { editorAgent } from "./agents/editorAgent";
 import { assistant } from './agents/assistant';
+import { LangfuseExporter } from '@mastra/langfuse';
+import { SamplingStrategyType } from '@mastra/core/ai-tracing';
 //import { server } from './mcp/server';
 const logger = new PinoLogger({ level: 'info' });
 
@@ -51,14 +53,20 @@ export const mastra = new Mastra({
   vnext_networks: {
     complexResearchNetwork,
   },
-  telemetry: {
-    serviceName: "ai",
-    enabled: true,
-    sampling: {
-      type: "always_on",
-    },
-    export: {
-      type: "console",
+  observability: {
+    configs: {
+      langfuse: {
+        serviceName: process.env.SERVICE_NAME ?? 'mastra',
+        sampling: { type: SamplingStrategyType.ALWAYS },
+        exporters: [
+          new LangfuseExporter({
+            publicKey: process.env.LANGFUSE_PUBLIC_KEY,
+            secretKey: process.env.LANGFUSE_SECRET_KEY,
+            baseUrl: process.env.LANGFUSE_BASE_URL, // Optional
+            realtime: process.env.NODE_ENV === 'development',
+          }),
+        ],
+      },
     },
   },
 });
