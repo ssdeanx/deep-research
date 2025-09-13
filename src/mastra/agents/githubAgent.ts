@@ -4,7 +4,9 @@ import { createResearchMemory } from '../config/libsql-storage';
 import { PinoLogger } from '@mastra/loggers';
 import { CompletenessMetric, ContentSimilarityMetric, KeywordCoverageMetric, TextualDifferenceMetric, ToneConsistencyMetric } from '@mastra/evals/nlp';
 import { google } from '@ai-sdk/google';
-import { listWorkflowRuns } from '../tools/github';
+import { searchCode, searchIssuesAndPullRequests, searchRepositories, searchUsers } from '../tools/github/search';
+import { createPullRequest, createPullRequestComment, createPullRequestReview, deletePullRequestComment, getPullRequest, listPullRequestComments, listPullRequestReviews, listPullRequests, mergePullRequest, updatePullRequest, updatePullRequestComment } from '../tools/github/pullRequests';
+//import { listWorkflowRuns } from '../tools/github';
 
 const logger = new PinoLogger({ level: 'info' });
 
@@ -68,8 +70,22 @@ You possess the advanced capability to delegate tasks and request analysis from 
 `,
   model: google('gemini-2.5-flash'),
   tools: {
-    listWorkflowRuns,
-
+ //   listWorkflowRuns,
+      searchCode,
+      searchIssuesAndPullRequests,
+      searchRepositories,
+      searchUsers,
+      listPullRequests,
+      getPullRequest,
+      createPullRequest,
+      updatePullRequest,
+      mergePullRequest,
+      listPullRequestComments,
+      createPullRequestComment,
+      updatePullRequestComment,
+      deletePullRequestComment,
+      listPullRequestReviews,
+      createPullRequestReview,
   },
   evals: {
       contentSimilarity: new ContentSimilarityMetric({ ignoreCase: true, ignoreWhitespace: true }),

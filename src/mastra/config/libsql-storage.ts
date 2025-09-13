@@ -300,7 +300,7 @@ export const searchSimilarContent = async (
 
     // Call embedMany and normalize its result so we always have an embeddings array to use
         // Define a narrow type for possible embedMany return shapes and a runtime guard
-        type EmbedManyResult = number[][] | { embeddings?: number[][] } | unknown;
+        type EmbedManyResult = number[][] | { embeddings?: number[][] } | any;
         const embedResult = await embedMany({
           values: [query],
           model: embedder,
@@ -394,8 +394,16 @@ export const createResearchMemory = () => {
     options: {
       lastMessages: 500,
       workingMemory: {
-        enabled: true,
-        schema: userProfileSchema,
+        enabled: true,template: `# Agent Memory Context
+- **User Task**: Research summary, analysis, recommendations, etc.
+- **Target Audience**: Who will read this report
+- **Key Findings**: Important discoveries from research
+- **User Goals**: User long term goals
+- **Process**: How to achieve goals, & actions nessary
+- **Previous Interactions**: Summary of previously interactions
+- **Client Requirements**: Specific requirements or constraints
+- **Agent Notepad**: Location to store notes, you find to help have better memory context.
+`,
       },
       semanticRecall: {
         topK: 5,
