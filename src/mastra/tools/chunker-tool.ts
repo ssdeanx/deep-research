@@ -29,8 +29,8 @@ import {
   type ExtractParams,
   STORAGE_CONFIG // Import STORAGE_CONFIG
 } from '../config/libsql-storage';
-import { createGeminiEmbeddingModel } from '../config/googleProvider';
 import { embedMany } from 'ai';
+import { google } from '@ai-sdk/google';
 
 const logger = new PinoLogger({ name: 'ChunkerTool', level: 'info' });
 
@@ -231,7 +231,7 @@ export const chunkerTool = createTool({
       const preserveStructure = Boolean(runtimeContext?.get('preserve-structure') ?? validatedInput.chunkParams?.preserveStructure ?? true);
       const includeMetadata = Boolean(runtimeContext?.get('include-metadata') ?? true);
       // Get the embedder - always use gemini profile as it's the only one
-      const embedder = createGeminiEmbeddingModel();
+      const embedder = google.textEmbedding('gemini-embedding-001');
       // Create MDocument based on document type
       let doc: MDocument;
       const { content, type, title, source, metadata } = validatedInput.document;

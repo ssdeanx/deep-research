@@ -1,10 +1,10 @@
 import { Agent } from '@mastra/core';
 
 import { createResearchMemory } from '../config/libsql-storage';
-import * as githubTools from '../tools/github';
 import { PinoLogger } from '@mastra/loggers';
 import { CompletenessMetric, ContentSimilarityMetric, KeywordCoverageMetric, TextualDifferenceMetric, ToneConsistencyMetric } from '@mastra/evals/nlp';
 import { google } from '@ai-sdk/google';
+import { listWorkflowRuns } from '../tools/github';
 
 const logger = new PinoLogger({ level: 'info' });
 
@@ -68,7 +68,8 @@ You possess the advanced capability to delegate tasks and request analysis from 
 `,
   model: google('gemini-2.5-flash'),
   tools: {
-    ...githubTools,
+    listWorkflowRuns,
+
   },
   evals: {
       contentSimilarity: new ContentSimilarityMetric({ ignoreCase: true, ignoreWhitespace: true }),

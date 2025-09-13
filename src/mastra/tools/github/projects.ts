@@ -839,7 +839,7 @@ export const createProject = createTool({
           name: context.name,
           ...(typeof context.body !== 'undefined' ? { body: context.body } : {}),
         };
-        const project = await octokit.request('POST /repos/{owner}/{repo}/projects', params as any);
+        const project = await octokit.request('POST /repos/{owner}/{repo}/projects', params);
         logger.info('Project created successfully for repository');
 
         spanName?.end({
@@ -853,7 +853,7 @@ export const createProject = createTool({
           name: context.name,
           ...(typeof context.body !== 'undefined' ? { body: context.body } : {}),
         };
-        const project = await octokit.request('POST /orgs/{owner}/projects', params as any);
+        const project = await octokit.request('POST /orgs/{owner}/projects', params);
         logger.info('Project created successfully for organization');
 
         spanName?.end({

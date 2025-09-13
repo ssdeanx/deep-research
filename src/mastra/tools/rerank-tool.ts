@@ -3,11 +3,12 @@ import type { ToolExecutionContext } from '@mastra/core/tools';
 import { RuntimeContext } from '@mastra/core/di';
 import { AISpanType } from '@mastra/core/ai-tracing';
 import { rerank, type RerankResult } from '@mastra/rag';
-import { createGemini25Provider } from '../config/googleProvider';
+
 import { vectorQueryTool } from './vectorQueryTool';
 import { PinoLogger } from '@mastra/loggers';
 import { z } from 'zod';
 import { STORAGE_CONFIG } from '../config/libsql-storage';
+import { google } from '@ai-sdk/google';
 
 const logger = new PinoLogger({ name: 'RerankTool', level: 'info' });
 
@@ -17,7 +18,7 @@ const logger = new PinoLogger({ name: 'RerankTool', level: 'info' });
 export interface RerankRuntimeContext {
   'user-id'?: string;
   'session-id'?: string;
-  'model-preference'?: 'gemini-2.5-flash-lite-preview-06-17' | 'gemini-2.5-preview-05-20' | 'gemini-2.0-flash' | 'gemini-2.0-flash-lite';
+  'model-preference'?: 'gemini-2.5-flash-lite' | 'gemini-2.5-preview-05-20' | 'gemini-2.0-flash' | 'gemini-2.0-flash-lite';
   'semantic-weight'?: number;
   'vector-weight'?: number;
   'position-weight'?: number;
@@ -148,7 +149,7 @@ export const rerankTool = createTool({
 
       // If we have more results than needed, apply reranking
       if (initialResults.results.length > parsedInput.finalK) {
-        const model = createGemini25Provider(modelPreference);
+        const model = google(modelPreference)
 
         if (initialQuerySpan) {
           initialQuerySpan.end({
@@ -311,7 +312,7 @@ export const rerankTool = createTool({
  * Runtime context instance for rerank tool with defaults
  */
 export const rerankRuntimeContext = new RuntimeContext<RerankRuntimeContext>();
-rerankRuntimeContext.set('model-preference', 'gemini-2.5-flash-lite-preview-06-17');
+rerankRuntimeContext.set('model-preference', 'gemini-2.5-flash-lite');
 rerankRuntimeContext.set('semantic-weight', 0.6);
 rerankRuntimeContext.set('vector-weight', 0.3);
 rerankRuntimeContext.set('position-weight', 0.1);

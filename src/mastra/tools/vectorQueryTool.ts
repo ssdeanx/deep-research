@@ -31,10 +31,11 @@ import {
   STORAGE_CONFIG,
   searchMemoryMessages // Import searchMemoryMessages
 } from '../config/libsql-storage';
-import { createGeminiEmbeddingModel } from '../config/googleProvider';
+
 import { PinoLogger } from '@mastra/loggers';
 import { embedMany, generateId } from 'ai';
 import type { Memory } from '@mastra/memory';
+import { google } from "@ai-sdk/google";
 
 // Define runtime context type for vector query tools
 export interface VectorQueryRuntimeContext {
@@ -80,7 +81,7 @@ const vectorQueryOutputSchema = z.object({
 export const vectorQueryTool = createVectorQueryTool({
   vectorStoreName: "libsql", // Use LibSQL vector store
   indexName: STORAGE_CONFIG.VECTOR_INDEXES.RESEARCH_DOCUMENTS, // Use research documents index
-  model: createGeminiEmbeddingModel(), // Use Gemini embedding model
+  model: google.textEmbedding("gemini-embedding-001"), // Use Gemini embedding model
   databaseConfig: {
     libsql: {
       connectionUrl: process.env.VECTOR_DATABASE_URL ?? STORAGE_CONFIG.VECTOR_DATABASE_URL,
@@ -261,7 +262,7 @@ export const enhancedVectorQueryTool = createTool({
 
         // Create query embedding using Google's embedding model
         const { embeddings } = await embedMany({
-          model: createGeminiEmbeddingModel(),
+          model: google.textEmbedding('gemini-embedding-001'),
           values: [validatedInput.query]
         });
         const queryEmbedding = embeddings[0];

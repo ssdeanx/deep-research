@@ -6,12 +6,25 @@ import { AISpanType } from '@mastra/core/ai-tracing';
 
 const logger = new PinoLogger({ level: 'info' });
 
+const getOrganizationOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({
+    id: z.number(),
+    login: z.string(),
+    name: z.string(),
+    description: z.string().optional(),
+    html_url: z.string()
+  }).optional(),
+  errorMessage: z.string().optional().describe('Error getting organization')
+}).strict();
+
 export const getOrganization = createTool({
   id: 'getOrganization',
   description: 'Gets an organization by name.',
   inputSchema: z.object({
     org: z.string(),
   }),
+  outputSchema: getOrganizationOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -24,10 +37,10 @@ export const getOrganization = createTool({
       logger.info('Organization retrieved successfully');
 
       spanName?.end({
-        output: { org_name: org.data.name, org_id: org.data.id },
+        output: { org_id: org.data.id },
         metadata: { operation: 'get_organization' }
       });
-      return org.data;
+      return getOrganizationOutputSchema.parse({ status: 'success', data: org.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error getting organization');
@@ -37,10 +50,21 @@ export const getOrganization = createTool({
           operation: 'get_organization'
         }
       });
-      throw error;
+      return getOrganizationOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const listOrganizationsOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.array(z.object({
+    id: z.number(),
+    login: z.string(),
+    description: z.string().optional(),
+    html_url: z.string()
+  })).optional(),
+  errorMessage: z.string().optional().describe('Error listing organizations')
+}).strict();
 
 export const listOrganizations = createTool({
   id: 'listOrganizations',
@@ -48,6 +72,7 @@ export const listOrganizations = createTool({
   inputSchema: z.object({
     since: z.number().optional(),
   }),
+  outputSchema: listOrganizationsOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -60,10 +85,10 @@ export const listOrganizations = createTool({
       logger.info('Organizations listed successfully');
 
       spanName?.end({
-        output: { organizations_count: orgs.data?.length || 0 },
+        output: { organizations_count: orgs.data.length },
         metadata: { operation: 'list_organizations' }
       });
-      return orgs.data;
+      return listOrganizationsOutputSchema.parse({ status: 'success', data: orgs.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error listing organizations');
@@ -73,10 +98,21 @@ export const listOrganizations = createTool({
           operation: 'list_organizations'
         }
       });
-      throw error;
+      return listOrganizationsOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const listOrganizationMembersOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.array(z.object({
+    id: z.number(),
+    login: z.string(),
+    type: z.string(),
+    html_url: z.string()
+  })).optional(),
+  errorMessage: z.string().optional().describe('Error listing organization members')
+}).strict();
 
 export const listOrganizationMembers = createTool({
   id: 'listOrganizationMembers',
@@ -84,6 +120,7 @@ export const listOrganizationMembers = createTool({
   inputSchema: z.object({
     org: z.string(),
   }),
+  outputSchema: listOrganizationMembersOutputSchema,
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -96,10 +133,10 @@ export const listOrganizationMembers = createTool({
       logger.info('Organization members listed successfully');
 
       spanName?.end({
-        output: { members_count: members.data?.length || 0 },
+        output: { members_count: members.data.length },
         metadata: { operation: 'list_organization_members' }
       });
-      return members.data;
+      return listOrganizationMembersOutputSchema.parse({ status: 'success', data: members.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error listing organization members');
@@ -109,7 +146,7 @@ export const listOrganizationMembers = createTool({
           operation: 'list_organization_members'
         }
       });
-      throw error;
+      return listOrganizationMembersOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });

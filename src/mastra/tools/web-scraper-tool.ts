@@ -27,8 +27,8 @@ class HtmlProcessor {
       const {document} = dom.window;
 
       // Remove dangerous elements using JSDOM
-      const dangerousElements = document.querySelectorAll('script, style, iframe, embed, object, noscript, meta, link[rel="stylesheet"]');
-      dangerousElements.forEach(element => element.remove());
+      const dangerousElements = document.querySelectorAll('script, style, iframe, embed, object, noscript, meta, link[rel="stylesheet"], form, input, button, select, textarea');
+      dangerousElements.forEach(element => { element.remove(); });
 
       // Remove event handler attributes
       const allElements = document.querySelectorAll('*');
@@ -168,6 +168,17 @@ class HtmlProcessor {
     } catch (error) {
       logger.warn('JSDOM conversion failed, using marked fallback', { error });
       return marked.parse(html) as string;
+    }
+  }
+
+  static sanitizeMarkdown(markdown: string): string {
+    try {
+      if (markdown === null || markdown === undefined) {return '';}
+      // Escape angle brackets to reduce risk of injecting raw HTML when markdown is rendered in HTML contexts.
+      // Preserve other markdown syntax but ensure raw HTML tags are neutralized.
+      return String(markdown).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    } catch {
+      return '';
     }
   }
 
@@ -543,7 +554,7 @@ export const batchWebScraperTool = createTool({
 
           await fs.mkdir(dataDir, { recursive: true });
           await fs.writeFile(fullPath, JSON.stringify(results, null, 2), 'utf-8');
-          savedFilePath = path.relative(path.join(process.cwd(), './docs/data'), fullPath);
+          savedFilePath = path.relative(path.join(process.cwd(), './data'), fullPath);
           logger.info('Batch results saved securely', { fileName: savedFilePath });
         } catch (error) {
           logger.error('Failed to save batch results', { error: error instanceof Error ? error.message : String(error) });
@@ -717,7 +728,7 @@ export const siteMapExtractorTool = createTool({
         try {
           const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
           const fileName = `sitemap_${baseUrl.hostname}_${timestamp}.json`;
-          const dataDir = path.join(process.cwd(), './docs/data');
+          const dataDir = path.join(process.cwd(), './data');
           const fullPath = path.join(dataDir, fileName);
 
           if (!ValidationUtils.validateFilePath(fullPath)) {
@@ -861,11 +872,25 @@ export const linkExtractorTool = createTool({
 
             if (context.filterPatterns) {
               const matchesFilter = context.filterPatterns.some(pattern => {
-                try {
-                  return new RegExp(pattern).test(absoluteUrl);
-                } catch {
+                // Do not construct RegExp from untrusted input; use a simple and safe wildcard matcher.
+                // Support '*' as a wildcard matching any sequence of characters, otherwise perform substring checks.
+                if (typeof pattern !== 'string' || pattern.trim() === '') {
                   return false;
                 }
+                const parts = pattern.split('*').map(p => p.trim()).filter(p => p.length > 0);
+                // If pattern is only '*' or empty after trimming, treat as match-all
+                if (parts.length === 0) {
+                  return true;
+                }
+                let position = 0;
+                for (const part of parts) {
+                  const idx = absoluteUrl.indexOf(part, position);
+                  if (idx === -1) {
+                    return false;
+                  }
+                  position = idx + part.length;
+                }
+                return true;
               });
               if (!matchesFilter) {
                 return;
@@ -903,7 +928,6 @@ export const linkExtractorTool = createTool({
         external: links.filter(l => l.type === 'external').length,
         invalid: links.filter(l => !l.isValid).length,
       };
-
       linkSpan?.end({
         output: {
           linkCount: links.length,
@@ -926,17 +950,18 @@ export const linkExtractorTool = createTool({
 });
 
 // ===== HTML TO MARKDOWN CONVERTER TOOL =====
+const htmlToMarkdownOutputSchema = z.object({
+  markdown: z.string().transform((s) => HtmlProcessor.sanitizeMarkdown(s)).describe("The converted markdown content (HTML-encoded to prevent XSS)."),
+  savedFilePath: z.string().optional().describe("Path to the saved file if saveToFile was true."),
+}).strict();
 
 const htmlToMarkdownInputSchema = z.object({
-  html: z.string().describe("The HTML content to convert to markdown."),
+  html: z.string()
+    .describe("The HTML content to convert to markdown. Input HTML will be sanitized before processing.")
+    .transform((s) => HtmlProcessor.sanitizeHtml(s)),
   saveToFile: z.boolean().optional().describe("Whether to save the markdown to a file."),
   fileName: z.string().optional().describe("Filename for the saved markdown (relative to data directory)."),
-});
-
-const htmlToMarkdownOutputSchema = z.object({
-  markdown: z.string().describe("The converted markdown content."),
-  savedFilePath: z.string().optional().describe("Path to the saved file if saveToFile was true."),
-});
+}).strict();
 
 export const htmlToMarkdownTool = createTool({
   id: "html-to-markdown",
@@ -971,7 +996,7 @@ export const htmlToMarkdownTool = createTool({
           const fileName = (typeof providedName === 'string' && providedName.trim().length > 0)
             ? ValidationUtils.sanitizeFileName(providedName)
             : `converted_${new Date().toISOString().replace(/[:.]/g, '-')}.md`;
-          const dataDir = path.join(process.cwd(), './docs/data');
+          const dataDir = path.join(process.cwd(), './data');
           const fullPath = path.join(dataDir, fileName);
 
           if (!ValidationUtils.validateFilePath(fullPath)) {
@@ -980,7 +1005,7 @@ export const htmlToMarkdownTool = createTool({
 
           await fs.mkdir(dataDir, { recursive: true });
           await fs.writeFile(fullPath, markdown, 'utf-8');
-          savedFilePath = path.relative(path.join(process.cwd(), './docs/data'), fullPath);
+          savedFilePath = path.relative(path.join(process.cwd(), './data'), fullPath);
           logger.info('Markdown saved securely', { fileName: savedFilePath });
         } catch (error) {
           if (error instanceof ScrapingError) {
@@ -1044,7 +1069,7 @@ export const listScrapedContentTool = createTool({
     logger.info('Listing scraped content with security validation', { pattern: context.pattern });
 
     try {
-      const dataDir = path.join(process.cwd(), './docs/data');
+      const dataDir = path.join(process.cwd(), './data');
 
       try {
         await fs.access(dataDir);
@@ -1072,15 +1097,51 @@ export const listScrapedContentTool = createTool({
           if (typeof context.pattern === 'string' && context.pattern.trim() !== '') {
             try {
               const patternStr = context.pattern.trim();
-              const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-              // support '*' as a wildcard by escaping other regex chars and replacing '*' with '.*'
-              const regexStr = patternStr.split('*').map(escapeRegExp).join('.*');
-              const regex = new RegExp('^' + regexStr + '$');
-              if (!regex.test(item.name)) {
-                continue;
+
+              // Only allow a safe subset of characters in the pattern:
+              // letters, numbers, underscore, hyphen, dot, space and the wildcard '*'.
+              // Reject patterns containing other special characters to avoid any regex-like parsing.
+              if (!/^[a-zA-Z0-9_\-.\\*\s]+$/.test(patternStr)) {
+                // Unsafe pattern detected; skip filtering to avoid using untrusted input.
+              } else {
+                // Simple and safe wildcard matcher: supports '*' only, avoids RegExp construction.
+                const matchWithWildcard = (name: string, pattern: string): boolean => {
+                  // Match-all
+                  if (pattern === '*') {
+                    return true;
+                  }
+                  const parts = pattern.split('*');
+                  let pos = 0;
+                  for (let i = 0; i < parts.length; i++) {
+                    const part = parts[i];
+                    if (part === '') {
+                      continue;
+                    }
+                    const idx = name.indexOf(part, pos);
+                    if (idx === -1) {
+                      return false;
+                    }
+                    // If pattern does not start with '*', first part must be at the start
+                    if (i === 0 && !pattern.startsWith('*') && idx !== 0) {
+                      return false;
+                    }
+                    pos = idx + part.length;
+                  }
+                  // If pattern does not end with '*', last part must align with the end
+                  if (!pattern.endsWith('*') && parts[parts.length - 1] !== '') {
+                    const last = parts[parts.length - 1];
+                    if (!name.endsWith(last)) {
+                      return false;
+                    }
+                  }
+                  return true;
+                };
+                if (!matchWithWildcard(item.name, patternStr)) {
+                  continue;
+                }
               }
             } catch {
-              // Invalid regex, skip filtering
+              // Invalid pattern, skip filtering
             }
           }
 
@@ -1181,7 +1242,7 @@ export const contentCleanerTool = createTool({
       const originalSize = context.html.length;
 
       // Remove dangerous elements using JSDOM
-      const dangerousElements = document.querySelectorAll('script, style, iframe, embed, object, noscript, meta, link[rel="stylesheet"]');
+      const dangerousElements = document.querySelectorAll('script, style, iframe, embed, object, noscript, meta, link[rel="stylesheet"], form, input, button, select, textarea');
       dangerousElements.forEach(element => element.remove());
 
       // Remove event handler attributes

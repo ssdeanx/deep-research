@@ -42,11 +42,12 @@ import {
   type Message as StorageMessage
 } from '../config/libsql-storage';
 //import { pinecone } from '../pinecone';
-import { createGeminiEmbeddingModel } from '../config/googleProvider';
+
 import { embedMany } from 'ai';
 
 import { chunkerTool } from './chunker-tool';
 import type { Memory } from '@mastra/memory';
+import { google } from '@ai-sdk/google';
 
 const logger = new PinoLogger({ name: 'GraphRAGTool' });
 
@@ -173,7 +174,7 @@ export const graphRAGUpsertTool = createTool({
       const vectorProfileName = validatedInput.vectorProfile || 'libsql';
 
       // Get the embedder
-      const embedder = createGeminiEmbeddingModel();
+      const embedder = google.textEmbedding('gemini-embedding-001');
 
       if (debug) {
         logger.info('Starting document upsert', {
@@ -389,7 +390,7 @@ export const graphRAGUpsertTool = createTool({
 export const graphRAGTool = createGraphRAGTool({
   vectorStoreName: 'libsqlVectorStoreInstance',
   indexName: STORAGE_CONFIG.VECTOR_INDEXES.RESEARCH_DOCUMENTS, // Fixed hard-coded value
-  model: createGeminiEmbeddingModel(),
+  model: google.textEmbedding('gemini-embedding-001'),
   graphOptions: {
     dimension: STORAGE_CONFIG.DEFAULT_DIMENSION // Use default dimension from config
   }

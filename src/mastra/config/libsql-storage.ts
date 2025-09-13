@@ -1,6 +1,5 @@
 import { LibSQLStore, LibSQLVector } from "@mastra/libsql";
 import { Memory } from "@mastra/memory";
-import { createGeminiEmbeddingModel } from "./googleProvider";
 import { embedMany } from "ai";
 import { PinoLogger } from "@mastra/loggers";
 import { AISpanType } from '@mastra/core/ai-tracing';
@@ -21,6 +20,7 @@ import {
 } from "./memory-processors";
 import type { RegisteredLogger } from "@mastra/core/logger";
 import z from "zod";
+import { google } from "@ai-sdk/google";
 
 export interface TracingSpanInput {
   type: AISpanType;
@@ -91,7 +91,7 @@ const userProfileSchema = z.object({
  * LibSQL Storage Configuration
  */
 
-export const createLibSQLStore = (tracingContext?: { context?: unknown; runtimeContext?: RuntimeContext; currentSpan?: { createChildSpan(input: TracingSpanInput): { end(options: SpanEndInput): void } } }) => {
+export const createLibSQLStore = (tracingContext?: { context?: any; runtimeContext?: RuntimeContext; currentSpan?: { createChildSpan(_input: TracingSpanInput): { end(options: SpanEndInput): void } } }) => {
   const startTime = Date.now();
   const databaseUrl = process.env.DATABASE_URL ?? STORAGE_CONFIG.DEFAULT_DATABASE_URL;
 
@@ -159,7 +159,7 @@ export const createLibSQLStore = (tracingContext?: { context?: unknown; runtimeC
  * LibSQL Vector Store Configuration
  */
 
-export const createLibSQLVectorStore = (tracingContext?: { context?: unknown; runtimeContext?: RuntimeContext; currentSpan?: { createChildSpan(input: TracingSpanInput): { end(options: SpanEndInput): void } } }) => {
+export const createLibSQLVectorStore = (tracingContext?: { context?: unknown; runtimeContext?: RuntimeContext; currentSpan?: { createChildSpan(_input: TracingSpanInput): { end(options: SpanEndInput): void } } }) => {
   const startTime = Date.now();
   const databaseUrl = process.env.VECTOR_DATABASE_URL ?? STORAGE_CONFIG.VECTOR_DATABASE_URL;
 
@@ -269,7 +269,7 @@ export const searchSimilarContent = async (
   query: string,
   indexName: string,
   topK = 5,
-  tracingContext?: { currentSpan?: { createChildSpan(input: TracingSpanInput): { end(options: SpanEndInput): void } } }
+  tracingContext?: { currentSpan?: { createChildSpan(_input: TracingSpanInput): { end(options: SpanEndInput): void } } }
 ) => {
   const startTime = Date.now();
 
@@ -286,7 +286,7 @@ export const searchSimilarContent = async (
 
   try {
     const vectorStore = createLibSQLVectorStore(tracingContext);
-    const embedder = createGeminiEmbeddingModel("gemini-embedding-001");
+    const embedder = google.textEmbedding('gemini-embedding-001');
 
     // Create child span for embedding generation
     const embedSpan = tracingContext?.currentSpan?.createChildSpan({
@@ -389,8 +389,8 @@ export const searchSimilarContent = async (
 export const createResearchMemory = () => {
   return new Memory({
     storage: createLibSQLStore(),
-    vector: createLibSQLVectorStore(),
-    embedder: createGeminiEmbeddingModel("gemini-embedding-001"),
+    vector: createLibSQLVectorStore(), // TODO: Pass tracingContext
+    embedder: google.textEmbedding("gemini-embedding-001"),
     options: {
       lastMessages: 500,
       workingMemory: {
@@ -430,7 +430,7 @@ export const createReportMemory = () => {
   return new Memory({
     storage: createLibSQLStore(),
     vector: createLibSQLVectorStore(),
-    embedder: createGeminiEmbeddingModel("gemini-embedding-001"),
+    embedder: google.textEmbedding("gemini-embedding-001"),
     options: {
       lastMessages: 100,
       workingMemory: {
@@ -494,7 +494,7 @@ export async function upsertVectors(
   vectors: ReadonlyArray<readonly number[]>,
   metadata: ReadonlyArray<Record<string, unknown>>,
   ids: readonly string[],
-  tracingContext?: { context?: unknown; runtimeContext?: RuntimeContext; currentSpan?: { createChildSpan(input: TracingSpanInput): { end(options: SpanEndInput): void } } }
+  tracingContext?: { context?: unknown; runtimeContext?: RuntimeContext; currentSpan?: { createChildSpan(_input: TracingSpanInput): { end(options: SpanEndInput): void } } }
 ): Promise<{ success: boolean; count?: number; error?: string }> {
   const startTime = Date.now();
 
@@ -770,7 +770,7 @@ export async function searchMemoryMessages(
   topK = 5
 ): Promise<{ messages: Message[]; uiMessages: UIMessage[] }> {
   try {
-    const embedder = createGeminiEmbeddingModel("gemini-embedding-001");
+    const embedder = google.textEmbedding("gemini-embedding-001");
 
     await embedMany({
       values: [query],
@@ -824,7 +824,7 @@ export async function searchMemoryMessages(
       const role = normalizeRole(msgObj.role ?? msgObj.sender ?? msgObj.roleName);
       const content = msgObj.content ?? (msgObj.parts?.map((p) => p.text ?? p.content).join('') ?? '');
       const createdAtRaw = msgObj.createdAt ?? msgObj.timestamp;
-      const createdAt = (createdAtRaw !== null && createdAtRaw !== undefined) ? new Date(createdAtRaw as string | number | Date) : undefined;
+      const createdAt = typeof createdAtRaw !== 'undefined' ? new Date(createdAtRaw as string | number | Date) : undefined;
       const thread = msgObj.threadId ?? msgObj.thread_id;
       return {
         id: safeId,

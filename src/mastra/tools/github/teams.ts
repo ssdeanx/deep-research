@@ -4,7 +4,173 @@ import { octokit } from './octokit';
 import { PinoLogger } from "@mastra/loggers";
 import { AISpanType } from '@mastra/core/ai-tracing';
 
-const logger = new PinoLogger({ level: 'info' });
+const logger = new PinoLogger({ name: 'GitHubTeams', level: 'info' });
+
+const SuccessSchema = z.object({
+  success: z.literal(true),
+});
+
+const UserSimpleSchema = z.object({
+  id: z.number(),
+  login: z.string(),
+  avatar_url: z.string(),
+  url: z.string(),
+  type: z.string(),
+  site_admin: z.boolean(),
+});
+
+const RepoSimpleSchema = z.object({
+  id: z.number(),
+  node_id: z.string(),
+  name: z.string(),
+  full_name: z.string(),
+  private: z.boolean(),
+});
+
+const TeamSchema = z.object({
+  id: z.number(),
+  node_id: z.string(),
+  url: z.string(),
+  html_url: z.string(),
+  name: z.string(),
+  slug: z.string(),
+  description: z.string().nullable(),
+  privacy: z.enum(['closed', 'secret']),
+  permission: z.string().optional(),
+  members_count: z.number().optional(),
+  repos_count: z.number().optional(),
+  created_at: z.string(),
+  updated_at: z.string().optional(),
+  parent: z.object({
+    id: z.number().optional(),
+    node_id: z.string().optional(),
+    url: z.string().optional(),
+    html_url: z.string().optional(),
+    name: z.string().optional(),
+    slug: z.string().optional(),
+    description: z.string().nullable().optional(),
+    privacy: z.enum(['closed', 'secret']).optional(),
+    permission: z.string().optional(),
+    members_count: z.number().optional(),
+    repos_count: z.number().optional(),
+    created_at: z.string().optional(),
+    updated_at: z.string().optional(),
+  }).optional(),
+  organization: z.object({
+    login: z.string(),
+    id: z.number(),
+    node_id: z.string(),
+    avatar_url: z.string(),
+    gravatar_id: z.string(),
+    url: z.string(),
+    html_url: z.string(),
+    followers_url: z.string(),
+    following_url: z.string(),
+    hooks_url: z.string(),
+    issues_url: z.string(),
+    members_url: z.string(),
+    public_members_url: z.string(),
+    repos_url: z.string(),
+    events_url: z.string(),
+    received_events_url: z.string(),
+    type: z.string(),
+    site_admin: z.boolean(),
+  }),
+});
+
+const TeamMembershipSchema = z.object({
+  url: z.string(),
+  state: z.enum(['active', 'pending']),
+  role: z.enum(['member', 'maintainer']),
+  organization_url: z.string(),
+  user: z.object({
+    login: z.string(),
+    id: z.number(),
+    node_id: z.string(),
+    avatar_url: z.string(),
+    gravatar_id: z.string(),
+    url: z.string(),
+    html_url: z.string(),
+    followers_url: z.string(),
+    following_url: z.string(),
+    gists_url: z.string(),
+    starred_url: z.string(),
+    subscriptions_url: z.string(),
+    organizations_url: z.string(),
+    repos_url: z.string(),
+    events_url: z.string(),
+    received_events_url: z.string(),
+    type: z.string(),
+    site_admin: z.boolean(),
+  }),
+  team_slug: z.string(),
+  organization: z.object({
+    login: z.string(),
+    id: z.number(),
+    node_id: z.string(),
+    url: z.string(),
+    repos_url: z.string(),
+    events_url: z.string(),
+  }),
+});
+
+const RepoPermissionsSchema = z.object({
+  permission: z.enum(['pull', 'push', 'admin']),
+  role_name: z.string().optional(),
+  url: z.string(),
+  html_url: z.string(),
+  id: z.number(),
+  node_id: z.string(),
+  name: z.string(),
+  full_name: z.string(),
+  private: z.boolean(),
+  owner: z.object({
+    login: z.string(),
+    id: z.number(),
+    node_id: z.string(),
+    avatar_url: z.string(),
+    gravatar_id: z.string(),
+    url: z.string(),
+    html_url: z.string(),
+    type: z.string(),
+    site_admin: z.boolean(),
+  }),
+  description: z.string().nullable().optional(),
+  fork: z.boolean(),
+  created_at: z.string(),
+  updated_at: z.string(),
+  pushed_at: z.string().optional(),
+  git_url: z.string(),
+  ssh_url: z.string(),
+  clone_url: z.string(),
+  svn_url: z.string(),
+  homepage: z.string().optional(),
+  size: z.number(),
+  stargazers_count: z.number(),
+  watchers_count: z.number(),
+  language: z.string().optional(),
+  has_issues: z.boolean(),
+  has_projects: z.boolean(),
+  has_wiki: z.boolean(),
+  has_pages: z.boolean(),
+  has_downloads: z.boolean(),
+  archived: z.boolean(),
+  visibility: z.string(),
+  permissions: z.object({
+    admin: z.boolean(),
+    maintain: z.boolean().optional(),
+    push: z.boolean(),
+    triage: z.boolean().optional(),
+    pull: z.boolean(),
+  }).optional(),
+  default_branch: z.string(),
+});
+
+const GetTeamOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: TeamSchema.optional(),
+  errorMessage: z.string().optional().describe('Error getting team')
+}).strict();
 
 export const getTeam = createTool({
   id: 'getTeam',
@@ -13,8 +179,10 @@ export const getTeam = createTool({
     org: z.string(),
     team_slug: z.string(),
   }),
-  execute: async ({ context, tracingContext }) => {
-    const spanName = tracingContext?.currentSpan?.createChildSpan({
+  outputSchema: GetTeamOutputSchema,
+  execute: async ({ context, tracingContext }: Readonly<{ context: { org: string; team_slug: string }; tracingContext?: unknown }>) => {
+    logger.info(`Executing getTeam for org: ${context.org}, team: ${context.team_slug}`);
+    const spanName = (tracingContext as any)?.currentSpan?.createChildSpan?.({
       type: AISpanType.GENERIC,
       name: 'get_team',
       input: {
@@ -31,7 +199,7 @@ export const getTeam = createTool({
         output: { team_id: team.data?.id },
         metadata: { operation: 'get_team' }
       });
-      return team.data;
+      return GetTeamOutputSchema.parse({ status: 'success', data: team.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error getting team');
@@ -41,10 +209,16 @@ export const getTeam = createTool({
           operation: 'get_team'
         }
       });
-      throw error;
+      return GetTeamOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const ListTeamsOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.array(TeamSchema).optional(),
+  errorMessage: z.string().optional().describe('Error listing teams')
+}).strict();
 
 export const listTeams = createTool({
   id: 'listTeams',
@@ -52,8 +226,10 @@ export const listTeams = createTool({
   inputSchema: z.object({
     org: z.string(),
   }),
-  execute: async ({ context, tracingContext }) => {
-    const spanName = tracingContext?.currentSpan?.createChildSpan({
+  outputSchema: ListTeamsOutputSchema,
+  execute: async ({ context, tracingContext }: Readonly<{ context: { org: string }; tracingContext?: unknown }>) => {
+    logger.info(`Executing listTeams for org: ${context.org}`);
+    const spanName = (tracingContext as any)?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
       name: 'list_teams',
       input: { org: context.org }
@@ -67,7 +243,7 @@ export const listTeams = createTool({
         output: { teams_count: teams.data?.length || 0 },
         metadata: { operation: 'list_teams' }
       });
-      return teams.data;
+      return ListTeamsOutputSchema.parse({ status: 'success', data: teams.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error listing teams');
@@ -77,10 +253,16 @@ export const listTeams = createTool({
           operation: 'list_teams'
         }
       });
-      throw error;
+      return ListTeamsOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const CreateTeamOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: TeamSchema.optional(),
+  errorMessage: z.string().optional().describe('Error creating team')
+}).strict();
 
 export const createTeam = createTool({
   id: 'createTeam',
@@ -92,8 +274,10 @@ export const createTeam = createTool({
     privacy: z.enum(['secret', 'closed']).optional(),
     parent_team_id: z.number().optional(),
   }),
-  execute: async ({ context, tracingContext }) => {
-    const spanName = tracingContext?.currentSpan?.createChildSpan({
+  outputSchema: CreateTeamOutputSchema,
+  execute: async ({ context, tracingContext }: Readonly<{ context: { org: string; name: string; description?: string; privacy?: "secret" | "closed"; parent_team_id?: number }; tracingContext?: unknown }>) => {
+    logger.info(`Executing createTeam for org: ${context.org}, name: ${context.name}`);
+    const spanName = (tracingContext as any)?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
       name: 'create_team',
       input: {
@@ -113,7 +297,7 @@ export const createTeam = createTool({
         output: { team_id: team.data?.id },
         metadata: { operation: 'create_team' }
       });
-      return team.data;
+      return CreateTeamOutputSchema.parse({ status: 'success', data: team.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error creating team');
@@ -123,10 +307,16 @@ export const createTeam = createTool({
           operation: 'create_team'
         }
       });
-      throw error;
+      return CreateTeamOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const UpdateTeamOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: TeamSchema.optional(),
+  errorMessage: z.string().optional().describe('Error updating team')
+}).strict();
 
 export const updateTeam = createTool({
   id: 'updateTeam',
@@ -138,8 +328,10 @@ export const updateTeam = createTool({
     description: z.string().optional(),
     privacy: z.enum(['secret', 'closed']).optional(),
   }),
-  execute: async ({ context, tracingContext }) => {
-    const spanName = tracingContext?.currentSpan?.createChildSpan({
+  outputSchema: UpdateTeamOutputSchema,
+  execute: async ({ context, tracingContext }: Readonly<{ context: { org: string; team_slug: string; name?: string; description?: string; privacy?: "secret" | "closed" }; tracingContext?: unknown }>) => {
+    logger.info(`Executing updateTeam for org: ${context.org}, team: ${context.team_slug}`);
+    const spanName = (tracingContext as any)?.currentSpan?.createChildSpan?.({
       type: AISpanType.GENERIC,
       name: 'update_team',
       input: {
@@ -159,7 +351,7 @@ export const updateTeam = createTool({
         output: { team_id: team.data?.id },
         metadata: { operation: 'update_team' }
       });
-      return team.data;
+      return UpdateTeamOutputSchema.parse({ status: 'success', data: team.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error updating team');
@@ -169,10 +361,16 @@ export const updateTeam = createTool({
           operation: 'update_team'
         }
       });
-      throw error;
+      return UpdateTeamOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const DeleteTeamOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: SuccessSchema.optional(),
+  errorMessage: z.string().optional().describe('Error deleting team')
+}).strict();
 
 export const deleteTeam = createTool({
   id: 'deleteTeam',
@@ -181,8 +379,10 @@ export const deleteTeam = createTool({
     org: z.string(),
     team_slug: z.string(),
   }),
-  execute: async ({ context, tracingContext }) => {
-    const spanName = tracingContext?.currentSpan?.createChildSpan({
+  outputSchema: DeleteTeamOutputSchema,
+  execute: async ({ context, tracingContext }: Readonly<{ context: { org: string; team_slug: string }; tracingContext?: unknown }>) => {
+    logger.info(`Executing deleteTeam for org: ${context.org}, team: ${context.team_slug}`);
+    const spanName = (tracingContext as any)?.currentSpan?.createChildSpan?.({
       type: AISpanType.GENERIC,
       name: 'delete_team',
       input: {
@@ -199,7 +399,7 @@ export const deleteTeam = createTool({
         output: { success: true },
         metadata: { operation: 'delete_team' }
       });
-      return { success: true };
+      return DeleteTeamOutputSchema.parse({ status: 'success', data: { success: true } });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error deleting team');
@@ -209,10 +409,16 @@ export const deleteTeam = createTool({
           operation: 'delete_team'
         }
       });
-      throw error;
+      return DeleteTeamOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const ListTeamMembersOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.array(UserSimpleSchema).optional(),
+  errorMessage: z.string().optional().describe('Error listing team members')
+}).strict();
 
 export const listTeamMembers = createTool({
   id: 'listTeamMembers',
@@ -221,8 +427,10 @@ export const listTeamMembers = createTool({
     org: z.string(),
     team_slug: z.string(),
   }),
-  execute: async ({ context, tracingContext }) => {
-    const spanName = tracingContext?.currentSpan?.createChildSpan({
+  outputSchema: ListTeamMembersOutputSchema,
+  execute: async ({ context, tracingContext }: Readonly<{ context: { org: string; team_slug: string }; tracingContext?: unknown }>) => {
+    logger.info(`Executing listTeamMembers for org: ${context.org}, team: ${context.team_slug}`);
+    const spanName = (tracingContext as any)?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
       name: 'list_team_members',
       input: {
@@ -239,7 +447,7 @@ export const listTeamMembers = createTool({
         output: { members_count: members.data?.length || 0 },
         metadata: { operation: 'list_team_members' }
       });
-      return members.data;
+      return ListTeamMembersOutputSchema.parse({ status: 'success', data: members.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error listing team members');
@@ -249,10 +457,16 @@ export const listTeamMembers = createTool({
           operation: 'list_team_members'
         }
       });
-      throw error;
+      return ListTeamMembersOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const AddTeamMemberOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: TeamMembershipSchema.optional(),
+  errorMessage: z.string().optional().describe('Error adding team member')
+}).strict();
 
 export const addTeamMember = createTool({
   id: 'addTeamMember',
@@ -262,8 +476,10 @@ export const addTeamMember = createTool({
     team_slug: z.string(),
     username: z.string(),
   }),
-  execute: async ({ context, tracingContext }) => {
-    const spanName = tracingContext?.currentSpan?.createChildSpan({
+  outputSchema: AddTeamMemberOutputSchema,
+  execute: async ({ context, tracingContext }: Readonly<{ context: { org: string; team_slug: string; username: string }; tracingContext?: unknown }>) => {
+    logger.info(`Executing addTeamMember for org: ${context.org}, team: ${context.team_slug}, user: ${context.username}`);
+    const spanName = (tracingContext as any)?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
       name: 'add_team_member',
       input: {
@@ -281,7 +497,7 @@ export const addTeamMember = createTool({
         output: { username: context.username },
         metadata: { operation: 'add_team_member' }
       });
-      return member.data;
+      return AddTeamMemberOutputSchema.parse({ status: 'success', data: member.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error adding team member');
@@ -291,10 +507,16 @@ export const addTeamMember = createTool({
           operation: 'add_team_member'
         }
       });
-      throw error;
+      return AddTeamMemberOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const RemoveTeamMemberOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: SuccessSchema.optional(),
+  errorMessage: z.string().optional().describe('Error removing team member')
+}).strict();
 
 export const removeTeamMember = createTool({
   id: 'removeTeamMember',
@@ -304,8 +526,10 @@ export const removeTeamMember = createTool({
     team_slug: z.string(),
     username: z.string(),
   }),
-  execute: async ({ context, tracingContext }) => {
-    const spanName = tracingContext?.currentSpan?.createChildSpan({
+  outputSchema: RemoveTeamMemberOutputSchema,
+  execute: async ({ context, tracingContext }: Readonly<{ context: { org: string; team_slug: string; username: string }; tracingContext?: unknown }>) => {
+    logger.info(`Executing removeTeamMember for org: ${context.org}, team: ${context.team_slug}, user: ${context.username}`);
+    const spanName = (tracingContext as any)?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
       name: 'remove_team_member',
       input: {
@@ -323,7 +547,7 @@ export const removeTeamMember = createTool({
         output: { success: true },
         metadata: { operation: 'remove_team_member' }
       });
-      return { success: true };
+      return RemoveTeamMemberOutputSchema.parse({ status: 'success', data: { success: true } });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error removing team member');
@@ -333,10 +557,16 @@ export const removeTeamMember = createTool({
           operation: 'remove_team_member'
         }
       });
-      throw error;
+      return RemoveTeamMemberOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const ListTeamReposOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.array(RepoSimpleSchema).optional(),
+  errorMessage: z.string().optional().describe('Error listing team repositories')
+}).strict();
 
 export const listTeamRepos = createTool({
   id: 'listTeamRepos',
@@ -345,8 +575,10 @@ export const listTeamRepos = createTool({
     org: z.string(),
     team_slug: z.string(),
   }),
-  execute: async ({ context, tracingContext }) => {
-    const spanName = tracingContext?.currentSpan?.createChildSpan({
+  outputSchema: ListTeamReposOutputSchema,
+  execute: async ({ context, tracingContext }: Readonly<{ context: { org: string; team_slug: string }; tracingContext?: unknown }>) => {
+    logger.info(`Executing listTeamRepos for org: ${context.org}, team: ${context.team_slug}`);
+    const spanName = (tracingContext as any)?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
       name: 'list_team_repos',
       input: {
@@ -363,7 +595,7 @@ export const listTeamRepos = createTool({
         output: { repos_count: repos.data?.length || 0 },
         metadata: { operation: 'list_team_repos' }
       });
-      return repos.data;
+      return ListTeamReposOutputSchema.parse({ status: 'success', data: repos.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error listing team repositories');
@@ -373,10 +605,16 @@ export const listTeamRepos = createTool({
           operation: 'list_team_repos'
         }
       });
-      throw error;
+      return ListTeamReposOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const AddTeamRepoOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: RepoPermissionsSchema.optional(),
+  errorMessage: z.string().optional().describe('Error adding team repository')
+}).strict();
 
 export const addTeamRepo = createTool({
   id: 'addTeamRepo',
@@ -388,8 +626,10 @@ export const addTeamRepo = createTool({
     repo: z.string(),
     permission: z.enum(['pull', 'push', 'admin']).optional(),
   }),
-  execute: async ({ context, tracingContext }) => {
-    const spanName = tracingContext?.currentSpan?.createChildSpan({
+  outputSchema: AddTeamRepoOutputSchema,
+  execute: async ({ context, tracingContext }: Readonly<{ context: { org: string; team_slug: string; owner: string; repo: string; permission?: "pull" | "push" | "admin" }; tracingContext?: unknown }>) => {
+    logger.info(`Executing addTeamRepo for org: ${context.org}, team: ${context.team_slug}, repo: ${context.owner}/${context.repo}`);
+    const spanName = (tracingContext as any)?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
       name: 'add_team_repo',
       input: {
@@ -409,7 +649,7 @@ export const addTeamRepo = createTool({
         output: { repo_name: `${context.owner}/${context.repo}` },
         metadata: { operation: 'add_team_repo' }
       });
-      return repo.data;
+      return AddTeamRepoOutputSchema.parse({ status: 'success', data: repo.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error adding team repository');
@@ -419,10 +659,16 @@ export const addTeamRepo = createTool({
           operation: 'add_team_repo'
         }
       });
-      throw error;
+      return AddTeamRepoOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
+
+const RemoveTeamRepoOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: SuccessSchema.optional(),
+  errorMessage: z.string().optional().describe('Error removing team repository')
+}).strict();
 
 export const removeTeamRepo = createTool({
   id: 'removeTeamRepo',
@@ -433,8 +679,10 @@ export const removeTeamRepo = createTool({
     owner: z.string(),
     repo: z.string(),
   }),
-  execute: async ({ context, tracingContext }) => {
-    const spanName = tracingContext?.currentSpan?.createChildSpan({
+  outputSchema: RemoveTeamRepoOutputSchema,
+  execute: async ({ context, tracingContext }: Readonly<{ context: { org: string; team_slug: string; owner: string; repo: string }; tracingContext?: unknown }>) => {
+    logger.info(`Executing removeTeamRepo for org: ${context.org}, team: ${context.team_slug}, repo: ${context.owner}/${context.repo}`);
+    const spanName = (tracingContext as any)?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
       name: 'remove_team_repo',
       input: {
@@ -453,7 +701,7 @@ export const removeTeamRepo = createTool({
         output: { success: true },
         metadata: { operation: 'remove_team_repo' }
       });
-      return { success: true };
+      return RemoveTeamRepoOutputSchema.parse({ status: 'success', data: { success: true } });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error removing team repository');
@@ -463,7 +711,7 @@ export const removeTeamRepo = createTool({
           operation: 'remove_team_repo'
         }
       });
-      throw error;
+      return RemoveTeamRepoOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });

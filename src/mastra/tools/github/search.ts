@@ -15,8 +15,8 @@ const searchCodeOutputSchema = z.object({
       name: z.string(),
       path: z.string(),
       sha: z.string(),
-      url: z.string(),
-      html_url: z.string()
+      url: z.string().url(),
+      html_url: z.string().url()
     }))
   }).optional(),
   errorMessage: z.string().optional().describe('Error searching code')
@@ -62,7 +62,7 @@ const searchIssuesAndPullRequestsOutputSchema = z.object({
       number: z.number(),
       title: z.string(),
       state: z.string(),
-      html_url: z.string()
+      html_url: z.string().url()
     }))
   }).optional(),
   errorMessage: z.string().optional().describe('Error searching issues and pull requests')
@@ -107,7 +107,7 @@ const searchRepositoriesOutputSchema = z.object({
       id: z.number(),
       name: z.string(),
       full_name: z.string(),
-      html_url: z.string()
+      html_url: z.string().url()
     }))
   }).optional(),
   errorMessage: z.string().optional().describe('Error searching repositories')
@@ -151,8 +151,8 @@ const searchUsersOutputSchema = z.object({
     items: z.array(z.object({
       login: z.string(),
       id: z.number(),
-      avatar_url: z.string(),
-      html_url: z.string()
+      avatar_url: z.string().url(),
+      html_url: z.string().url()
     }))
   }).optional(),
   errorMessage: z.string().optional().describe('Error searching users')
@@ -187,3 +187,4 @@ export const searchUsers = createTool({
     }
   },
 });
+
