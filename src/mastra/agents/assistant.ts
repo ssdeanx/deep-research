@@ -3,7 +3,8 @@ import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { createResearchMemory } from '../config/libsql-storage';
 import { PinoLogger } from "@mastra/loggers";
 import { ContentSimilarityMetric, CompletenessMetric, TextualDifferenceMetric, KeywordCoverageMetric, ToneConsistencyMetric } from "@mastra/evals/nlp";
-
+import { UnicodeNormalizer } from "@mastra/core/processors"
+import { BatchPartsProcessor } from "@mastra/core/processors";
 //import { vectorQueryTool } from '../tools/vectorQueryTool';
 //import { chunkerTool } from '../tools/chunker-tool';
 import { readDataFileTool, writeDataFileTool, deleteDataFileTool, listDataDirTool } from '../tools/data-file-manager';
@@ -73,5 +74,20 @@ export const assistant = new Agent({
     webScraperTool,
     //webSearchTool,
     },
+    inputProcessors: [
+    new UnicodeNormalizer({
+      stripControlChars: true,
+      collapseWhitespace: true,
+      preserveEmojis: true,
+      trim: true,
+    }),
+  ],
+  outputProcessors: [
+    new BatchPartsProcessor({
+      batchSize: 5, // Maximum parts to batch together
+      maxWaitTime: 100, // Maximum time to wait before emitting (ms)
+      emitOnNonText: true, // Emit immediately on non-text parts
+    }),
+  ],
 })
 logger.info('OpenRouter Assistant Agent Working...');

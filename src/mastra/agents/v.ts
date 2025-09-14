@@ -1,6 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 import { GeminiLiveVoice } from "@mastra/voice-google-gemini-live";
-import { playAudio, getMicrophoneStream } from "@mastra/node-audio";
+import { playAudio, getMicrophoneStream } from "@mastra/node-audio"
+;
 import { google } from '@ai-sdk/google';
 
 const agent = new Agent({
