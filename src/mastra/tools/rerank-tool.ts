@@ -3,11 +3,12 @@ import type { ToolExecutionContext } from '@mastra/core/tools';
 import { RuntimeContext } from '@mastra/core/di';
 import { AISpanType } from '@mastra/core/ai-tracing';
 import { rerank, type RerankResult } from '@mastra/rag';
-import { createGemini25Provider } from '../config/googleProvider';
+
 import { vectorQueryTool } from './vectorQueryTool';
 import { PinoLogger } from '@mastra/loggers';
 import { z } from 'zod';
 import { STORAGE_CONFIG } from '../config/libsql-storage';
+import { google } from '@ai-sdk/google';
 
 const logger = new PinoLogger({ name: 'RerankTool', level: 'info' });
 
@@ -17,7 +18,7 @@ const logger = new PinoLogger({ name: 'RerankTool', level: 'info' });
 export interface RerankRuntimeContext {
   'user-id'?: string;
   'session-id'?: string;
-  'model-preference'?: 'gemini-2.5-flash-lite-preview-06-17' | 'gemini-2.5-preview-05-20' | 'gemini-2.0-flash' | 'gemini-2.0-flash-lite';
+  'model-preference'?: 'gemini-2.5-flash-lite' | 'gemini-2.5-preview-05-20' | 'gemini-2.0-flash' | 'gemini-2.0-flash-lite';
   'semantic-weight'?: number;
   'vector-weight'?: number;
   'position-weight'?: number;
@@ -66,7 +67,7 @@ export const rerankTool = createTool({
     runtimeContext?: RuntimeContext<RerankRuntimeContext>;
     tracingContext?: {
       currentSpan?: {
-        createChildSpan(input: { type: AISpanType; name: string; input?: Record<string, unknown> }): { end(options: { output?: Record<string, unknown>; metadata?: Record<string, unknown> }): void };
+        createChildSpan(options?: { type?: AISpanType; name?: string; input?: Record<string, unknown> }): { end(options: { output?: Record<string, unknown>; metadata?: Record<string, unknown> }): void };
       };
       context?: unknown;
       runtimeContext?: RuntimeContext<unknown>;
@@ -75,14 +76,36 @@ export const rerankTool = createTool({
     const startTime = Date.now();
 
     try {
-      const validatedInput = rerankInputSchema.parse(input);      // Get runtime context values
-      const userId = (runtimeContext?.get('user-id') as string | undefined) ?? 'anonymous';
-      const sessionId = (runtimeContext?.get('session-id') as string | undefined) ?? 'default';
-      const modelPreference = (runtimeContext?.get('model-preference') as string | undefined) ?? 'gemini-2.5-flash-lite-preview-06-17';
-      const semanticWeight = (runtimeContext?.get('semantic-weight') as number | undefined) ?? validatedInput.semanticWeight;
-      const vectorWeight = (runtimeContext?.get('vector-weight') as number | undefined) ?? validatedInput.vectorWeight;
-      const positionWeight = (runtimeContext?.get('position-weight') as number | undefined) ?? validatedInput.positionWeight;
-      const debug = (runtimeContext?.get('debug') as boolean | undefined) ?? false;
+      // Parse and validate the incoming input (this uses the `input` param)
+      const parsedInput = rerankInputSchema.parse(input);
+
+      // Get runtime context values (with fallbacks to parsed input or defaults)
+      const userId = (runtimeContext?.get('user-id')) ?? 'anonymous';
+      const sessionId = (runtimeContext?.get('session-id')) ?? 'default';
+      // runtimeContext.get may return unknown; coerce/validate to a string to avoid passing an object to createGemini25Provider
+      const rawModelPreference = runtimeContext?.get('model-preference');
+      const modelPreference = (typeof rawModelPreference === 'string' && rawModelPreference.length > 0)
+        ? rawModelPreference
+        : 'gemini-2.5-flash-lite-preview-06-17';
+
+      // Validate and coerce runtimeContext values to concrete types to satisfy TypeScript
+      const rawSemanticWeight = runtimeContext?.get('semantic-weight');
+      const semanticWeight = typeof rawSemanticWeight === 'number'
+        ? rawSemanticWeight
+        : parsedInput.semanticWeight;
+
+      const rawVectorWeight = runtimeContext?.get('vector-weight');
+      const vectorWeight = typeof rawVectorWeight === 'number'
+        ? rawVectorWeight
+        : parsedInput.vectorWeight;
+
+      const rawPositionWeight = runtimeContext?.get('position-weight');
+      const positionWeight = typeof rawPositionWeight === 'number'
+        ? rawPositionWeight
+        : parsedInput.positionWeight;
+
+      const rawDebug = runtimeContext?.get('debug');
+      const debug = typeof rawDebug === 'boolean' ? rawDebug : false;
 
       if (debug) {
         logger.info('Rerank tool executed with runtime context', {
@@ -90,43 +113,44 @@ export const rerankTool = createTool({
           sessionId,
           modelPreference,
           weights: { semanticWeight, vectorWeight, positionWeight },
-          query: validatedInput.query,
-          indexName: validatedInput.indexName
+          query: parsedInput.query,
+          indexName: parsedInput.indexName
         });
       }
 
       // Determine index based on context
-      let searchIndex = validatedInput.indexName || STORAGE_CONFIG.VECTOR_INDEXES.RESEARCH_DOCUMENTS;
+      let searchIndex = parsedInput.indexName ?? STORAGE_CONFIG.VECTOR_INDEXES.RESEARCH_DOCUMENTS;
       if (runtimeContext?.get('useReport')) {
         searchIndex = STORAGE_CONFIG.VECTOR_INDEXES.REPORTS;
       }
+
       // Conditional tracing span for initial query if tracing is enabled
       const initialQuerySpan = tracingContext?.currentSpan ? tracingContext.currentSpan.createChildSpan({
         type: AISpanType.GENERIC,
         name: 'rerank_initial_query',
         input: {
-          query: validatedInput.query,
+          query: parsedInput.query,
           indexName: searchIndex,
-          topK: validatedInput.topK
+          topK: parsedInput.topK
         }
       }) : undefined;
+
       // First, get more results than needed for reranking using the vectorQueryTool
       const initialResults = await vectorQueryTool.execute({
         context: {
-          queryText: validatedInput.query,
-          topK: validatedInput.topK,
-          threadId: searchIndex, // Use determined index as threadId for context
+          queryText: parsedInput.query,
+          topK: parsedInput.topK,
+          threadId: searchIndex,
         },
         runtimeContext,
-        tracingContext, // Pass tracingContext
-        memory, // Pass memory
+        tracingContext,
+        memory,
       });
 
       // If we have more results than needed, apply reranking
-      if (initialResults.results.length > validatedInput.finalK) {
-        const model = createGemini25Provider(modelPreference);
+      if (initialResults.results.length > parsedInput.finalK) {
+        const model = google(modelPreference)
 
-        // End initial query span if enabled
         if (initialQuerySpan) {
           initialQuerySpan.end({
             output: {
@@ -136,6 +160,7 @@ export const rerankTool = createTool({
             metadata: { operation: 'rerank_initial_query' }
           });
         }
+
         // Convert vector query results to the format expected by rerank function
         const queryResults = initialResults.results.map((result: { id: string; score: number; metadata: Record<string, unknown>; content: string; }, index: number) => ({
           id: result.id,
@@ -152,7 +177,7 @@ export const rerankTool = createTool({
         // Rerank using Mastra's rerank function
         const rerankedResults = await rerank(
           queryResults,
-          validatedInput.query,
+          parsedInput.query,
           model,
           {
             weights: {
@@ -160,26 +185,24 @@ export const rerankTool = createTool({
               vector: vectorWeight,
               position: positionWeight
             },
-            topK: validatedInput.finalK
+            topK: parsedInput.finalK
           }
         );
 
         // Map reranked results back to messages (or a more generic format)
-        const rerankedMessages = rerankedResults.map((result) => {
-          return {
-            id: result.result.id,
-            content: result.result.metadata?.text || '', // Safely extract content
-            role: 'assistant', // Assuming the reranked content is from the assistant
-            metadata: result.result.metadata,
-            score: result.score,
-          };
-        });
+        const rerankedMessages = rerankedResults.map((result) => ({
+          id: result.result.id,
+          content: result.result.metadata?.text ?? '',
+          role: 'assistant',
+          metadata: result.result.metadata,
+          score: result.score,
+        }));
 
         const rerankMetadata = {
-          topK: validatedInput.topK,
-          finalK: validatedInput.finalK,
-          before: 0, // Not applicable for vector search
-          after: 0, // Not applicable for vector search
+          topK: parsedInput.topK,
+          finalK: parsedInput.finalK,
+          before: 0,
+          after: 0,
           initialResultCount: initialResults.results.length,
           rerankingUsed: true,
           rerankingDuration: Date.now() - startTime,
@@ -188,13 +211,14 @@ export const rerankTool = createTool({
           userId,
           sessionId
         };
+
         // Conditional tracing span for reranking if tracing is enabled
         const rerankSpan = tracingContext?.currentSpan ? tracingContext.currentSpan.createChildSpan({
           type: AISpanType.GENERIC,
           name: 'rerank_operation',
           input: {
             initialCount: initialResults.results.length,
-            finalK: validatedInput.finalK,
+            finalK: parsedInput.finalK,
             model: modelPreference
           }
         }) : undefined;
@@ -221,15 +245,15 @@ export const rerankTool = createTool({
 
         return rerankOutputSchema.parse({
           messages: rerankedMessages,
-          uiMessages: [], // uiMessages are not applicable in this context
+          uiMessages: [],
           rerankMetadata
         });
 
       } else {
         // Not enough results to warrant reranking, return original results
         const rerankMetadata = {
-          topK: validatedInput.topK,
-          finalK: validatedInput.finalK,
+          topK: parsedInput.topK,
+          finalK: parsedInput.finalK,
           before: 0,
           after: 0,
           initialResultCount: initialResults.results.length,
@@ -243,7 +267,7 @@ export const rerankTool = createTool({
         if (debug) {
           logger.info('Reranking skipped - insufficient results', {
             resultCount: initialResults.results.length,
-            finalK: validatedInput.finalK
+            finalK: parsedInput.finalK
           });
         }
 
@@ -257,22 +281,22 @@ export const rerankTool = createTool({
     } catch (error) {
       logger.error('Rerank tool execution failed', {
         error: error instanceof Error ? error.message : String(error),
-        query: input.query,
-        indexName: input.indexName
+        query: input?.query,
+        indexName: input?.indexName
       });
 
       // Return empty results on error
       const rerankMetadata = {
-        topK: input.topK || 10,
-        finalK: input.finalK || 3,
+        topK: input?.topK || 10,
+        finalK: input?.finalK || 3,
         before: 0,
         after: 0,
         initialResultCount: 0,
         rerankingUsed: false,
         rerankingDuration: Date.now() - startTime,
         averageRelevanceScore: 0,
-        userId: runtimeContext?.get('user-id') || 'anonymous',
-        sessionId: runtimeContext?.get('session-id') || 'default'
+        userId: runtimeContext?.get('user-id') ?? 'anonymous',
+        sessionId: runtimeContext?.get('session-id') ?? 'default'
       };
 
       return rerankOutputSchema.parse({
@@ -288,7 +312,7 @@ export const rerankTool = createTool({
  * Runtime context instance for rerank tool with defaults
  */
 export const rerankRuntimeContext = new RuntimeContext<RerankRuntimeContext>();
-rerankRuntimeContext.set('model-preference', 'gemini-2.5-flash-lite-preview-06-17');
+rerankRuntimeContext.set('model-preference', 'gemini-2.5-flash-lite');
 rerankRuntimeContext.set('semantic-weight', 0.6);
 rerankRuntimeContext.set('vector-weight', 0.3);
 rerankRuntimeContext.set('position-weight', 0.1);

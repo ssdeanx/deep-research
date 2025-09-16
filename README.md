@@ -22,7 +22,12 @@
     </a>
     <br />
     <img src="https://img.shields.io/badge/Node.js-20.9+-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js" />
+    <img src="https://img.shields.io/badge/React-19.1+-61DAFB?style=flat-square&logo=react&logoColor=white" alt="React" />
+    <img src="https://img.shields.io/badge/Vite-7.1+-646CFF?style=flat-square&logo=vite&logoColor=white" alt="Vite" />
+    <img src="https://img.shields.io/badge/Tailwind%20CSS-4.1+-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white" alt="Tailwind CSS" />
+    <img src="https://img.shields.io/badge/shadcn%2Fui-47--Components-000000?style=flat-square&logo=shadcn&logoColor=white" alt="shadcn/ui" />
     <img src="https://img.shields.io/badge/TypeScript-5.9+-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" />
+    <img src="https://img.shields.io/badge/React%20Router-7.8+-CA4245?style=flat-square&logo=react-router&logoColor=white" alt="React Router" />
     <img src="https://img.shields.io/badge/Mastra-0.16+-FF6B35?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNCIgZmlsbD0iIzMzOTkzMyIvPgo8dGV4dCB4PSIxMiIgeT0iMTYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk08L3RleHQ+Cjwvc3ZnPg==" alt="Mastra" />
     <img src="https://img.shields.io/badge/Google%20AI-FF6B35?style=flat-square&logo=google&logoColor=white" alt="Google AI" />
     <img src="https://img.shields.io/badge/LibSQL-4479A1?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNCIgZmlsbD0iIzQ0NzlBMSIvPgo8dGV4dCB4PSIxMiIgeT0iMTYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkQ8L3RleHQ+Cjwvc3ZnPg==" alt="LibSQL" />
@@ -37,6 +42,7 @@
     <img src="https://img.shields.io/badge/LibSQL-Dual--Database-4479A1?style=flat-square" alt="LibSQL Dual Database" />
     <img src="https://img.shields.io/badge/Zod-Validation-FFD700?style=flat-square" alt="Zod Validation" />
   </p>
+  </div>
 
   <p>
     **Beyond Basic Search: Intelligent, Autonomous Research & Reporting**
@@ -80,19 +86,37 @@
 - **Learning Extraction Agent**: Key insights and follow-up questions generation
 - **Web Summarization Agent**: Content condensation and synthesis
 - **RAG Agent**: Vector search and retrieval-augmented generation
+- **GitHub Agent**: Complete GitHub repository and project management with advanced Copilot integration
+- **Monitor Agent**: System health monitoring, performance tracking, and observability specialist
+- **Planning Agent**: Strategic planning and project management with resource allocation and risk assessment
+- **Quality Assurance Agent**: Software quality management, testing coordination, and defect prevention
+
+### 🎨 Modern React Frontend
+- **React 19.1+**: Latest React with concurrent features and automatic batching
+- **Vite 7.1+**: Lightning-fast build tool with HMR and optimized production builds
+- **TypeScript 5.9+**: Full type safety with advanced language features
+- **Tailwind CSS v4.1**: CSS-first configuration with OKLCH colors, text shadows, and modern utilities
+- **shadcn/ui Components**: 47 pre-built, accessible UI components with Radix UI primitives
+- **React Router v7.8+**: Modern routing with nested routes and data loading
+- **Responsive Design**: Mobile-first approach with dark mode support
+- **Modern CSS Features**: Container queries, safe area utilities, and browser compatibility
 
 ### 🔄 Intelligent Workflows
 - **Comprehensive Research Workflow**: End-to-end research process with human-in-the-loop approval
 - **Generate Report Workflow**: Automated report creation from research data
 - **Research Workflow**: Basic research orchestration
+- **GitHub Planning Workflow**: Multi-agent GitHub project management with planning, monitoring, and task generation
+- **GitHub Quality Workflow**: Quality-focused workflow composition with planning and QA analysis
 
 ### 🛠️ Specialized Tools
 - **Web Search Tool**: Intelligent web scraping and content extraction
+- **Web Scraper Tool**: Enhanced web scraping with marked.js integration for markdown output and file saving
 - **Vector Query Tool**: Semantic search over embedded content
 - **Chunker Tool**: Document segmentation for RAG
 - **Rerank Tool**: Result relevance optimization
 - **Evaluation Tool**: Content quality assessment
 - **Learning Extraction Tool**: Insight mining from research data
+- **Data File Manager**: 8 comprehensive data management tools (copy, move, search, archive, backup, etc.)
 
 ### 🌐 Agent Networks
 - **Complex Research Network**: Multi-agent collaboration for advanced research tasks
@@ -130,7 +154,8 @@
 │  │ • Report    │  │ • Report    │  │ • Vector    │  │ • Personal  │ │
 │  │ • Evaluation│  │ • Generate  │  │ • Chunking  │  │ • Error     │ │
 │  │ • Learning  │  │ • Complex   │  │ • Rerank    │  │ • Circuit   │ │
-│  │ • RAG       │  │             │  │ • MCP       │  │ • Bayesian  │ │
+│  │ • RAG       │  │ • GitHub    │  │ • MCP       │  │ • Bayesian  │ │
+│  │ • GitHub    │  │             │  │ • GitHub    │  │             │ │
 │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘ │
 ├─────────────────────────────────────────────────────────────────────┤
 │  ┌─────────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────┐ │
@@ -147,7 +172,8 @@
 │  │             │  │             │  │             │  │             │ │
 │  │ • Google AI │  │ • MCP       │  │ • REST      │  │ • Explicit  │ │
 │  │ • Gemini 2.5│  │ • WebSocket │  │ • GraphQL   │  │ • Implicit  │ │
-│  │ • Embeddings│  │ • OpenTel   │  │ • Streaming │  │ • Search    │ │
+│  │ • Embeddings│  │ • OpenTel   │  │ • GitHub    │  │ • Search    │ │
+│  │ • Copilot   │  │ • GitHub    │  │ • Streaming │  │             │ │
 │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘ │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -162,21 +188,49 @@ Specialized AI assistants with specific roles and capabilities:
 - **Learning Extraction Agent**: Extracts key insights and generates follow-up questions
 - **Web Summarization Agent**: Condenses and synthesizes web content
 - **RAG Agent**: Manages vector search and retrieval-augmented generation
+- **GitHub Agent**: Complete GitHub repository and project management with Copilot integration
+- **Monitor Agent**: System health monitoring, performance tracking, and observability specialist
+- **Planning Agent**: Strategic planning and project management with resource allocation and risk assessment
+- **Quality Assurance Agent**: Software quality management, testing coordination, and defect prevention
+
+#### 🎨 Frontend Architecture
+Modern React application with seamless Mastra backend integration:
+
+**Core Frontend Components:**
+- **App Router**: React Router v7 with nested routes and data loading
+- **Layout System**: Responsive navigation with dark mode support
+- **Page Components**: Home, Research, Agents, and Workflows pages
+- **UI Components**: 47 shadcn/ui components with Radix UI primitives
+- **Styling**: Tailwind CSS v4.1 with custom design system
+- **State Management**: React hooks with TypeScript integration
+- **API Integration**: Mastra client for backend communication
+
+**Frontend-Backend Integration:**
+- **Mastra Client**: TypeScript client for API communication
+- **Environment Configuration**: Secure API key management
+- **Real-time Updates**: Live workflow status and agent responses
+- **Error Handling**: Comprehensive error boundaries and user feedback
+- **Loading States**: Skeleton components and progressive loading
 
 #### 🔄 Workflows
 Orchestrated sequences of operations:
 - **Comprehensive Research Workflow**: Complete research pipeline with human approval
 - **Generate Report Workflow**: Automated report creation
 - **Research Workflow**: Basic research orchestration
+- **GitHub Planning Workflow**: Multi-agent GitHub project management with planning, monitoring, and task generation
+- **GitHub Quality Workflow**: Quality-focused workflow composition with planning and QA analysis
 
 #### 🛠️ Tools
 Specialized utilities for specific tasks:
 - **Web Search Tool**: Intelligent web content discovery
+- **Web Scraper Tool**: Enhanced web scraping with marked.js integration for markdown output and file saving
 - **Vector Query Tool**: Semantic search capabilities
 - **Chunker Tool**: Document segmentation for RAG
 - **Rerank Tool**: Result optimization
 - **Evaluation Tool**: Content assessment
 - **Learning Extraction Tool**: Insight mining
+- **Data File Manager**: 8 comprehensive data management tools (copy, move, search, archive, backup, etc.)
+- **GitHub Tools**: 14 specialized tools for complete GitHub API integration
 
 #### 🌐 Networks
 Multi-agent collaboration systems:
@@ -276,6 +330,28 @@ Manages vector search and retrieval-augmented generation for enhanced context an
 - Context retrieval and ranking
 - Knowledge augmentation
 - Memory integration
+
+### GitHub Agent
+Advanced AI-powered GitHub Assistant for complete repository and project management with Copilot integration.
+
+**Capabilities:**
+- **Repository Management**: Create, list, update, and delete repositories
+- **Issue Management**: Create, update, list, and manage GitHub issues with comments
+- **Pull Request Management**: Handle PR creation, updates, merging, and reviews
+- **Branch Management**: Create, list, and delete repository branches
+- **User & Organization Management**: Search users, manage organization members
+- **Advanced Copilot Integration**: Delegate complex coding tasks to GitHub Copilot
+- **GitHub API Integration**: Full access to GitHub REST API via Octokit
+
+**Copilot Integration Features:**
+- **Task Delegation**: Assign coding tasks to @github-copilot for automated implementation
+- **Code Analysis**: Request Copilot analysis and suggestions on pull requests
+- **Automated PR Creation**: Copilot generates code and creates pull requests automatically
+
+**Prerequisites:**
+- GitHub Copilot Enterprise subscription for advanced features
+- Valid GITHUB_API_KEY environment variable
+- Appropriate repository permissions
 
 ---
 
@@ -378,6 +454,47 @@ Insight mining from research data.
 - Content categorization
 - Insight synthesis and organization
 
+### GitHub Tools
+Comprehensive suite of 14 specialized tools for complete GitHub API integration.
+
+**Repository Management Tools:**
+- **createRepository**: Create new repositories with custom settings
+- **getRepository**: Retrieve detailed repository information
+- **updateRepository**: Modify repository settings and metadata
+- **deleteRepository**: Remove repositories (with confirmation)
+- **listRepositories**: List user repositories with filtering options
+
+**Branch Management Tools:**
+- **listBranches**: List all branches in a repository
+- **getBranch**: Get detailed branch information
+- **createBranch**: Create new branches from existing commits
+- **deleteBranch**: Remove branches safely
+
+**Issue Management Tools:**
+- **createIssue**: Create new issues with titles and descriptions
+- **getIssue**: Retrieve issue details and metadata
+- **updateIssue**: Modify issue status, title, and body
+- **listIssues**: List repository issues with filtering (open/closed/all)
+
+**Pull Request Management Tools:**
+- **createPullRequest**: Create pull requests between branches
+- **getPullRequest**: Get detailed PR information
+- **updatePullRequest**: Modify PR title, body, and state
+- **mergePullRequest**: Merge PRs with various merge methods
+- **listPullRequests**: List PRs with status filtering
+
+**Additional Tools:**
+- **search**: Advanced GitHub search across repositories
+- **getUser**: Retrieve user profile information
+- **listOrganizations**: List user organizations
+- **createComment**: Add comments to issues and PRs
+
+**All tools support:**
+- Full GitHub API integration via Octokit
+- Comprehensive error handling and logging
+- Type-safe input validation with Zod schemas
+- Rate limiting and API quota management
+
 ---
 
 ## Networks 🌐
@@ -416,6 +533,13 @@ Custom MCP server implementation for enhanced tool integration.
 - Error handling and recovery
 - Performance monitoring
 - Security and authentication
+
+**GitHub Tools Integration:**
+- All 14 GitHub tools available through MCP
+- Standardized tool interface for GitHub operations
+- Type-safe API interactions
+- Rate limiting and error handling
+- Full GitHub API coverage via Octokit
 
 ---
 
@@ -525,6 +649,7 @@ The system implements advanced observability using OpenTelemetry for complete sy
 - npm or pnpm
 - Google AI API key
 - Database URL (LibSQL)
+- GitHub Personal Access Token (for GitHub features)
 
 ### Setup
 ```bash
@@ -532,7 +657,7 @@ The system implements advanced observability using OpenTelemetry for complete sy
 git clone https://github.com/ssdeanx/deep-research.git
 cd deep-research
 
-# Install dependencies
+# Install all dependencies (backend + frontend)
 npm install
 
 # Copy environment file
@@ -540,6 +665,37 @@ cp .env.example .env
 
 # Configure environment variables
 # Edit .env with your API keys and configuration
+```
+
+### Frontend Setup
+The project includes a modern React frontend built with Vite, TypeScript, and Tailwind CSS:
+
+```bash
+# Install shadcn/ui components (already included in package.json)
+# All 47 UI components are pre-configured and ready to use
+
+# Start the frontend development server
+npm run dev:frontend
+
+# Or start both backend and frontend together
+npm run dev:full
+
+# Build for production
+npm run build:frontend
+```
+
+### Backend Setup
+The Mastra backend provides the AI orchestration layer:
+
+```bash
+# Start the Mastra development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Start production server
+npm run start
 ```
 
 ### Environment Configuration
@@ -550,6 +706,9 @@ GOOGLE_GENERATIVE_AI_API_KEY=your_google_ai_api_key
 # Database Configuration
 DATABASE_URL=file:./mastra.db
 
+# GitHub API Configuration
+GITHUB_API_KEY=your_github_personal_access_token
+
 # Optional: Additional API keys
 EXA_API_KEY=your_exa_api_key
 
@@ -557,11 +716,33 @@ EXA_API_KEY=your_exa_api_key
 LOG_LEVEL=info
 ```
 
+#### GitHub API Setup
+To use GitHub features, you need to configure a GitHub Personal Access Token:
+
+1. **Create a Personal Access Token:**
+   - Go to GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)
+   - Generate a new token with the following permissions:
+     - `repo` (Full control of private repositories)
+     - `public_repo` (Access public repositories)
+     - `read:org` (Read org and team membership)
+     - `read:user` (Read ALL user profile data)
+     - `read:project` (Read project boards)
+
+2. **Add to Environment:**
+   ```env
+   GITHUB_API_KEY=ghp_your_token_here
+   ```
+
+3. **Copilot Enterprise (Optional):**
+   - For advanced Copilot integration features
+   - Requires GitHub Copilot Enterprise subscription
+   - Enables automated task delegation and code generation
+
 ---
 
 ## Quick Start 🚀
 
-### Basic Usage
+### Backend API Usage
 ```typescript
 import { mastra } from './src/mastra';
 
@@ -582,6 +763,22 @@ if (result.status === 'suspended') {
   });
 }
 ```
+
+### Frontend Usage
+```bash
+# Start the full-stack application
+npm run dev:full
+
+# Frontend will be available at http://localhost:4000
+# Backend API will be available at http://localhost:4111
+```
+
+**Frontend Features:**
+- **Interactive Research Interface**: Start research workflows through the web UI
+- **Real-time Workflow Monitoring**: Track workflow progress and status updates
+- **Agent Management Dashboard**: View and interact with all available agents
+- **Responsive Design**: Works seamlessly on desktop and mobile devices
+- **Dark Mode Support**: Automatic theme switching based on system preferences
 
 ### Using Individual Agents
 ```typescript
@@ -680,6 +877,91 @@ const vectorResults = await vectorTool.execute({
     indexName: 'research-data'
   }
 });
+```
+
+### GitHub Agent Usage
+```typescript
+// Using the GitHub Agent for repository management
+const githubAgent = mastra.getAgent('githubAgent');
+
+// Create a new repository
+const createResult = await githubAgent.generate([
+  {
+    role: 'user',
+    content: 'Create a new repository called "my-awesome-project" with description "An awesome project" and make it private'
+  }
+]);
+
+// List user repositories
+const listResult = await githubAgent.generate([
+  {
+    role: 'user',
+    content: 'List all my repositories'
+  }
+]);
+
+// Create and manage issues
+const issueResult = await githubAgent.generate([
+  {
+    role: 'user',
+    content: 'Create a new issue in repository "my-org/my-repo" with title "Bug: Login not working" and description "Users cannot log in after recent update"'
+  }
+]);
+```
+
+### GitHub Tools Direct Usage
+```typescript
+// Direct GitHub tool usage
+const createRepoTool = mastra.getTool('createRepository');
+const repoResult = await createRepoTool.execute({
+  context: {
+    name: 'my-new-repo',
+    description: 'A new repository created via API',
+    private: true
+  }
+});
+
+// List pull requests
+const listPRsTool = mastra.getTool('listPullRequests');
+const prsResult = await listPRsTool.execute({
+  context: {
+    owner: 'my-org',
+    repo: 'my-repo',
+    state: 'open'
+  }
+});
+
+// Create a pull request
+const createPRTool = mastra.getTool('createPullRequest');
+const prResult = await createPRTool.execute({
+  context: {
+    owner: 'my-org',
+    repo: 'my-repo',
+    title: 'Add new feature',
+    head: 'feature-branch',
+    base: 'main',
+    body: 'This PR adds a new feature...'
+  }
+});
+```
+
+### Copilot Integration Examples
+```typescript
+// Delegate a coding task to GitHub Copilot
+const copilotResult = await githubAgent.generate([
+  {
+    role: 'user',
+    content: 'Have Copilot implement a user authentication system for repository "my-org/my-app". The system should include login, logout, and password reset functionality.'
+  }
+]);
+
+// Request Copilot analysis of a pull request
+const analysisResult = await githubAgent.generate([
+  {
+    role: 'user',
+    content: 'Ask Copilot to analyze PR #123 in repository "my-org/my-repo" and provide suggestions for improvement'
+  }
+]);
 ```
 
 ---

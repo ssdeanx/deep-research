@@ -1,5 +1,72 @@
 # Mastra Deep Research System Documentation
 
+## Frontend Architecture
+
+The system includes a modern React frontend that provides an intuitive interface for interacting with the Mastra backend:
+
+### Technology Stack
+- **React 19.1+**: Latest React with concurrent features and automatic batching
+- **Vite 7.1+**: Lightning-fast build tool with HMR and optimized production builds
+- **TypeScript 5.9+**: Full type safety with advanced language features
+- **Tailwind CSS v4.1**: CSS-first configuration with OKLCH colors, text shadows, and modern utilities
+- **shadcn/ui**: 47 pre-built, accessible UI components with Radix UI primitives
+- **React Router v7.8+**: Modern routing with nested routes and data loading
+
+### Frontend Components
+
+#### Core Application Structure
+```
+src/
+├── app/                    # Main application
+│   ├── App.tsx            # Main router configuration
+│   ├── Layout.tsx         # Navigation and layout
+│   ├── main.tsx           # React entry point
+│   ├── global.css         # Tailwind CSS with shadcn/ui variables
+│   └── pages/             # Page components
+│       ├── Home.tsx       # Landing page
+│       ├── Research.tsx   # Research interface
+│       ├── Agents.tsx     # Agent management
+│       └── Workflows.tsx  # Workflow monitoring
+├── components/
+│   └── ui/                # 47 shadcn/ui components
+└── lib/
+    ├── mastra.ts          # Mastra client configuration
+    └── utils.ts           # Utility functions
+```
+
+#### Key Features
+- **Responsive Design**: Mobile-first approach with container queries
+- **Dark Mode**: Automatic theme switching with CSS custom properties
+- **Real-time Updates**: Live workflow status and agent responses
+- **Error Boundaries**: Comprehensive error handling and user feedback
+- **Loading States**: Skeleton components and progressive loading
+- **Accessibility**: WCAG compliant with keyboard navigation and screen reader support
+
+### Frontend-Backend Integration
+
+#### Mastra Client Configuration
+```typescript
+// lib/mastra.ts
+import { MastraClient } from "@mastra/client-js";
+
+export const mastraClient = new MastraClient({
+  baseUrl: import.meta.env.VITE_MASTRA_API_URL || "http://localhost:4111",
+});
+```
+
+#### API Communication
+- **RESTful Endpoints**: Direct API calls for agent and workflow operations
+- **Real-time Streaming**: WebSocket connections for live updates
+- **Error Handling**: Comprehensive error boundaries and retry logic
+- **Caching**: React Query for efficient data fetching and caching
+- **Type Safety**: End-to-end TypeScript integration
+
+### UI Component Library
+
+The system uses shadcn/ui, a comprehensive component library built on Radix UI primitives with 47 available components including Button, Card, Dialog, Table, and many more for building modern, accessible user interfaces.
+
+---
+
 ## Project Overview
 
 The Mastra Deep Research System is an AI-powered research and analysis platform built using the Mastra framework. It provides comprehensive research capabilities through specialized agents, tools, and workflows that enable thorough investigation of topics with web search integration, content summarization, and structured reporting.
@@ -52,7 +119,7 @@ The system follows a modular architecture with clear separation of concerns:
 
 ## Agents
 
-The system includes six specialized agents, each with distinct capabilities:
+The system includes seven specialized agents, each with distinct capabilities:
 
 ### 1. Research Agent (`researchAgent.ts`)
 
@@ -166,10 +233,60 @@ The system includes six specialized agents, each with distinct capabilities:
 
 **Integration**: Called by `extractLearningsTool` for knowledge mining.
 
+### 7. GitHub Agent (`githubAgent.ts`)
+
+**Purpose**: Advanced AI-powered GitHub Assistant for complete repository and project management with Copilot integration.
+
+**Key Features**:
+- **Repository Management**: Create, list, update, and delete repositories
+- **Issue Management**: Create, update, list, and manage GitHub issues with comments
+- **Pull Request Management**: Handle PR creation, updates, merging, and reviews
+- **Branch Management**: Create, list, and delete repository branches
+- **User & Organization Management**: Search users, manage organization members
+- **Advanced Copilot Integration**: Delegate complex coding tasks to GitHub Copilot
+- **GitHub API Integration**: Full access to GitHub REST API via Octokit
+- **Evaluation**: Integrated non-LLM based evaluation metrics (Content Similarity, Completeness, Textual Difference, Keyword Coverage, Tone Consistency) for quality assurance.
+
+**Copilot Integration Features**:
+- **Task Delegation**: Assign coding tasks to @github-copilot for automated implementation
+- **Code Analysis**: Request Copilot analysis and suggestions on pull requests
+- **Automated PR Creation**: Copilot generates code and creates pull requests automatically
+
+**Configuration**:
+- Model: Gemini 2.5 Flash
+- Search Grounding: Enabled
+- Dynamic Retrieval: Enabled
+- Safety Level: Off (for flexibility)
+- GitHub API: Octokit integration with GITHUB_API_KEY
+
+**Tools Used**:
+- `createRepository`: Repository creation and management
+- `getRepository`: Repository information retrieval
+- `updateRepository`: Repository settings modification
+- `deleteRepository`: Repository removal (with confirmation)
+- `listRepositories`: Repository listing with filtering
+- `createIssue`: Issue creation with detailed descriptions
+- `getIssue`: Issue information retrieval
+- `updateIssue`: Issue status and content modification
+- `listIssues`: Issue listing with status filtering
+- `createPullRequest`: Pull request creation between branches
+- `getPullRequest`: PR information retrieval
+- `updatePullRequest`: PR modification and state changes
+- `mergePullRequest`: PR merging with various merge methods
+- `listPullRequests`: PR listing with filtering
+- `search`: Advanced GitHub search across repositories
+- `getUser`: User profile information retrieval
+- `listOrganizations`: Organization listing and management
+
+**Prerequisites**:
+- GitHub Copilot Enterprise subscription for advanced features
+- Valid GITHUB_API_KEY environment variable
+- Appropriate repository permissions
+
 
 ## Tools
 
-The system provides 11 specialized tools for various research and processing tasks:
+The system provides 25 specialized tools for various research and processing tasks (11 core research tools + 14 GitHub integration tools):
 
 ### 1. Web Search Tool (`webSearchTool.ts`)
 
@@ -295,6 +412,49 @@ The system provides 11 specialized tools for various research and processing tas
 ### 10. Weather Tool (`weather-tool.ts`)
 
 **Purpose**: Weather data integration.
+
+### GitHub Tools Suite
+
+The system includes 14 specialized GitHub integration tools for comprehensive repository and project management:
+
+#### Repository Management Tools
+- **createRepository**: Create new repositories with custom settings and descriptions
+- **getRepository**: Retrieve detailed repository information and metadata
+- **updateRepository**: Modify repository settings, descriptions, and visibility
+- **deleteRepository**: Remove repositories (with confirmation safeguards)
+- **listRepositories**: List user repositories with filtering and pagination
+
+#### Branch Management Tools
+- **listBranches**: List all branches in a repository with protection status
+- **getBranch**: Get detailed branch information including protection rules
+- **createBranch**: Create new branches from existing commits or branches
+- **deleteBranch**: Remove branches safely with conflict checking
+
+#### Issue Management Tools
+- **createIssue**: Create new issues with titles, descriptions, and labels
+- **getIssue**: Retrieve issue details, comments, and metadata
+- **updateIssue**: Modify issue status, title, body, and assignees
+- **listIssues**: List repository issues with advanced filtering (open/closed/all)
+
+#### Pull Request Management Tools
+- **createPullRequest**: Create pull requests between branches with detailed descriptions
+- **getPullRequest**: Get detailed PR information including reviews and commits
+- **updatePullRequest**: Modify PR title, body, state, and merge settings
+- **mergePullRequest**: Merge PRs with various merge methods (merge/squash/rebase)
+- **listPullRequests**: List PRs with status filtering and sorting options
+
+#### Additional GitHub Tools
+- **search**: Advanced GitHub search across repositories, issues, and code
+- **getUser**: Retrieve user profile information and repository statistics
+- **listOrganizations**: List user organizations and membership details
+- **createComment**: Add comments to issues and pull requests
+
+**Common Features Across GitHub Tools**:
+- Full GitHub API integration via Octokit
+- Comprehensive error handling and rate limiting
+- Type-safe input validation with Zod schemas
+- Automatic retry logic for transient failures
+- Detailed logging and tracing support
 
 ## Workflows
 
@@ -747,6 +907,9 @@ VECTOR_DATABASE_URL="file:./vector-store.db"  # Separate vector database
 
 # AI Providers
 GOOGLE_GENERATIVE_AI_API_KEY="your-google-api-key"
+
+# GitHub API Configuration
+GITHUB_API_KEY="your-github-personal-access-token"
 
 # Search
 EXA_API_KEY="your-exa-api-key"

@@ -1,8 +1,8 @@
 import { Agent } from '@mastra/core/agent';
-import { createGemini25Provider } from '../config/googleProvider';
 import { createResearchMemory } from '../config/libsql-storage';
 import { ContentSimilarityMetric, CompletenessMetric, TextualDifferenceMetric, KeywordCoverageMetric, ToneConsistencyMetric } from "@mastra/evals/nlp"; // Non-LLM evals
 import { PinoLogger } from "@mastra/loggers";
+import { google } from '@ai-sdk/google';
 
 const logger = new PinoLogger({ level: 'info' });
 
@@ -12,6 +12,7 @@ const memory = createResearchMemory();
 
 export const evaluationAgent = new Agent({
   name: 'Evaluation Agent',
+  description: 'An expert evaluation agent. Your task is to evaluate whether search results are relevant to a research query.',
   instructions: `You are an expert evaluation agent. Your task is to evaluate whether search results are relevant to a research query.
 
   When evaluating search results:
@@ -34,26 +35,7 @@ export const evaluationAgent = new Agent({
   - isRelevant: boolean indicating if the result is relevant
   - reason: brief explanation of your decision
   `,
-  model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17', {
-      // Response modalities - what types of content the model can generate
-      responseModalities: ["TEXT"], // Can also include "IMAGE" for image generation
-      // Thinking configuration for enhanced reasoning
-      thinkingConfig: {
-        thinkingBudget: -1, // -1 = dynamic budget, 0 = disabled, 1-24576 = fixed budget
-        includeThoughts: true, // Include reasoning process in response for debugging
-      },
-      // Search grounding for real-time information access
-      useSearchGrounding: true, // Enable Google Search integration for current events
-      // Dynamic retrieval configuration
-      dynamicRetrieval: true, // Let model decide when to use search grounding
-      // Safety settings level
-      safetyLevel: 'OFF', // Options: 'STRICT', 'MODERATE', 'PERMISSIVE', 'OFF'
-      // Structured outputs for better tool integration
-      structuredOutputs: true, // Enable structured JSON responses
-      // Cached content for cost optimization (if you have cached content)
-      // cachedContent: 'your-cache-id', // Uncomment if using explicit caching
-      // Langfuse tracing configuration
-    }),
+  model: google('gemini-2.5-flash-lite'),
   memory,
   evals: {
     contentSimilarity: new ContentSimilarityMetric({ ignoreCase: true, ignoreWhitespace: true }),

@@ -18,7 +18,7 @@ const processResearchResultStep = createStep({
   }),
   execute: async ({ inputData, mastra }) => {
     // First determine if research was approved/successful
-    const approved = inputData.approved && !!inputData.researchData;
+    const approved = inputData.approved && inputData.researchData !== undefined && inputData.researchData !== null;
 
     if (!approved) {
       logger.info('Research not approved or incomplete, ending workflow');
@@ -62,7 +62,7 @@ export const generateReportWorkflow = createWorkflow({
 generateReportWorkflow
   .dowhile(researchWorkflow, async ({ inputData }) => {
     const isCompleted = inputData.approved;
-    return isCompleted !== true;
+    return !isCompleted;
   })
   .then(processResearchResultStep)
   .commit();

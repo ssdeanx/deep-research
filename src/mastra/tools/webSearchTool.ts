@@ -3,9 +3,9 @@ import { z } from 'zod';
 import Exa from 'exa-js';
 import 'dotenv/config';
 import { PinoLogger } from "@mastra/loggers";
+import { AISpanType } from '@mastra/core/ai-tracing';
 
 const logger = new PinoLogger({ level: 'info' });
-
 
 // Initialize Exa client
 const exa = new Exa(process.env.EXA_API_KEY);
@@ -16,13 +16,20 @@ export const webSearchTool = createTool({
   inputSchema: z.object({
     query: z.string().describe('The search query to run'),
   }),
-  execute: async ({ context, mastra }) => {
+  execute: async ({ context, mastra, tracingContext }) => {
+    const searchSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.GENERIC,
+      name: 'web_search',
+      input: { query: context.query }
+    });
+
     logger.info('Executing web search tool');
     const { query } = context;
 
     try {
       if (!process.env.EXA_API_KEY) {
         logger.error('Error: EXA_API_KEY not found in environment variables');
+        searchSpan?.end({ metadata: { error: 'Missing API key' } });
         return { results: [], error: 'Missing API key' };
       }
 
@@ -34,6 +41,7 @@ export const webSearchTool = createTool({
 
       if (!results || results.length === 0) {
         logger.info('No search results found');
+        searchSpan?.end({ output: { resultCount: 0 } });
         return { results: [], error: 'No results found' };
       }
 
@@ -49,7 +57,7 @@ export const webSearchTool = createTool({
           // Skip if content is too short or missing
           if (!result.text || result.text.length < 100) {
             processedResults.push({
-              title: result.title || '',
+              title: result.title ?? '',
               url: result.url,
               content: result.text || 'No content available',
             });
@@ -62,7 +70,7 @@ export const webSearchTool = createTool({
               role: 'user',
               content: `Please summarize the following web content for research query: "${query}"
 
-Title: ${result.title || 'No title'}
+Title: ${result.title ?? 'No title'}
 URL: ${result.url}
 Content: ${result.text.substring(0, 8000)}...
 
@@ -71,12 +79,12 @@ Provide a concise summary that captures the key information relevant to the rese
           ]);
 
           processedResults.push({
-            title: result.title || '',
+            title: result.title ?? '',
             url: result.url,
             content: summaryResponse.text,
           });
 
-          logger.info(`Summarized content for: ${result.title || result.url}`);
+          logger.info(`Summarized content for: ${result.title ?? result.url}`);
         } catch (summaryError) {
           logger.error('Error summarizing content', {
             error: summaryError instanceof Error ? summaryError.message : String(summaryError),
@@ -84,13 +92,14 @@ Provide a concise summary that captures the key information relevant to the rese
           });
           // Fallback to truncated original content
           processedResults.push({
-            title: result.title || '',
+            title: result.title ?? '',
             url: result.url,
             content: result.text ? result.text.substring(0, 500) + '...' : 'Content unavailable',
           });
         }
       }
 
+      searchSpan?.end({ output: { resultCount: processedResults.length, totalContentLength: processedResults.reduce((sum, r) => sum + r.content.length, 0) } });
       return {
         results: processedResults,
       };
@@ -98,6 +107,7 @@ Provide a concise summary that captures the key information relevant to the rese
       logger.error('Error searching the web', { error });
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Error details:', { error: errorMessage });
+      searchSpan?.end({ metadata: { error: errorMessage } });
       return {
         results: [],
         error: errorMessage,

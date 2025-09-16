@@ -33,11 +33,18 @@ import type {
   GoogleGenerativeAIProviderOptions,
   GoogleGenerativeAIProviderMetadata
 } from '@ai-sdk/google';
+import { googleTools } from '@ai-sdk/google/internal';
+
+// Add tools exports to utilize the imported googleTools
+export const googletools = {
+  codeExecution: googleTools.codeExecution,
+  googleSearch: googleTools.googleSearch,
+  urlContext: googleTools.urlContext,
+};
 import { GoogleAICacheManager } from '@google/generative-ai/server';
 import { PinoLogger } from "@mastra/loggers";
 
 const logger = new PinoLogger({ name: 'googleProvider', level: 'info' });
-
 
 /**
  * Gemini Model Configuration Constants - Focused on 2.5 Series
@@ -110,7 +117,6 @@ logger.info('Google provider configuration loaded', {
   embeddingModels: Object.keys(GEMINI_CONFIG.EMBEDDING_MODELS).length
 });
 
-
 /**
  * Enhanced base Google model with Gemini 2.5 Flash Lite as default
  * Supports all advanced features via proper AI SDK patterns
@@ -119,33 +125,32 @@ logger.info('Google provider configuration loaded', {
  * @param options - Model configuration options
  * @returns Configured Google model instance
  */
+
 export const baseGoogleModel = (
   modelId: string = GEMINI_CONFIG.MODELS.GEMINI_2_5_FLASH_LITE,
-  options: {
+  options: Readonly<{
     useSearchGrounding?: boolean;
     dynamicRetrieval?: boolean;
     safetyLevel?: 'STRICT' | 'MODERATE' | 'PERMISSIVE' | 'OFF';
     cachedContent?: string;
     structuredOutputs?: boolean;
-    functionCalling?: boolean;
     codeExecution?: boolean; // Enable code execution for models that support it
     // Langfuse tracing options
     agentName?: string;
     tags?: string[];
     metadata?: Record<string, unknown>;
     traceName?: string;
-  } = {}
+  }> = {}
 ) => {
   const {
     useSearchGrounding = false,
     dynamicRetrieval = false,
     safetyLevel = 'MODERATE',
     cachedContent,
-    structuredOutputs = true,
-    functionCalling = false,
+    structuredOutputs = false,
     codeExecution = false,
     // Langfuse tracing options
-    agentName,
+    agentName = 'unknown',
     tags = [],
     metadata = {},
     traceName
@@ -158,62 +163,70 @@ export const baseGoogleModel = (
     dynamicRetrieval,
     safetyLevel,
     structuredOutputs,
-    functionCalling,
     codeExecution,
     agentName,
     traceName
   });
 
   try {
-    const model = baseGoogle(modelId, {
-      useSearchGrounding,
-      dynamicRetrievalConfig: dynamicRetrieval ? {
-        mode: 'MODE_DYNAMIC',
-        dynamicThreshold: 0.8
-      } : undefined,
-      safetySettings: [...GEMINI_CONFIG.SAFETY_PRESETS[safetyLevel]],
-      cachedContent,
-      structuredOutputs
-    });
+  // baseGoogle only accepts the modelId; attach computed provider defaults to the returned model object
+  const model = baseGoogle(modelId);
+
+  // Validate the provided safetyLevel and build a sanitized safetySettings array to avoid injecting untrusted objects
+  const allowedSafetyLevels = ['STRICT', 'MODERATE', 'PERMISSIVE', 'OFF'] as const;
+  const resolvedSafetyLevel = (allowedSafetyLevels.includes(safetyLevel)) ? safetyLevel : 'MODERATE';
+  const safetySettings = GEMINI_CONFIG.SAFETY_PRESETS[resolvedSafetyLevel].map(s => ({
+    category: String(s.category),
+    threshold: String(s.threshold)
+  }));
+
+  // Compose default provider options and attach them to the model for downstream consumption (consumer code can read __defaultProviderOptions
+  // and apply them via providerOptions when calling generateText or other SDK entrypoints)
+  (model as Record<string, unknown>).__defaultProviderOptions = {
+    useSearchGrounding,
+    dynamicRetrieval: dynamicRetrieval ? { mode: 'MODE_DYNAMIC', dynamicThreshold: 0.8 } : undefined,
+    safetySettings,
+    cachedContent,
+    structuredOutputs
+  };
 
     // Add Langfuse metadata to the model for automatic tracing
-    if (agentName || tags.length > 0 || Object.keys(metadata).length > 0) {
-      // Attach metadata that Langfuse can pick up
-      (model as Record<string, unknown>).__langfuseMetadata = {
-        agentName: agentName || 'unknown',
-        tags: [
-          'mastra',
-          'google',
-          'gemini-2.5',
-          'dean-machines',
-          ...(agentName ? [agentName] : []),
-          ...tags
-        ],
-        metadata: {
-          modelId,
-          provider: 'google',
-          framework: 'mastra',
-          project: 'dean-machines-rsc',
-          agentName: agentName || 'unknown',
-          thinkingBudget: 'dynamic',
-          safetyLevel,
-          useSearchGrounding,
-          dynamicRetrieval,
-          structuredOutputs,
-          timestamp: new Date().toISOString(),
-          traceName: traceName || `${agentName || 'agent'}-${modelId}`,
-          ...metadata
-        }
-      };
+          if (agentName !== 'unknown' || tags.length > 0 || Object.keys(metadata).length > 0) {
+            // Attach metadata that Langfuse can pick up
+            (model as Record<string, unknown>).__langfuseMetadata = {
+              agentName,
+              tags: [
+                'mastra',
+                'google',
+                'gemini-2.5',
+                'dean-machines',
+                ...((agentName !== 'unknown') ? [agentName] : []),
+                ...tags
+              ],
+              metadata: {
+                modelId,
+                provider: 'google',
+                framework: 'mastra',
+                project: 'dean-machines-rsc',
+                agentName,
+                thinkingBudget: 'dynamic',
+                safetyLevel,
+                useSearchGrounding,
+                dynamicRetrieval,
+                structuredOutputs,
+                timestamp: new Date().toISOString(),
+                traceName: traceName ?? `${agentName}-${modelId}`,
+                ...metadata
+              }
+            };
 
-      logger.info('Google model configured with Langfuse metadata', {
-        modelId,
-        agentName,
-        traceName: traceName || `${agentName || 'agent'}-${modelId}`,
-        tagsCount: tags.length
-      });
-    }
-
+            logger.info('Google model configured with Langfuse metadata', {
+              modelId,
+              agentName,
+              traceName: traceName ?? `${agentName}-${modelId}`,
+              tagsCount: tags.length
+            });
+          }
     logger.info('Google model instance created successfully', { modelId, agentName });
     return model;
   } catch (error) {
@@ -251,17 +264,18 @@ export const baseGoogleModel = (
  * });
  * ```
  */
+
 export function createGemini25Provider(
   modelId: string = GEMINI_CONFIG.MODELS.GEMINI_2_5_FLASH_LITE,
-  options: {
+  options: Readonly<{
     // Thinking capabilities (for backward compatibility with existing agents)
-    thinkingConfig?: {
+    thinkingConfig?: Readonly<{
       thinkingBudget?: number;
       includeThoughts?: boolean;
-    };
-    mediaResolution?: 'OFF' | 'MEDIA_RESOLUTION_LOW' | 'MEDIA_RESOLUTION_MEDIUM' // This allows more higher quality output per token but will cost most overall
+    }>;
+    mediaResolution?: 'OFF' | 'MEDIA_RESOLUTION_LOW' | 'MEDIA_RESOLUTION_MEDIUM'; // This allows more higher quality output per token but will cost most overall
     // Response modalities (for backward compatibility)
-    responseModalities?: ('TEXT' | 'IMAGE')[];
+    responseModalities?: ReadonlyArray<'TEXT' | 'IMAGE'>;
     codeExecution?: boolean; // Enable code execution for models that support it
     // Search and grounding
     useSearchGrounding?: boolean;
@@ -273,7 +287,7 @@ export function createGemini25Provider(
     // Safety and structure
     safetyLevel?: 'STRICT' | 'MODERATE' | 'PERMISSIVE' | 'OFF';
     structuredOutputs?: boolean;
-  } = {}
+  }> = {}
 ) {
   // Extract the thinking and response modality options (for backward compatibility)
   const { thinkingConfig, responseModalities, mediaResolution, ...baseOptions } = options;
@@ -292,55 +306,17 @@ export function createGemini25Provider(
   return baseGoogleModel(modelId, baseOptions);
 }
 
-/**
- * Create Google provider with image generation capabilities
- * @param modelId - Model ID (default: gemini-2.0-flash-exp)
- * @param options - Configuration options
- */
-export function createGeminiImageProvider(
-  modelId: string = GEMINI_CONFIG.MODELS.GEMINI_2_5_FLASH_LITE,
-  options: {
-    useSearchGrounding?: boolean;
-    safetyLevel?: 'STRICT' | 'MODERATE' | 'PERMISSIVE' | 'OFF';
-  } = {}
-) {
-  const { useSearchGrounding = false, safetyLevel = 'MODERATE' } = options;
-
-  return baseGoogle(modelId, {
-    useSearchGrounding,
-    safetySettings: [...GEMINI_CONFIG.SAFETY_PRESETS[safetyLevel]]
-  });
-}
-
-/**
- * Create embedding model with flexible dimensions
- * @param modelId - Embedding model ID
- * @param options - Embedding configuration
- */
 export function createGeminiEmbeddingModel(
   modelId: string = GEMINI_CONFIG.EMBEDDING_MODELS.TEXT_EMBEDDING_004,
-  options: {
-    outputDimensionality?: 1536;
-    taskType?: 'SEMANTIC_SIMILARITY' | 'CLASSIFICATION' | 'CLUSTERING' | 'RETRIEVAL_DOCUMENT' | 'RETRIEVAL_QUERY' | 'QUESTION_ANSWERING' | 'FACT_VERIFICATION' | 'CODE_RETRIEVAL_QUERY';
-  } = {}
 ) {
-  const {
-    outputDimensionality = 1536, // Default to 1536 to match your setup
-    taskType = 'SEMANTIC_SIMILARITY'
-  } = options;
+  // The textEmbedding method does not directly accept outputDimensionality or taskType as top-level options.
+  // These are typically configured at the model level or within the embedding request payload.
+  // For now, we'll remove them from the direct call to baseGoogle.textEmbedding.
 
-  return baseGoogle.textEmbeddingModel(modelId, {
-    outputDimensionality,
-    taskType
-  });
+  // Use the provider's textEmbedding method for consistency
+  return baseGoogle.textEmbedding(modelId);
 }
 
-/**
- * Main function - auto-detects model version and uses appropriate provider
- * @param modelId - ID of the Google model to use
- * @param options - Optional settings for the provider
- * @returns Google provider instance
- */
 /**
  * Create a Mastra-compatible Google provider with proper thinking config support
  *
@@ -365,20 +341,21 @@ export function createGeminiEmbeddingModel(
  * });
  * ```
  */
+
 export function createMastraGoogleProvider(
   modelId: string = GEMINI_CONFIG.MODELS.GEMINI_2_5_FLASH_LITE,
-  options: {
+  options: Readonly<{
     // Search and grounding
     useSearchGrounding?: boolean;
     dynamicRetrieval?: boolean;
-
+    mediaResolution?: 'OFF' | 'MEDIA_RESOLUTION_LOW' | 'MEDIA_RESOLUTION_MEDIUM' // This allows more higher quality output per token but will cost most overall
     // Content and caching
     cachedContent?: string;
 
     // Safety and structure
     safetyLevel?: 'STRICT' | 'MODERATE' | 'PERMISSIVE' | 'OFF';
     structuredOutputs?: boolean;
-  } = {}
+  }> = {}
 ) {
   // Use the enhanced 2.5 provider for all models
   return createGemini25Provider(modelId, options);
@@ -427,15 +404,15 @@ export type { GoogleGenerativeAIProviderOptions, GoogleGenerativeAIProviderSetti
  * ```typescript
  * const cacheManager = createCacheManager();
  * ```
- * 
+ *
  * [EDIT: 2025-06-22] [BY: GitHub Copilot]
  */
 export function createCacheManager(apiKey?: string): GoogleAICacheManager {
-  const key = apiKey || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-  if (!key) {
+  const key = apiKey ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  if (key === undefined) { // Changed from null to undefined as process.env returns undefined for unset variables
     throw new Error('Google AI API key is required for cache manager');
   }
-  
+
   logger.info('Creating Google AI cache manager', { hasApiKey: !!key });
   return new GoogleAICacheManager(key);
 }
@@ -460,6 +437,7 @@ export function createCacheManager(apiKey?: string): GoogleAICacheManager {
  *
  * [EDIT: 2025-06-22] [BY: GitHub Copilot]
  */
+
 export async function createCachedContent(
   cacheManager: GoogleAICacheManager,
   modelId: GoogleModelCacheableId,
@@ -468,18 +446,19 @@ export async function createCachedContent(
 ): Promise<string> {
   try {
     logger.info('Creating cached content', { modelId, ttlSeconds, contentCount: contents.length });
-      const { name } = await cacheManager.create({
+      const result = await cacheManager.create({
       model: modelId,
       contents,
       ttlSeconds
     });
+      const {name} = result;
 
-    if (!name) {
+    if (name === null || name === undefined) {
       throw new Error('Failed to create cached content: no name returned');
     }
 
     logger.info('Cached content created successfully', { name, modelId });
-    return name;
+    return name.startsWith('cachedContents/') ? name : `cachedContents/${name}`;
   } catch (error) {
     logger.error('Failed to create cached content', {
       modelId,
@@ -509,6 +488,7 @@ export async function createCachedContent(
  *
  * [EDIT: 2025-06-22] [BY: GitHub Copilot]
  */
+
 export const createCachedGoogleModel = async (
   modelId: GoogleModelCacheableId,
   options: {
@@ -596,13 +576,14 @@ export function supportsExplicitCaching(modelId: string): modelId is GoogleModel
  *
  * [EDIT: 2025-06-22] [BY: GitHub Copilot]
  */
-export function extractGroundingMetadata(providerMetadata?: Record<string, unknown>) {
-  if (!providerMetadata?.google || typeof providerMetadata.google !== 'object') {
+export function extractGroundingMetadata(providerMetadata?: Readonly<Record<string, unknown>>) {
+  const googleMetadata = providerMetadata?.google as Record<string, unknown> | undefined;
+  if (!googleMetadata || typeof googleMetadata !== 'object') {
     return null;
   }
 
-  const googleMetadata = providerMetadata.google as GoogleGenerativeAIProviderMetadata;
-  const grounding = googleMetadata.groundingMetadata;
+  const grounding = (googleMetadata as any).groundingMetadata;
+  const safetyRatings = (googleMetadata as any).safetyRatings as any[] | undefined;
 
   interface GroundingSegment {
     text: string | null;
@@ -641,26 +622,27 @@ export function extractGroundingMetadata(providerMetadata?: Record<string, unkno
     confidenceScores?: number[] | null;
   }
 
-    return {
-      searchQueries: grounding?.webSearchQueries || [],
-      searchEntryPoint: grounding?.searchEntryPoint?.renderedContent || null,
-      groundingSupports: grounding?.groundingSupports?.map((support: RawGroundingSupport): GroundingSupport => ({
+  return {
+    searchQueries: grounding?.webSearchQueries ?? [],
+    searchEntryPoint: grounding?.searchEntryPoint?.renderedContent ?? null,
+    groundingSupports:
+      (grounding?.groundingSupports ?? []).map((support: RawGroundingSupport): GroundingSupport => ({
         segment: {
-          text: support.segment?.text || '',
-          startIndex: support.segment?.startIndex ?? 0,
-          endIndex: support.segment?.endIndex ?? 0
+          text: support.segment?.text ?? null,
+          startIndex: support.segment?.startIndex ?? null,
+          endIndex: support.segment?.endIndex ?? null
         },
         groundingChunkIndices: support.groundingChunkIndices ?? [],
-        confidenceScores: support.confidenceScores || []
-      })) || [],
-      safetyRatings: googleMetadata.safetyRatings || []
-    } as GroundingMetadata;
+        confidenceScores: support.confidenceScores ?? []
+      })) ?? [],
+    safetyRatings: safetyRatings ?? []
+  } as GroundingMetadata;
 }
 
 /**
  * Log cache usage statistics from response metadata
  * @param response - Response object from generateText
- * @param logger - Logger instance
+ * @param customLogger - Logger instance
  *
  * @example
  * ```typescript
@@ -670,13 +652,18 @@ export function extractGroundingMetadata(providerMetadata?: Record<string, unkno
  *
  * [EDIT: 2025-06-22] [BY: GitHub Copilot]
  */
-export function logCacheUsage(response: Record<string, unknown>, logger: PinoLogger) {
-  const responseBody = response?.body as Record<string, unknown> | undefined;
-  const usageMetadata = responseBody?.usageMetadata as Record<string, unknown> | undefined;  if (usageMetadata?.cachedContentTokenCount && typeof usageMetadata.cachedContentTokenCount === 'number' && 
-      usageMetadata.totalTokenCount && typeof usageMetadata.totalTokenCount === 'number') {
-    const cacheHitRate = (usageMetadata.cachedContentTokenCount / usageMetadata.totalTokenCount * 100).toFixed(2);
+export function logCacheUsage(response: Readonly<Record<string, unknown>>, customLogger: PinoLogger) {
+  const responseBody = response.body as Record<string, unknown> | undefined;
+  const usageMetadata = responseBody?.usageMetadata as Readonly<Record<string, unknown>> | undefined;
+  if (
+    usageMetadata &&
+    typeof usageMetadata.cachedContentTokenCount === 'number' &&
+    typeof usageMetadata.totalTokenCount === 'number' &&
+    usageMetadata.totalTokenCount > 0
+  ) {
+    const cacheHitRate = ((usageMetadata.cachedContentTokenCount / usageMetadata.totalTokenCount) * 100).toFixed(2);
 
-    logger.info('Cache hit detected', {
+    customLogger.info('Cache hit detected', {
       cachedTokens: usageMetadata.cachedContentTokenCount,
       totalTokens: usageMetadata.totalTokenCount,
       promptTokens: usageMetadata.promptTokenCount,
@@ -689,7 +676,7 @@ export function logCacheUsage(response: Record<string, unknown>, logger: PinoLog
 
 /**
  * Enhanced search grounding utility with metadata extraction
- * @param prompt - Search query or prompt
+ * @param _prompt - Search query or prompt
  * @param options - Search grounding configuration
  * @returns Promise with response and extracted grounding metadata
  *
@@ -700,11 +687,12 @@ export function logCacheUsage(response: Record<string, unknown>, logger: PinoLog
  *   { agentName: 'research-agent' }
  * );
  * ```
- * 
+ *
  * [EDIT: 2025-06-22] [BY: GitHub Copilot]
  */
+
 export async function searchGroundedGeneration(
-  prompt: string,
+  _prompt: string,
   options: {
     modelId?: string;
     agentName?: string;
@@ -719,29 +707,27 @@ export async function searchGroundedGeneration(
     safetyLevel = 'MODERATE'
   } = options;
 
-  const model = baseGoogleModel(modelId, {
-    useSearchGrounding: true,
-    dynamicRetrieval: true,
-    safetyLevel,
-    agentName,
-    tags: ['search', 'grounding'],
-    traceName: `search-${agentName}`
-  });
+const model = baseGoogleModel(modelId, {
+  useSearchGrounding: true,
+  dynamicRetrieval: true,
+  safetyLevel,
+  agentName,
+  tags: ['search', 'grounding'],
+  traceName: `search-${agentName}`
+});
 
-  try {
-    // Return the configured model and helper for metadata extraction
-    return {
-      model,
-      extractGroundingMetadata: (providerMetadata: Record<string, unknown>) => 
-        extractMetadata ? extractGroundingMetadata(providerMetadata) : null
-    };
-  } catch (error) {
-    logger.error('Search grounded generation failed', {
-      prompt: prompt.substring(0, 100),
-      modelId,
-      agentName,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-    throw error;
+try {
+  // Return the configured model and helper for metadata extraction
+  return {
+    model,
+    extractGroundingMetadata: (providerMetadata?: Readonly<Record<string, unknown>>) =>
+      extractMetadata ? extractGroundingMetadata(providerMetadata) : null
+  };
+} catch (error) {
+  logger.error('searchGroundedGeneration failed', {
+    modelId,
+    error: error instanceof Error ? error.message : String(error)
+  });
+  throw error;
   }
 }

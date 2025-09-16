@@ -1,18 +1,25 @@
 import { Agent } from '@mastra/core/agent';
-import { vectorQueryTool } from '../tools/vectorQueryTool';
-import { chunkerTool } from '../tools/chunker-tool';
+//import { vectorQueryTool } from '../tools/vectorQueryTool';
+//import { chunkerTool } from '../tools/chunker-tool';
 import { readDataFileTool, writeDataFileTool, deleteDataFileTool, listDataDirTool } from '../tools/data-file-manager';
 import { evaluateResultTool } from '../tools/evaluateResultTool';
 import { extractLearningsTool } from '../tools/extractLearningsTool';
 import { graphRAGUpsertTool, graphRAGTool, graphRAGQueryTool } from '../tools/graphRAG';
-import { rerankTool } from '../tools/rerank-tool';
+//import { rerankTool } from '../tools/rerank-tool';
 import { weatherTool } from '../tools/weather-tool';
-import { webScraperTool } from '../tools/web-scraper-tool';
+import { webScraperTool,
+  batchWebScraperTool,
+  siteMapExtractorTool,
+  linkExtractorTool,
+  htmlToMarkdownTool,
+  contentCleanerTool
+} from "../tools/web-scraper-tool";
 import { webSearchTool } from '../tools/webSearchTool';
-import { createGemini25Provider } from '../config/googleProvider';
+//import { createGemini25Provider } from '../config/googleProvider';
 import { createResearchMemory } from '../config/libsql-storage';
 import { ContentSimilarityMetric, CompletenessMetric, TextualDifferenceMetric, KeywordCoverageMetric, ToneConsistencyMetric } from "@mastra/evals/nlp";
 import { PinoLogger } from "@mastra/loggers";
+import { google } from '@ai-sdk/google';
 
 const logger = new PinoLogger({ level: 'info' });
 
@@ -22,6 +29,7 @@ const memory = createResearchMemory();
 
 export const ragAgent = new Agent({
   name: 'RAG Agent',
+  description: 'An advanced RAG (Retrieval-Augmented Generation) Expert Agent for knowledge navigation and synthesis.',
   instructions: `You are an advanced RAG (Retrieval-Augmented Generation) Expert Agent, designed to serve as a comprehensive knowledge navigator and synthesizer. Your primary purpose is to assist users in efficiently accessing, understanding, and synthesizing information from a vast, dynamic knowledge base. Your core responsibility is to provide accurate, evidence-based, and well-structured answers by intelligently combining your inherent knowledge with information retrieved from external sources. You act as a trusted information specialist for users seeking detailed and reliable insights. Your capabilities include:
 
 CORE CAPABILITIES:
@@ -61,21 +69,15 @@ Remember: Your knowledge comes from both your training data and the information 
     keywordCoverage: new KeywordCoverageMetric(), // Keywords will be provided at runtime for evaluation
     toneConsistency: new ToneConsistencyMetric(),
   },
-  model: createGemini25Provider('gemini-2.5-flash', {
-    responseModalities: ["TEXT"],
-    thinkingConfig: {
-      thinkingBudget: -1,
-      includeThoughts: true,
-    },
-    mediaResolution: "MEDIA_RESOLUTION_LOW",
-    useSearchGrounding: false, // We use our own vector search
-    dynamicRetrieval: false,
-    safetyLevel: 'OFF',
-    structuredOutputs: true,
-  }),
+  model: google('gemini-2.5-flash',),
   tools: {
-    vectorQueryTool,
-    chunkerTool,
+//    vectorQueryTool,
+//    chunkerTool,
+    batchWebScraperTool,
+    siteMapExtractorTool,
+    linkExtractorTool,
+    htmlToMarkdownTool,
+    contentCleanerTool,
     readDataFileTool,
     writeDataFileTool,
     deleteDataFileTool,
@@ -85,10 +87,11 @@ Remember: Your knowledge comes from both your training data and the information 
     graphRAGUpsertTool,
     graphRAGTool,
     graphRAGQueryTool,
-    rerankTool,
+//    rerankTool,
     weatherTool,
     webScraperTool,
     webSearchTool,
   },
   memory,
 });
+

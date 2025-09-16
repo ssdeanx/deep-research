@@ -1,11 +1,10 @@
 import { LibSQLStore, LibSQLVector } from "@mastra/libsql";
 import { Memory } from "@mastra/memory";
-import { createGeminiEmbeddingModel } from "./googleProvider";
 import { embedMany } from "ai";
 import { PinoLogger } from "@mastra/loggers";
 import { AISpanType } from '@mastra/core/ai-tracing';
 import type { RuntimeContext } from '@mastra/core/runtime-context';
-import type { UIMessage, Message } from 'ai';
+import type { UIMessage } from 'ai';
 import {
   PersonalizationProcessor,
   TokenLimiterProcessor,
@@ -19,7 +18,9 @@ import {
   BayesianBeliefProcessor,
   HierarchicalMemoryProcessor
 } from "./memory-processors";
-import { RegisteredLogger } from "@mastra/core/logger";
+import type { RegisteredLogger } from "@mastra/core/logger";
+import z from "zod";
+import { google } from "@ai-sdk/google";
 
 export interface TracingSpanInput {
   type: AISpanType;
@@ -46,6 +47,17 @@ export interface QueryResult {
   vector?: number[];
 }
 
+/**
+ * Simplified Message type used by memory search and UI adapters
+ */
+export interface Message {
+  id?: string;
+  role?: 'user' | 'assistant' | 'system' | 'data';
+  content?: string;
+  createdAt?: string | number | Date;
+  threadId?: string;
+}
+
 const logger = new PinoLogger({ name: 'libsql-storage', level: 'info' });
 
 /**
@@ -64,12 +76,24 @@ export const STORAGE_CONFIG = {
   }
 } as const;
 
+const userProfileSchema = z.object({
+ name: z.string().optional(),
+ location: z.string().optional(),
+ timezone: z.string().optional(),
+ preferences: z.object({
+ communicationStyle: z.string().optional(),
+ projectGoal: z.string().optional(),
+ deadlines: z.array(z.string()).optional(),
+ }).optional(),
+});
+
 /**
  * LibSQL Storage Configuration
  */
-export const createLibSQLStore = (tracingContext?: { context?: unknown; runtimeContext?: RuntimeContext; currentSpan?: { createChildSpan(input: TracingSpanInput): { end(options: SpanEndInput): void } } }) => {
+
+export const createLibSQLStore = (tracingContext?: { context?: any; runtimeContext?: RuntimeContext; currentSpan?: { createChildSpan(_input: TracingSpanInput): { end(options: SpanEndInput): void } } }) => {
   const startTime = Date.now();
-  const databaseUrl = process.env.DATABASE_URL || STORAGE_CONFIG.DEFAULT_DATABASE_URL;
+  const databaseUrl = process.env.DATABASE_URL ?? STORAGE_CONFIG.DEFAULT_DATABASE_URL;
 
   // Create child span for storage initialization
   const initSpan = tracingContext?.currentSpan?.createChildSpan({
@@ -77,7 +101,7 @@ export const createLibSQLStore = (tracingContext?: { context?: unknown; runtimeC
     name: 'libsql_store_init',
     input: {
       databaseUrl: databaseUrl.replace(/authToken=[^&]*/, 'authToken=***'), // Mask auth token
-      hasAuthToken: !!process.env.DATABASE_AUTH_TOKEN
+      hasAuthToken: !(process.env.DATABASE_AUTH_TOKEN === null)
     }
   } as TracingSpanInput);
 
@@ -134,9 +158,10 @@ export const createLibSQLStore = (tracingContext?: { context?: unknown; runtimeC
 /**
  * LibSQL Vector Store Configuration
  */
-export const createLibSQLVectorStore = (tracingContext?: { context?: unknown; runtimeContext?: RuntimeContext; currentSpan?: { createChildSpan(input: TracingSpanInput): { end(options: SpanEndInput): void } } }) => {
+
+export const createLibSQLVectorStore = (tracingContext?: { context?: unknown; runtimeContext?: RuntimeContext; currentSpan?: { createChildSpan(_input: TracingSpanInput): { end(options: SpanEndInput): void } } }) => {
   const startTime = Date.now();
-  const databaseUrl = process.env.VECTOR_DATABASE_URL || STORAGE_CONFIG.VECTOR_DATABASE_URL;
+  const databaseUrl = process.env.VECTOR_DATABASE_URL ?? STORAGE_CONFIG.VECTOR_DATABASE_URL;
 
   // Create child span for vector store initialization
   const initSpan = tracingContext?.currentSpan?.createChildSpan({
@@ -144,14 +169,14 @@ export const createLibSQLVectorStore = (tracingContext?: { context?: unknown; ru
     name: 'libsql_vector_store_init',
     input: {
       databaseUrl: databaseUrl.replace(/authToken=[^&]*/, 'authToken=***'), // Mask auth token
-      hasAuthToken: !!(process.env.VECTOR_DATABASE_AUTH_TOKEN || process.env.DATABASE_AUTH_TOKEN)
+      hasAuthToken: !!(process.env.VECTOR_DATABASE_AUTH_TOKEN ?? process.env.DATABASE_AUTH_TOKEN)
     }
   } as TracingSpanInput);
 
   try {
     const vectorStore = new LibSQLVector({
       connectionUrl: databaseUrl,
-      authToken: process.env.VECTOR_DATABASE_AUTH_TOKEN || process.env.DATABASE_AUTH_TOKEN,
+      authToken: process.env.VECTOR_DATABASE_AUTH_TOKEN ?? process.env.DATABASE_AUTH_TOKEN,
     });
 
     const processingTime = Date.now() - startTime;
@@ -239,11 +264,12 @@ export const initializeVectorIndexes = async () => {
 /**
  * Search for similar content in vector store
  */
+
 export const searchSimilarContent = async (
   query: string,
   indexName: string,
   topK = 5,
-  tracingContext?: { currentSpan?: { createChildSpan(input: TracingSpanInput): { end(options: SpanEndInput): void } } }
+  tracingContext?: { currentSpan?: { createChildSpan(_input: TracingSpanInput): { end(options: SpanEndInput): void } } }
 ) => {
   const startTime = Date.now();
 
@@ -260,7 +286,7 @@ export const searchSimilarContent = async (
 
   try {
     const vectorStore = createLibSQLVectorStore(tracingContext);
-    const embedder = createGeminiEmbeddingModel("gemini-embedding-001");
+    const embedder = google.textEmbedding('gemini-embedding-001');
 
     // Create child span for embedding generation
     const embedSpan = tracingContext?.currentSpan?.createChildSpan({
@@ -274,21 +300,20 @@ export const searchSimilarContent = async (
 
     // Call embedMany and normalize its result so we always have an embeddings array to use
         // Define a narrow type for possible embedMany return shapes and a runtime guard
-        type EmbedManyResult = number[][] | { embeddings?: number[][] } | unknown;
+        type EmbedManyResult = number[][] | { embeddings?: number[][] } | any;
         const embedResult = await embedMany({
           values: [query],
           model: embedder,
         }) as EmbedManyResult;
 
-    function isNumberMatrix(value: unknown): value is number[][] {
-      return Array.isArray(value) && value.every(
+    const isNumberMatrix = (value: unknown): value is number[][] =>
+      Array.isArray(value) && value.every(
         row => Array.isArray(row) && row.every(cell => typeof cell === 'number')
       );
-    }
 
     const embeddings: number[][] = isNumberMatrix(embedResult)
       ? embedResult
-      : (isNumberMatrix((embedResult as { embeddings?: unknown })?.embeddings)
+      : (isNumberMatrix((embedResult as { embeddings?: unknown }).embeddings)
         ? (embedResult as { embeddings: number[][] }).embeddings
         : []);
 
@@ -364,20 +389,21 @@ export const searchSimilarContent = async (
 export const createResearchMemory = () => {
   return new Memory({
     storage: createLibSQLStore(),
-    vector: createLibSQLVectorStore(),
-    embedder: createGeminiEmbeddingModel("gemini-embedding-001"),
+    vector: createLibSQLVectorStore(), // TODO: Pass tracingContext
+    embedder: google.textEmbedding("gemini-embedding-001"),
     options: {
       lastMessages: 500,
       workingMemory: {
-        enabled: true,
-        template: `# User Research Context
-- **Research Interests**: Research topics and domains
-- **Preferred Sources**: Trusted websites, publications, or platforms
-- **Methodology Preferences**: Preferred research approaches or tools
-- **Previous Research**: Summary of completed research sessions
-- **Follow-up Questions**: Outstanding questions from previous research
-- **Knowledge Gaps**: Areas needing further investigation
-- **Contact Information**: Professional details for collaboration`,
+        enabled: true,template: `# Agent Memory Context
+- **User Task**: Research summary, analysis, recommendations, etc.
+- **Target Audience**: Who will read this report
+- **Key Findings**: Important discoveries from research
+- **User Goals**: User long term goals
+- **Process**: How to achieve goals, & actions nessary
+- **Previous Interactions**: Summary of previously interactions
+- **Client Requirements**: Specific requirements or constraints
+- **Agent Notepad**: Location to store notes, you find to help have better memory context.
+`,
       },
       semanticRecall: {
         topK: 5,
@@ -389,8 +415,8 @@ export const createResearchMemory = () => {
       },
         },
         processors: [
-      new PersonalizationProcessor({ preferences: ['researcher'] }),
-      new TokenLimiterProcessor({ maxTokens: 1000000 }),
+      new PersonalizationProcessor({ preferences: ['any'] }),
+      new TokenLimiterProcessor({ options: { maxTokens: 1000000 } }),
       new CircuitBreakerProcessor({ failureThreshold: 0.5 }),
       new CitationExtractorProcessor({ component: logger as unknown as RegisteredLogger, name: 'citation-extractor' }),
       new ErrorCorrectionProcessor({ component: logger as unknown as RegisteredLogger, name: 'error-correction' }),
@@ -412,7 +438,7 @@ export const createReportMemory = () => {
   return new Memory({
     storage: createLibSQLStore(),
     vector: createLibSQLVectorStore(),
-    embedder: createGeminiEmbeddingModel("gemini-embedding-001"),
+    embedder: google.textEmbedding("gemini-embedding-001"),
     options: {
       lastMessages: 100,
       workingMemory: {
@@ -448,12 +474,12 @@ export const createReportMemory = () => {
  */
 export interface ExtractParams {
   title?: boolean | {
-    nodes?: number;
+    summaries?: Array<"self" | "prev" | "next">;
     nodeTemplate?: string;
     combineTemplate?: string;
   };
   summary?: boolean | {
-    summaries?: ("self" | "prev" | "next")[];
+    summaries?: Array<"self" | "prev" | "next">;
     promptTemplate?: string;
   };
   keywords?: boolean | {
@@ -470,12 +496,13 @@ export interface ExtractParams {
 /**
  * Upsert vectors to LibSQL vector store
  */
+
 export async function upsertVectors(
   indexName: string,
-  vectors: number[][],
-  metadata: Array<Record<string, unknown>>,
-  ids: string[],
-  tracingContext?: { context?: unknown; runtimeContext?: RuntimeContext; currentSpan?: { createChildSpan(input: TracingSpanInput): { end(options: SpanEndInput): void } } }
+  vectors: ReadonlyArray<readonly number[]>,
+  metadata: ReadonlyArray<Record<string, unknown>>,
+  ids: readonly string[],
+  tracingContext?: { context?: unknown; runtimeContext?: RuntimeContext; currentSpan?: { createChildSpan(_input: TracingSpanInput): { end(options: SpanEndInput): void } } }
 ): Promise<{ success: boolean; count?: number; error?: string }> {
   const startTime = Date.now();
 
@@ -493,11 +520,16 @@ export async function upsertVectors(
   try {
     const vectorStore = createLibSQLVectorStore(tracingContext);
 
+    // Convert readonly inputs to mutable arrays expected by the vector store implementation
+    const mutableVectors = vectors.map(row => Array.from(row));
+    const mutableMetadata = metadata.map(m => ({ ...m }));
+    const mutableIds = Array.from(ids);
+
     await vectorStore.upsert({
       indexName,
-      vectors,
-      metadata,
-      ids,
+      vectors: mutableVectors,
+      metadata: mutableMetadata,
+      ids: mutableIds,
     });
 
     const processingTime = Date.now() - startTime;
@@ -557,6 +589,7 @@ export async function upsertVectors(
 /**
  * Create vector index
  */
+
 export async function createVectorIndex(
   indexName: string,
   dimension = STORAGE_CONFIG.DEFAULT_DIMENSION,
@@ -639,11 +672,12 @@ export async function createVectorIndex(
 /**
  * Query vectors from LibSQL vector store
  */
+
 export async function queryVectors(
   indexName: string,
-  queryVector: number[],
+  queryVector: readonly number[],
   topK = 5,
-  filter?: Parameters<LibSQLVector['query']>[0]['filter'],
+  filter?: Readonly<Parameters<LibSQLVector['query']>[0]['filter']>,
   includeVector = false,
   tracingContext?: { context?: unknown; runtimeContext?: RuntimeContext; currentSpan?: { createChildSpan(input: TracingSpanInput): { end(options: SpanEndInput): void } } }
 ): Promise<QueryResult[]> {
@@ -666,7 +700,7 @@ export async function queryVectors(
     const vectorStore = createLibSQLVectorStore(tracingContext);
     const results = await vectorStore.query({
       indexName,
-      queryVector,
+      queryVector: Array.from(queryVector),
       topK,
       filter,
       includeVector,
@@ -697,7 +731,7 @@ export async function queryVectors(
     return results.map(result => ({
       id: result.id,
       score: result.score,
-      metadata: result.metadata || {}
+      metadata: result.metadata ?? {},
     })) as QueryResult[];
   } catch (error) {
     const processingTime = Date.now() - startTime;
@@ -736,14 +770,15 @@ export async function queryVectors(
 /**
  * Search memory messages
  */
+
 export async function searchMemoryMessages(
-  memory: Memory,
+  memory: Readonly<Memory>,
   threadId: string,
   query: string,
   topK = 5
 ): Promise<{ messages: Message[]; uiMessages: UIMessage[] }> {
   try {
-    const embedder = createGeminiEmbeddingModel("gemini-embedding-001");
+    const embedder = google.textEmbedding("gemini-embedding-001");
 
     await embedMany({
       values: [query],
@@ -771,8 +806,8 @@ export async function searchMemoryMessages(
       : Array.isArray(recalled) ? recalled as unknown[]
       : [];
 
-    const normalizeRole = (r?: string): Message['role'] => {
-      if (!r) {
+    const normalizeRole = (r?: string | null): Message['role'] => {
+      if (r === null) {
         return 'user';
       }
       const s = String(r).toLowerCase();
@@ -792,12 +827,12 @@ export async function searchMemoryMessages(
     };
 
     const relevantMessages = recalledMessagesArray.map((msg: unknown, idx: number) => {
-      const msgObj = msg as { id?: string; role?: string; sender?: string; roleName?: string; content?: string; parts?: { text?: string; content?: string }[]; createdAt?: string; timestamp?: string; threadId?: string; thread_id?: string };
-      const safeId = msgObj.id ?? `${threadId ?? 'unknown'}-msg-${idx}-${Date.now()}`;
+      const msgObj = msg as { id?: string; role?: string; sender?: string; roleName?: string; content?: string; parts?: Array<{ text?: string; content?: string }>; createdAt?: string; timestamp?: string; threadId?: string; thread_id?: string };
+      const safeId = msgObj.id ?? `${threadId}-msg-${idx}-${Date.now()}`;
       const role = normalizeRole(msgObj.role ?? msgObj.sender ?? msgObj.roleName);
-      const content = msgObj.content ?? (msgObj.parts?.map((p: { text?: string; content?: string }) => p.text || p.content).join('') ?? '');
+      const content = msgObj.content ?? (msgObj.parts?.map((p) => p.text ?? p.content).join('') ?? '');
       const createdAtRaw = msgObj.createdAt ?? msgObj.timestamp;
-      const createdAt = createdAtRaw ? new Date(createdAtRaw) : undefined;
+      const createdAt = typeof createdAtRaw !== 'undefined' ? new Date(createdAtRaw as string | number | Date) : undefined;
       const thread = msgObj.threadId ?? msgObj.thread_id;
       return {
         id: safeId,
@@ -815,14 +850,14 @@ export async function searchMemoryMessages(
       foundMessages: relevantMessages.length
     });
 
-    const uiMessages = relevantMessages.map((m: Message & { threadId?: string }) => {
+    const uiMessages = relevantMessages.map((m: Readonly<Message>) => {
       return {
-        id: m.id,
-        role: m.role,
-        content: m.content,
-        createdAt: m.createdAt,
-        threadId: m.threadId,
-      } as unknown as UIMessage;
+              id: m.id,
+              role: m.role,
+              content: m.content,
+              createdAt: m.createdAt,
+              threadId: m.threadId,
+            } as unknown as UIMessage;
     });
 
     return {
@@ -877,8 +912,8 @@ interface MessageV2 {
   format?: string;
 }
 
-export const simplifyMessages = (messages: MessageV2[]) => {
-  return messages.map(msg => ({
+export const simplifyMessages = (messages: readonly MessageV2[]) => {
+  return messages.map((msg: Readonly<MessageV2>) => ({
     id: msg.id,
     role: msg.role,
     content: msg.content ?? (msg.parts?.map((part) => part.text ?? part.content).join('') ?? ''),
@@ -891,6 +926,7 @@ export const simplifyMessages = (messages: MessageV2[]) => {
 /**
  * Get or create user resource for working memory
  */
+
 export const getOrCreateUserResource = async (memory: Memory, userId: string) => {
   try {
     const {storage} = memory; // Already confirmed to be LibSQLStore type
@@ -936,13 +972,14 @@ export const getOrCreateUserResource = async (memory: Memory, userId: string) =>
 /**
  * Update user working memory
  */
+
 export const updateUserWorkingMemory = async (memory: Memory, userId: string, updates: { workingMemory: string; metadata?: Record<string, unknown> } & Record<string, unknown>) => {
   try {
     await memory.storage?.updateResource({
       resourceId: userId,
-      workingMemory: updates.workingMemory as string,
+      workingMemory: updates.workingMemory,
       metadata: {
-        ... (updates.metadata as Record<string, unknown>),
+        ... (updates.metadata!),
         updatedAt: new Date(), // Moved updatedAt back into metadata
         // resourceId: userId // This property is not needed here, as it's already resourceId
       }
@@ -970,6 +1007,7 @@ export interface ChunkWithMetadata {
 /**
  * Extract metadata from chunks
  */
+
 export function extractChunkMetadata(
   chunks: ChunkWithMetadata[],
   extractParams: ExtractParams
@@ -994,7 +1032,7 @@ export function extractChunkMetadata(
         enhancedMetadata.extractedSummary = `${chunk.content.substring(0, 100)}...`;
       } else {
         const summaries: Record<string, string> = {};
-        if (extractParams.summary.summaries?.includes('self')) {
+        if ((extractParams.summary.summaries?.includes('self')) ?? false) {
           summaries.self = `${chunk.content.substring(0, 150)}...`;
         }
         enhancedMetadata.extractedSummaries = summaries;
@@ -1003,7 +1041,7 @@ export function extractChunkMetadata(
 
     if (extractParams.keywords) {
       if (typeof extractParams.keywords === 'boolean') {
-        const words = chunk.content.toLowerCase().match(/\b\w{4,}\b/g) || [];
+        const words = chunk.content.toLowerCase().match(/\b\w{4,}\b/g) ?? [];
         const wordCount: Record<string, number> = {};
         words.forEach(word => {
           wordCount[word] = (wordCount[word] || 0) + 1;
@@ -1050,6 +1088,7 @@ export function extractChunkMetadata(
 /**
  * Storage health check
  */
+
 export const performStorageHealthCheck = async (context: 'research' | 'report' = 'research') => {
   const results = {
     storage: false,
@@ -1118,6 +1157,7 @@ export const performStorageHealthCheck = async (context: 'research' | 'report' =
 /**
  * Initialize complete storage system
  */
+
 export const initializeStorageSystem = async (context: 'research' | 'report' = 'research') => {
   try {
     logger.info('Initializing complete storage system...', { context });

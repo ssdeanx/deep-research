@@ -11,15 +11,28 @@ import { comprehensiveResearchWorkflow } from './workflows/comprehensiveResearch
 import { complexResearchNetwork } from './networks/complexResearchNetwork';
 import { ragAgent } from './agents/ragAgent';
 import { githubAgent } from './agents/githubAgent';
+import { monitorAgent } from './agents/monitorAgent';
+import { planningAgent } from './agents/planningAgent';
+import { qualityAssuranceAgent } from './agents/qualityAssuranceAgent';
+import { githubPlanningWorkflow } from './workflows/githubPlanningWorkflow';
+import { githubQualityWorkflow } from './workflows/githubQualityWorkflow';
 import { PinoLogger } from "@mastra/loggers";
-
+import { publisherAgent } from "./agents/publisherAgent";
+import { copywriterAgent } from "./agents/copywriterAgent";
+import { editorAgent } from "./agents/editorAgent";
+import { assistant } from './agents/assistant';
+import { LangfuseExporter } from '@mastra/langfuse';
+import { SamplingStrategyType } from '@mastra/core/ai-tracing';
+import { voiceAgent } from './agents/v';
+//import { server } from './mcp/server';
 const logger = new PinoLogger({ level: 'info' });
 
 logger.info('Starting Mastra application')
 
 export const mastra = new Mastra({
   storage: new LibSQLStore({
-    url: ':memory:',
+    url: 'file:./mastra.db',
+    initialBackoffMs: 50
   }),
   agents: {
     researchAgent,
@@ -29,9 +42,33 @@ export const mastra = new Mastra({
     webSummarizationAgent,
     ragAgent,
     githubAgent,
+    monitorAgent,
+    planningAgent,
+    qualityAssuranceAgent,
+    publisherAgent,
+    copywriterAgent,
+    editorAgent,
+    assistant,
+    voiceAgent,
   },
-  workflows: { generateReportWorkflow, researchWorkflow, comprehensiveResearchWorkflow },
+  workflows: { generateReportWorkflow, researchWorkflow, comprehensiveResearchWorkflow, githubPlanningWorkflow, githubQualityWorkflow },
   vnext_networks: {
     complexResearchNetwork,
+  },
+  observability: {
+    configs: {
+      langfuse: {
+        serviceName: process.env.SERVICE_NAME ?? 'mastra',
+        sampling: { type: SamplingStrategyType.ALWAYS },
+        exporters: [
+          new LangfuseExporter({
+            publicKey: process.env.LANGFUSE_PUBLIC_KEY,
+            secretKey: process.env.LANGFUSE_SECRET_KEY,
+            baseUrl: process.env.LANGFUSE_BASE_URL, // Optional
+            realtime: process.env.NODE_ENV === 'development',
+          }),
+        ],
+      },
+    },
   },
 });

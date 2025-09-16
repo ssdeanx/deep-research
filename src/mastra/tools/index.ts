@@ -2,6 +2,7 @@ export * from './chunker-tool';
 export * from './data-file-manager';
 export * from './evaluateResultTool';
 export * from './extractLearningsTool';
+export * from './github';
 export * from './graphRAG';
 export * from './rerank-tool';
 export * from './vectorQueryTool';

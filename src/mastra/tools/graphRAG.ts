@@ -1,3 +1,4 @@
+/* eslint-disable tsdoc/syntax */
 /**
  * GraphRAG Tool - Production-ready implementation for Dean Machines RSC
  * Uses createGraphRAGTool from @mastra/rag with Upstash Vector store integration
@@ -9,28 +10,44 @@
 
 import { createTool } from '@mastra/core/tools';
 import type { ToolExecutionContext } from '@mastra/core/tools';
-import { createGraphRAGTool, ExtractParams } from '@mastra/rag';
+import type { ExtractParams } from '@mastra/rag';
+import { createGraphRAGTool } from '@mastra/rag';
 import { z } from 'zod';
-import { generateId, Message, UIMessage } from 'ai';
+import type { UIMessage } from 'ai';
+
+// Local fallback for Message type when '@mastra/core/message' is unavailable
+// This defines the minimal shape used in this module to avoid a hard dependency.
+interface Message {
+  id: string;
+  role?: string;
+  content: string;
+  createdAt?: string | number | Date;
+}
+
+import { generateId } from 'ai';
 import { PinoLogger } from '@mastra/loggers';
 import { RuntimeContext } from "@mastra/core/runtime-context";
 import { AISpanType } from '@mastra/core/ai-tracing';
 
+import type {
+  TracingSpanInput,
+  SpanEndInput
+} from '../config/libsql-storage';
 import {
   upsertVectors,
   createVectorIndex,
   VectorStoreError,
   STORAGE_CONFIG,
   searchMemoryMessages,
-  TracingSpanInput,
-  SpanEndInput
+  type Message as StorageMessage
 } from '../config/libsql-storage';
 //import { pinecone } from '../pinecone';
-import { createGeminiEmbeddingModel } from '../config/googleProvider';
+
 import { embedMany } from 'ai';
 
 import { chunkerTool } from './chunker-tool';
-import { Memory } from '@mastra/memory';
+import type { Memory } from '@mastra/memory';
+import { google } from '@ai-sdk/google';
 
 const logger = new PinoLogger({ name: 'GraphRAGTool' });
 
@@ -57,7 +74,7 @@ const upsertInputSchema = z.object({
   useReport: z.boolean().optional().describe('Whether to use report index'),
   indexName: z.string().default(STORAGE_CONFIG.VECTOR_INDEXES.RESEARCH_DOCUMENTS).describe('Name of the index to upsert to'),
   createIndex: z.boolean().default(true).describe('Whether to create the index if it does not exist'),
-  vectorProfile: z.enum(['gemini']).default('gemini').describe('Vector profile to use for embeddings and upserting'),
+  vectorProfile: z.enum(['libsql']).default('libsql').describe('Vector profile to use for embeddings and upserting'),
 }).strict();
 
 const upsertOutputSchema = z.object({
@@ -70,12 +87,12 @@ const upsertOutputSchema = z.object({
 
 const queryInputSchema = z.object({
   query: z.string().min(1).describe('The query to search for relationships and patterns'),
-  indexName: z.string().default('context').describe('Name of the index to query'),
+  indexName: z.string().default(STORAGE_CONFIG.VECTOR_INDEXES.RESEARCH_DOCUMENTS).describe('Name of the index to upsert to'),
   topK: z.number().int().positive().default(10).describe('Number of results to return'),
   threshold: z.number().min(0).max(1).default(0.7).describe('Similarity threshold for graph connections'),
   includeVector: z.boolean().default(false).describe('Whether to include vector data in results'),
   minScore: z.number().min(0).max(1).default(0).describe('Minimum similarity score threshold'),
-  vectorProfile: z.enum(['gemini']).default('gemini').describe('Vector profile to use for embeddings and querying'),
+  vectorProfile: z.enum(['libsql']).default('libsql').describe('Vector profile to use for embeddings and querying'),
   filter: z.record(z.string(), z.unknown()).optional().describe('Optional metadata filter using Upstash-compatible MongoDB/Sift query syntax'), // Add filter field
   useReport: z.boolean().optional().describe('Whether to use report index'),
 }).strict();
@@ -103,7 +120,7 @@ const queryOutputSchema = z.object({
 /**
  * Runtime context type for GraphRAG tool configuration
  */
-export type GraphRAGRuntimeContext = {
+export interface GraphRAGRuntimeContext {
   indexName: string;
   topK: number;
   threshold: number;
@@ -113,7 +130,7 @@ export type GraphRAGRuntimeContext = {
   sessionId?: string;
   category?: string;
   debug?: boolean;
-  vectorProfile?: 'gemini';
+  vectorProfile?: 'libsql';
 };
 
 /**
@@ -138,23 +155,26 @@ export const graphRAGUpsertTool = createTool({
     const startTime = Date.now();
 
     try {
-      const validatedInput = upsertInputSchema.parse(input) as z.infer<typeof upsertInputSchema>;
-      let effectiveIndexName = validatedInput.useReport ? STORAGE_CONFIG.VECTOR_INDEXES.REPORTS : validatedInput.indexName;
+      const validatedInput = upsertInputSchema.parse(input);
+      let effectiveIndexName = (validatedInput.useReport ?? false) ? STORAGE_CONFIG.VECTOR_INDEXES.REPORTS : validatedInput.indexName;
       // Conditional for report context - safely inspect metadata without using `any`
-      const docMetadata = validatedInput.document.metadata as Record<string, unknown> | undefined;
-      const docUseReport = docMetadata ? docMetadata['useReport'] : undefined;
+      const docMetadata = validatedInput.document.metadata;
+      const docUseReport = docMetadata ? docMetadata.useReport : undefined;
       if ((typeof docUseReport === 'boolean' && docUseReport) || runtimeContext?.get('useReport')) {
         effectiveIndexName = STORAGE_CONFIG.VECTOR_INDEXES.REPORTS;
       }
 
-      // Get runtime context values
-      const userId = (runtimeContext?.get('userId') as string | undefined) ?? 'anonymous';
-      const sessionId = (runtimeContext?.get('sessionId') as string | undefined) ?? 'default';
-      const debug = (runtimeContext?.get('debug') as boolean | undefined) ?? false;
-      const vectorProfileName = validatedInput.vectorProfile || 'gemini';
+      // Get runtime context values (coerce runtimeContext values to concrete types)
+      const rawUserId = runtimeContext?.get('userId');
+      const userId = (typeof rawUserId === 'string' && rawUserId.length > 0) ? rawUserId : 'anonymous';
+      const rawSessionId = runtimeContext?.get('sessionId');
+      const sessionId = (typeof rawSessionId === 'string' && rawSessionId.length > 0) ? rawSessionId : 'default';
+      const rawDebug = runtimeContext?.get('debug');
+      const debug = (typeof rawDebug === 'boolean') ? rawDebug : false;
+      const vectorProfileName = validatedInput.vectorProfile || 'libsql';
 
       // Get the embedder
-      const embedder = createGeminiEmbeddingModel();
+      const embedder = google.textEmbedding('gemini-embedding-001');
 
       if (debug) {
         logger.info('Starting document upsert', {
@@ -169,10 +189,10 @@ export const graphRAGUpsertTool = createTool({
 
       // Use the chunkerTool for robust document processing - fixed input structure
       // Normalize extractParams shape so that summary.summaries contains only allowed literals
-      type SummaryObject = { summaries?: ('self' | 'prev' | 'next')[]; promptTemplate?: string };
+      interface SummaryObject { summaries?: Array<'self' | 'prev' | 'next'>; promptTemplate?: string }
       const normalizeSummary = (s?: unknown) => {
         if (s === undefined || typeof s === 'boolean') {
-          return s as boolean | undefined;
+          return s;
         }
         const maybe = s as SummaryObject;
         const allowed = new Set<NonNullable<SummaryObject['summaries']>[number]>(['self', 'prev', 'next']);
@@ -181,7 +201,7 @@ export const graphRAGUpsertTool = createTool({
           : undefined;
         return {
           ...(summaries ? { summaries } : {}),
-          ...(maybe.promptTemplate ? { promptTemplate: maybe.promptTemplate } : {})
+          ...((maybe.promptTemplate !== null) ? { promptTemplate: maybe.promptTemplate } : {})
         };
       };
 
@@ -223,7 +243,7 @@ export const graphRAGUpsertTool = createTool({
             indexName: effectiveIndexName,
             createIndex: validatedInput.createIndex,
           },
-          extractParams: normalizeExtractParams(validatedInput.extractParams as ExtractParams | undefined),
+          extractParams: normalizeExtractParams(validatedInput.extractParams),
         },
         runtimeContext,
         tracingContext,
@@ -258,7 +278,7 @@ export const graphRAGUpsertTool = createTool({
       // Create index if needed
       if (validatedInput.createIndex) {
         const idxResult = await createVectorIndex(
-          effectiveIndexName as string,
+          effectiveIndexName,
           STORAGE_CONFIG.DEFAULT_DIMENSION, // Use STORAGE_CONFIG.DEFAULT_DIMENSION
           'cosine'
         );
@@ -286,7 +306,7 @@ export const graphRAGUpsertTool = createTool({
           ...metadata,
           chunkIndex: index,
           totalChunks: chunks.length,
-          strategy: (chunkParams || { strategy: 'recursive' }).strategy,
+          strategy: (chunkParams ?? { strategy: 'recursive' }).strategy,
           chunkSize: chunk.text.length,
           vectorProfile: vectorProfileName, // Include vectorProfile in metadata
         };
@@ -304,7 +324,7 @@ export const graphRAGUpsertTool = createTool({
         // Removed 'as any' to fix typing
       }) : undefined;
       const upsertRes = await upsertVectors(
-        effectiveIndexName as string,
+        effectiveIndexName,
         embeddings,
         metadataArray,
         chunkIds
@@ -370,7 +390,7 @@ export const graphRAGUpsertTool = createTool({
 export const graphRAGTool = createGraphRAGTool({
   vectorStoreName: 'libsqlVectorStoreInstance',
   indexName: STORAGE_CONFIG.VECTOR_INDEXES.RESEARCH_DOCUMENTS, // Fixed hard-coded value
-  model: createGeminiEmbeddingModel(),
+  model: google.textEmbedding('gemini-embedding-001'),
   graphOptions: {
     dimension: STORAGE_CONFIG.DEFAULT_DIMENSION // Use default dimension from config
   }
@@ -397,22 +417,29 @@ export const graphRAGQueryTool = createTool({
     memory?: Memory;
   }): Promise<z.infer<typeof queryOutputSchema>> => {
     const startTime = Date.now();
-
     try {
-      const validatedInput = queryInputSchema.parse(input) as z.infer<typeof queryInputSchema>;
 
-      // Get runtime context values
-      const userId = (runtimeContext?.get('userId') as string | undefined) ?? 'anonymous';
-      const sessionId = (runtimeContext?.get('sessionId') as string | undefined) ?? 'default';
-      const debug = (runtimeContext?.get('debug') as boolean | undefined) ?? false;
-      let indexName = validatedInput.useReport ? STORAGE_CONFIG.VECTOR_INDEXES.REPORTS : ((runtimeContext?.get('indexName') as string | undefined) ?? validatedInput.indexName);
+    // Validate input early so it can be referenced safely below
+    const validatedInput = queryInputSchema.parse(input);
+
+      // Get runtime context values (coerce runtimeContext values to concrete types)
+      const rawUserId = runtimeContext?.get('userId');
+      const userId = (typeof rawUserId === 'string' && rawUserId.length > 0) ? rawUserId : 'anonymous';
+      const rawSessionId = runtimeContext?.get('sessionId');
+      const sessionId = (typeof rawSessionId === 'string' && rawSessionId.length > 0) ? rawSessionId : 'default';
+      const rawDebug = runtimeContext?.get('debug');
+      const debug = (typeof rawDebug === 'boolean') ? rawDebug : false;
+      let indexName = (validatedInput.useReport ?? false) ? STORAGE_CONFIG.VECTOR_INDEXES.REPORTS : ((runtimeContext?.get('indexName')) ?? validatedInput.indexName);
+
       // Conditional for report context
-      if (runtimeContext?.get('useReport') || validatedInput.useReport) {
+      if ((Boolean((runtimeContext?.get('useReport')))) || (validatedInput.useReport ?? false)) {
         indexName = STORAGE_CONFIG.VECTOR_INDEXES.REPORTS;
       }
-      const topK = (runtimeContext?.get('topK') as number | undefined) ?? validatedInput.topK;
-      const threshold = (runtimeContext?.get('threshold') as number | undefined) ?? validatedInput.threshold;
-      const vectorProfileName = validatedInput.vectorProfile || 'gemini';
+      const rawTopK = runtimeContext?.get('topK');
+      const topK = (typeof rawTopK === 'number' && Number.isFinite(rawTopK)) ? rawTopK : validatedInput.topK;
+      const rawThreshold = runtimeContext?.get('threshold');
+      const threshold = (typeof rawThreshold === 'number' && Number.isFinite(rawThreshold)) ? rawThreshold : validatedInput.threshold;
+      const vectorProfileName = validatedInput.vectorProfile || 'libsql';
 
       // Get the embedder for potential use in query processing
 
@@ -429,7 +456,7 @@ export const graphRAGQueryTool = createTool({
       }
       // Integrate semantic recall with searchMemoryMessages for context-based params
       // Use memory if available and call searchMemoryMessages with the required arguments (memory, threadId, query, topK)
-      let memoryResults: { messages: Message[]; uiMessages: UIMessage[] } = { messages: [], uiMessages: [] };
+      let memoryResults: { messages: StorageMessage[]; uiMessages: UIMessage[] } = { messages: [], uiMessages: [] };
       if (typeof memory !== 'undefined' && memory) {
         // Use sessionId as the threadId for memory lookup (adjust if a different threadId is desired)
         memoryResults = await searchMemoryMessages(
@@ -446,7 +473,6 @@ export const graphRAGQueryTool = createTool({
       graphRAGContext.set('topK', (memoryResults.messages.length > 0) ? Math.min(topK, memoryResults.messages.length + 3) : topK); // Adjust topK based on memory
       graphRAGContext.set('minScore', validatedInput.minScore);
       graphRAGContext.set('dimension', STORAGE_CONFIG.DEFAULT_DIMENSION); // Use STORAGE_CONFIG.DEFAULT_DIMENSION
-
 
       // Conditional tracing span for graph query if tracing is enabled - fixed typing
       const graphQuerySpan = tracingContext?.currentSpan ? tracingContext.currentSpan.createChildSpan({
@@ -471,23 +497,21 @@ export const graphRAGQueryTool = createTool({
         runtimeContext: graphRAGContext,
         tracingContext,
       });
-
       // Integrate memory results into graph results for enhanced semantic recall
-      type ExtendedMessage = Message & { metadata?: Record<string, unknown> };
-
-      const enhancedSources = [
-        ...(graphResult.sources || []),
-        ...((memoryResults.messages || []).slice(0, 3).map((msg: ExtendedMessage) => {
-          const msgMeta = msg.metadata ?? {};
-          return {
-            id: msg.id ?? generateId(),
-            score: 0.9, // High score for memory relevance
-            content: msg.content,
-            metadata: { type: 'memory', scope: 'thread', ...msgMeta },
-            vector: undefined
-          };
-        }))
-      ];
+            type ExtendedMessage = (StorageMessage | Message) & { metadata?: Record<string, unknown> };
+            const enhancedSources = [
+              ...(graphResult.sources ?? []),
+              ...((memoryResults.messages || []).slice(0, 3).map((msg: ExtendedMessage) => {
+                const msgMeta = msg.metadata ?? {};
+                return {
+                  id: msg.id ?? generateId(),
+                  score: 0.9, // High score for memory relevance
+                  content: msg.content,
+                  metadata: { type: 'memory', scope: 'thread', ...msgMeta },
+                  vector: undefined
+                };
+              }))
+            ];
       const processingTime = Date.now() - startTime;
       const sources = enhancedSources.map((source: {
         id?: string;
@@ -497,9 +521,9 @@ export const graphRAGQueryTool = createTool({
         content?: string;
         vector?: number[];
       }) => ({
-        id: source.id || generateId(),
+        id: source.id ?? generateId(),
         score: source.score ?? 0,
-        content: source.text || source.content || '',
+        content: (source.text ?? source.content) ?? '',
         metadata: source.metadata ?? {},
         vector: validatedInput.includeVector ? source.vector : undefined
       }));
@@ -517,7 +541,9 @@ export const graphRAGQueryTool = createTool({
       }
 
       const result = {
-        relevantContext: graphResult.relevantContext || sources.map((s: { content: string }) => s.content).join('\n\n'),
+        relevantContext: (typeof graphResult.relevantContext === 'string' && graphResult.relevantContext.length > 0)
+          ? graphResult.relevantContext
+          : sources.map((s: { content: string }) => s.content).join('\n\n'),
         sources,
         totalResults,
         graphStats: {

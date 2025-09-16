@@ -23,20 +23,23 @@ The Mastra Deep Research System implements comprehensive observability using Ope
 ### 1. OpenTelemetry Integration
 
 #### Span Types
-- **AISpanType.AGENT_RUN**: Main agent execution spans
-- **AISpanType.GENERIC**: Tool operations and utility functions
+- **AISpanType.GENERIC**: All tool operations (GitHub, web search, vector queries, etc.)
+- **AISpanType.AGENT_RUN**: Not currently used in implementation
 - **Custom spans**: Specific operations (memory search, embedding generation)
 
 #### Span Hierarchy
 ```
 Root Span (Workflow/Agent)
-├── Child Span (Tool Execution)
-│   ├── Child Span (API Call)
-│   └── Child Span (Processing)
+├── Child Span (Tool Operation - AISpanType.GENERIC)
+│   ├── Child Span (GitHub API Call)
+│   ├── Child Span (Vector Query)
+│   ├── Child Span (Web Search)
+│   └── Child Span (Data Processing)
 ├── Child Span (Memory Operation)
 │   ├── Child Span (Vector Search)
 │   └── Child Span (Storage Query)
 └── Child Span (Error Handling)
+    └── Child Span (Error Logging)
 ```
 
 ### 2. Performance Monitoring
@@ -49,37 +52,48 @@ Root Span (Workflow/Agent)
 
 #### Performance Spans
 ```typescript
-// Agent execution span
-const agentSpan = tracer.createSpan('agent.run', {
-  attributes: {
-    'agent.name': agentName,
-    'agent.model': modelId,
-    'operation.type': 'generation'
-  }
+// CORRECT - Our actual pattern
+const toolSpan = tracingContext?.currentSpan?.createChildSpan({
+  type: AISpanType.GENERIC,
+  name: 'tool_operation_name',
+  input: { /* relevant input parameters */ }
 });
 
-// Tool execution span
-const toolSpan = tracer.createSpan('tool.execute', {
-  attributes: {
-    'tool.name': toolName,
-    'tool.type': toolType,
-    'operation.input_size': inputSize
-  }
-});
+try {
+  // Tool execution
+  const result = await performOperation();
+  toolSpan?.end({
+    output: { resultCount: result.length },
+    metadata: { operation: 'tool_operation_name' }
+  });
+  return result;
+} catch (error) {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  toolSpan?.end({
+    metadata: {
+      error: errorMessage,
+      operation: 'tool_operation_name'
+    }
+  });
+  throw error;
+}
 ```
 
 ### 3. Error Tracking & Diagnostics
 
 #### Error Span Creation
 ```typescript
-const errorSpan = tracer.createSpan('error.handling', {
-  attributes: {
-    'error.type': error.constructor.name,
-    'error.message': error.message,
-    'error.stack': error.stack,
-    'operation.failed': true
-  }
-});
+} catch (error: unknown) {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  span?.end({
+    metadata: {
+      error: errorMessage,
+      operation: 'tool_operation_name'
+    }
+  });
+  logger.error(`Failed to execute operation: ${errorMessage}`);
+  throw error;
+}
 ```
 
 #### Error Context Capture
@@ -87,6 +101,20 @@ const errorSpan = tracer.createSpan('error.handling', {
 - **Operation Context**: What was being executed when error occurred
 - **Input/Output Data**: Relevant data for debugging
 - **System State**: Memory usage, active connections, etc.
+
+### PinoLogger Integration
+
+PinoLogger works alongside tracing to provide additional logging capabilities:
+
+```typescript
+import { PinoLogger } from "@mastra/loggers";
+import { AISpanType } from '@mastra/core/ai-tracing';
+
+const logger = new PinoLogger({ name: 'ToolName', level: 'info' });
+
+// Used alongside tracing for additional logging
+logger.info('Operation started', { operationId, input: context });
+```
 
 ### 4. Context Propagation
 
@@ -109,6 +137,38 @@ const span = tracer.createSpan('operation', {
 - **Failure Points**: Trace error propagation
 
 ## Component-Specific Tracing
+
+### Tool Coverage Overview
+
+#### GitHub Tools (14 tools, 85+ individual functions):
+- **issues.ts**: createIssue, getIssue, updateIssue, listIssues
+- **repositories.ts**: listRepositories, createRepository, getRepository
+- **pullRequests.ts**: createPullRequest, getPullRequest, updatePullRequest, mergePullRequest
+- **users.ts**: getAuthenticatedUser, getUser, listUsers
+- **organizations.ts**: getOrganization, listOrganizations, listOrganizationMembers
+- **gists.ts**: listGists, getGist, createGist, updateGist, deleteGist
+- **reactions.ts**: listIssueReactions, createIssueReaction, deleteIssueReaction, etc.
+- **search.ts**: searchIssues, searchRepositories, searchUsers, searchCode
+- **activity.ts**: listRepoEvents, listPublicEvents, listRepoNotifications
+- **gitData.ts**: getCommit, createCommit, getTree, createTree, getBlob, createBlob, getRef, createRef, updateRef, deleteRef
+- **checks.ts**: createCheckRun, getCheckRun, updateCheckRun, listCheckRunsForRef, listCheckSuitesForRef, getCheckSuite, createCheckSuite
+- **actions.ts**: listWorkflowRuns, getWorkflowRun, cancelWorkflowRun, rerunWorkflowRun, listJobsForWorkflowRun, getJobForWorkflowRun, downloadJobLogsForWorkflowRun, listWorkflowRunArtifacts, downloadWorkflowRunArtifact
+- **projects.ts**: listProjectCards, getProjectCard, createProjectCard, updateProjectCard, deleteProjectCard, moveProjectCard, listProjectColumns, getProjectColumn, createProjectColumn, updateProjectColumn, deleteProjectColumn, moveProjectColumn, listProjects, getProject, createProject, updateProject, deleteProject
+- **teams.ts**: getTeam, listTeams, createTeam, updateTeam, deleteTeam, listTeamMembers, addTeamMember, removeTeamMember, listTeamRepos, addTeamRepo, removeTeamRepo
+
+#### Core Tools (9 tools):
+- **chunker-tool.ts**: chunkerTool
+- **data-file-manager.ts**: readDataFileTool, writeDataFileTool, deleteDataFileTool, listDataDirTool, copyDataFileTool, moveDataFileTool, searchDataFilesTool, getDataFileInfoTool, createDataDirTool, removeDataDirTool, archiveDataTool, backupDataTool
+- **evaluateResultTool.ts**: evaluateResultTool
+- **extractLearningsTool.ts**: extractLearningsTool
+- **graphRAG.ts**: graphRAGUpsertTool, graphRAGTool, graphRAGQueryTool
+- **rerank-tool.ts**: rerankTool
+- **vectorQueryTool.ts**: vectorQueryTool, enhancedVectorQueryTool, hybridVectorSearchTool
+- **weather-tool.ts**: weatherTool
+- **web-scraper-tool.ts**: webScraperTool
+- **webSearchTool.ts**: webSearchTool
+
+**Total: 85+ individual tool functions across 23+ files**
 
 ### Agent Tracing
 

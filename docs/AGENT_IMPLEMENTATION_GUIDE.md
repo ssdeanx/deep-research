@@ -1042,7 +1042,88 @@ io.on('connection', (socket) => {
 
 ---
 
-*This comprehensive agent implementation guide provides detailed patterns and examples for building robust, scalable AI agents in the Mastra Deep Research System, covering everything from basic agent creation to advanced patterns like agent networks and real-time monitoring.*</file>
+*This comprehensive agent implementation guide provides detailed patterns and examples for building robust, scalable AI agents in the Mastra Deep Research System, covering everything from basic agent creation to advanced patterns like agent networks and real-time monitoring.*
+
+## New Specialized Agents
+
+### Monitor Agent
+
+**Purpose**: Expert monitoring and observability specialist focused on proactive system health management.
+
+```typescript
+import { Agent } from '@mastra/core/agent';
+import { readDataFileTool, writeDataFileTool, listDataDirTool, searchDataFilesTool, getDataFileInfoTool } from '../tools/data-file-manager';
+import { webScraperTool } from '../tools/web-scraper-tool';
+import { evaluateResultTool } from '../tools/evaluateResultTool';
+import { extractLearningsTool } from '../tools/extractLearningsTool';
+import { createGemini25Provider } from '../config/googleProvider';
+import { createResearchMemory } from '../config/libsql-storage';
+import { ContentSimilarityMetric, CompletenessMetric, TextualDifferenceMetric, KeywordCoverageMetric, ToneConsistencyMetric } from "@mastra/evals/nlp";
+
+export const monitorAgent = new Agent({
+  name: 'Monitor Agent',
+  instructions: `You are an expert monitoring and observability specialist focused on proactive system health management...`,
+  evals: {
+    contentSimilarity: new ContentSimilarityMetric({ ignoreCase: true, ignoreWhitespace: true }),
+    completeness: new CompletenessMetric(),
+    textualDifference: new TextualDifferenceMetric(),
+    keywordCoverage: new KeywordCoverageMetric(),
+    toneConsistency: new ToneConsistencyMetric(),
+  },
+  model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17', {
+    responseModalities: ["TEXT"],
+    thinkingConfig: {
+      thinkingBudget: -1,
+      includeThoughts: true,
+    },
+    useSearchGrounding: true,
+    dynamicRetrieval: true,
+    safetyLevel: 'OFF',
+    structuredOutputs: true,
+  }),
+  tools: {
+    readDataFileTool,
+    writeDataFileTool,
+    listDataDirTool,
+    searchDataFilesTool,
+    getDataFileInfoTool,
+    webScraperTool,
+    evaluateResultTool,
+    extractLearningsTool,
+  },
+  memory: createResearchMemory(),
+});
+```
+
+### Planning Agent
+
+**Purpose**: Expert strategic planning and project management specialist.
+
+```typescript
+import { Agent } from '@mastra/core/agent';
+// ... imports for planning agent tools and configuration
+
+export const planningAgent = new Agent({
+  name: 'Planning Agent',
+  instructions: `You are an expert strategic planning and project management specialist...`,
+  // ... planning agent configuration
+});
+```
+
+### Quality Assurance Agent
+
+**Purpose**: Expert quality assurance and testing specialist.
+
+```typescript
+import { Agent } from '@mastra/core/agent';
+// ... imports for QA agent tools and configuration
+
+export const qualityAssuranceAgent = new Agent({
+  name: 'Quality Assurance Agent',
+  instructions: `You are an expert quality assurance and testing specialist...`,
+  // ... QA agent configuration
+});
+```</file>
 </files><environment_details>
 # VSCode Visible Files
 ../../../../request_2df690cf-ea8b-4dab-aedf-9f4790a6f315/0,src/mastra/agents/learningExtractionAgent.ts
@@ -1654,6 +1735,90 @@ export const learningExtractionAgent = new Agent({
 });
 ```
 
+### GitHub Agent
+
+```typescript
+import { Agent } from '@mastra/core/agent';
+import { createGemini25Provider } from '../config/googleProvider';
+import { createResearchMemory } from '../config/libsql-storage';
+import * as githubTools from '../tools/github';
+import { ContentSimilarityMetric, CompletenessMetric, TextualDifferenceMetric, KeywordCoverageMetric, ToneConsistencyMetric } from "@mastra/evals/nlp";
+
+export const githubAgent = new Agent({
+  name: 'GitHub Agent',
+  instructions: `You are an advanced AI-powered GitHub Assistant, meticulously designed to streamline and enhance user interactions with GitHub repositories and associated resources. Your primary role is to act as an intelligent interface, interpreting user commands, executing actions via the GitHub API, and providing comprehensive, actionable feedback. You manage various GitHub entities including repositories, issues, pull requests, users, and organizations.
+
+**Core Capabilities:**
+- **GitHub API Interaction:** You are equipped with a suite of specialized tools that directly interface with the GitHub API, enabling you to perform a wide range of operations.
+- **Issue Management:** Create, retrieve, update, list, and manage comments on issues within repositories.
+- **Repository Management:** List, create, retrieve, update, delete, and manage settings for repositories.
+- **Pull Request Management:** List, retrieve, create, update, merge, close, and manage comments and reviews on pull requests.
+- **User Management:** Retrieve information about the authenticated user, search for users by username, and list users within an organization or globally (where applicable and permitted).
+- **Organization Management:** Retrieve organization details, list organizations, and list members of an organization.
+
+**Behavioral Guidelines:**
+- **Clarity and Conciseness:** Ensure all responses are easy to understand, directly address the user's query, and avoid unnecessary jargon.
+- **Accuracy and Reliability:** Provide precise information based on real-time API responses and ensure all actions are executed correctly.
+- **Helpfulness and Proactive Guidance:** Anticipate user needs, proactively offer relevant suggestions, clarifications, or next steps, and guide users effectively through complex operations.
+- **Professionalism:** Maintain a polite, respectful, and professional tone in all interactions.
+- **Robust Error Handling:** Gracefully handle API errors, invalid requests, or unexpected situations. When an error occurs, clearly explain the issue, suggest potential causes, and provide actionable next steps or alternative solutions to the user.
+
+**Constraints & Boundaries:**
+- **API-Centric Operations:** Strictly operate within the confines of the provided GitHub API tools. Never attempt to bypass API limitations, security protocols, or perform actions outside the scope of the API.
+- **User Confirmation for Destructive Actions:** Do not perform any destructive or irreversible actions (e.g., deleting a repository, merging a pull request) without explicit, unambiguous user confirmation.
+- **Rate Limit Adherence:** Strictly adhere to GitHub's API rate limits and usage policies to ensure service stability and prevent abuse.
+- **Security and Privacy:** Handle all user data and GitHub resource information with the utmost confidentiality and security. Do not expose sensitive information or perform unauthorized data access.
+- **Scope Limitation:** Do not engage in activities outside of GitHub resource management.
+
+**Success Criteria:**
+- **Efficient and Accurate Fulfillment:** User requests are fulfilled accurately, efficiently, and reliably, leading to successful task completion.
+- **Exceptional User Experience:** Responses are consistently clear, helpful, and timely, minimizing user frustration and maximizing productivity.
+- **Effective Error Resolution:** Errors are handled professionally and informatively, guiding users towards resolution and maintaining a positive interaction.
+- **Operational Compliance:** All operations strictly adhere to GitHub's policies and API best practices.
+
+**GitHub Copilot Agent Interaction:**
+You possess the advanced capability to delegate tasks and request analysis from GitHub's native Copilot agent. This is a powerful feature for automating complex coding and review tasks. Your interaction with the Copilot agent is governed by two distinct mechanisms:
+
+1. **Task Delegation via Issue Assignment:**
+   * **Trigger:** Assigning a GitHub Issue to the user \`@github-copilot\`.
+   * **Purpose:** To delegate a complete coding task, such as a feature implementation, bug fix, or code refactoring.
+   * **Action:** When a user asks you to have Copilot build a feature, your tool must first create a highly detailed issue. The body of this issue serves as the primary prompt for the Copilot agent. Immediately after creation, your tool will assign this issue to \`@github-copilot\`.
+   * **Outcome:** The Copilot agent will accept the task, create a new branch, write the code, and submit a new pull request linked to the original issue. You should inform the user that the task has been successfully delegated and a PR will be generated shortly.
+
+2. **Code Analysis via Pull Request Comments:**
+   * **Trigger:** Mentioning the user \`@github-copilot\` in a comment on a pull request.
+   * **Purpose:** To request analysis, explanation, or suggestions on the code within that specific pull request. This is for review and understanding, not for writing new code.
+   * **Action:** When a user asks for Copilot's opinion on a PR, your tool will create a comment on that PR, starting with \`@github-copilot\` followed by the user's question.
+   * **Outcome:** The Copilot agent will post a reply to the comment thread with its analysis or answer.
+
+**Prerequisites & Constraints for Copilot Interaction:**
+- **Copilot Enterprise Required:** These features will only function in repositories that are part of an organization with an active GitHub Copilot Enterprise subscription. If an action fails, you should suggest this as a potential cause.
+- **Clarity is Paramount:** The quality of the Copilot agent's work is directly proportional to the quality of your issue description or comment. Always create detailed, specific, and unambiguous prompts for the Copilot agent.`,
+  evals: {
+    contentSimilarity: new ContentSimilarityMetric({ ignoreCase: true, ignoreWhitespace: true }),
+    completeness: new CompletenessMetric(),
+    textualDifference: new TextualDifferenceMetric(),
+    keywordCoverage: new KeywordCoverageMetric(), // Keywords will be provided at runtime for evaluation
+    toneConsistency: new ToneConsistencyMetric(),
+  },
+  model: createGemini25Provider('gemini-2.5-flash', {
+    responseModalities: ['TEXT'],
+    thinkingConfig: {
+      thinkingBudget: -1,
+      includeThoughts: true,
+    },
+    useSearchGrounding: true,
+    dynamicRetrieval: true,
+    safetyLevel: 'OFF',
+    structuredOutputs: true,
+  }),
+  tools: {
+    ...githubTools,
+  },
+  memory: createResearchMemory(),
+});
+```
+
 ## Advanced Agent Patterns
 
 ### Dynamic Agent Configuration
@@ -2213,4 +2378,85 @@ io.on('connection', (socket) => {
 
 ---
 
-*This comprehensive agent implementation guide provides detailed patterns and examples for building robust, scalable AI agents in the Mastra Deep Research System, covering everything from basic agent creation to advanced patterns like agent networks and real-time monitoring.*</write_to_file>
+*This comprehensive agent implementation guide provides detailed patterns and examples for building robust, scalable AI agents in the Mastra Deep Research System, covering everything from basic agent creation to advanced patterns like agent networks and real-time monitoring.*
+
+## New Specialized Agents
+
+### Monitor Agent
+
+**Purpose**: Expert monitoring and observability specialist focused on proactive system health management.
+
+```typescript
+import { Agent } from '@mastra/core/agent';
+import { readDataFileTool, writeDataFileTool, listDataDirTool, searchDataFilesTool, getDataFileInfoTool } from '../tools/data-file-manager';
+import { webScraperTool } from '../tools/web-scraper-tool';
+import { evaluateResultTool } from '../tools/evaluateResultTool';
+import { extractLearningsTool } from '../tools/extractLearningsTool';
+import { createGemini25Provider } from '../config/googleProvider';
+import { createResearchMemory } from '../config/libsql-storage';
+import { ContentSimilarityMetric, CompletenessMetric, TextualDifferenceMetric, KeywordCoverageMetric, ToneConsistencyMetric } from "@mastra/evals/nlp";
+
+export const monitorAgent = new Agent({
+  name: 'Monitor Agent',
+  instructions: `You are an expert monitoring and observability specialist focused on proactive system health management...`,
+  evals: {
+    contentSimilarity: new ContentSimilarityMetric({ ignoreCase: true, ignoreWhitespace: true }),
+    completeness: new CompletenessMetric(),
+    textualDifference: new TextualDifferenceMetric(),
+    keywordCoverage: new KeywordCoverageMetric(),
+    toneConsistency: new ToneConsistencyMetric(),
+  },
+  model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17', {
+    responseModalities: ["TEXT"],
+    thinkingConfig: {
+      thinkingBudget: -1,
+      includeThoughts: true,
+    },
+    useSearchGrounding: true,
+    dynamicRetrieval: true,
+    safetyLevel: 'OFF',
+    structuredOutputs: true,
+  }),
+  tools: {
+    readDataFileTool,
+    writeDataFileTool,
+    listDataDirTool,
+    searchDataFilesTool,
+    getDataFileInfoTool,
+    webScraperTool,
+    evaluateResultTool,
+    extractLearningsTool,
+  },
+  memory: createResearchMemory(),
+});
+```
+
+### Planning Agent
+
+**Purpose**: Expert strategic planning and project management specialist.
+
+```typescript
+import { Agent } from '@mastra/core/agent';
+// ... imports for planning agent tools and configuration
+
+export const planningAgent = new Agent({
+  name: 'Planning Agent',
+  instructions: `You are an expert strategic planning and project management specialist...`,
+  // ... planning agent configuration
+});
+```
+
+### Quality Assurance Agent
+
+**Purpose**: Expert quality assurance and testing specialist.
+
+```typescript
+import { Agent } from '@mastra/core/agent';
+// ... imports for QA agent tools and configuration
+
+export const qualityAssuranceAgent = new Agent({
+  name: 'Quality Assurance Agent',
+  instructions: `You are an expert quality assurance and testing specialist...`,
+  // ... QA agent configuration
+});
+```</write_to_file>

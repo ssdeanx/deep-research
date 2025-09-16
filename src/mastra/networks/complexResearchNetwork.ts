@@ -1,13 +1,13 @@
 import { NewAgentNetwork } from '@mastra/core/network/vNext';
-import { createGemini25Provider } from '../config/googleProvider';
 import { createResearchMemory } from '../config/libsql-storage';
 import { ragAgent } from '../agents/ragAgent';
 import { researchAgent } from '../agents/researchAgent';
 import { reportAgent } from '../agents/reportAgent';
+import { assistant } from '../agents/assistant';
 import { researchWorkflow } from '../workflows/researchWorkflow';
 import { generateReportWorkflow } from '../workflows/generateReportWorkflow';
 import { PinoLogger } from "@mastra/loggers";
-
+import { google } from '@ai-sdk/google';
 const logger = new PinoLogger({ level: 'info' });
 
 logger.info('Complex Research Network initialized');
@@ -33,21 +33,12 @@ export const complexResearchNetwork = new NewAgentNetwork({
   - Always aim to provide the most complete and accurate response possible by combining the strengths of your specialized components.
   - If a task involves multiple stages (e.g., research then report), consider which workflow (e.g., 'generateReportWorkflow') can handle the entire sequence.
   `,
-  model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17', {
-    responseModalities: ["TEXT"],
-    thinkingConfig: {
-      thinkingBudget: -1,
-      includeThoughts: true,
-    },
-    useSearchGrounding: true,
-    dynamicRetrieval: true,
-    safetyLevel: 'OFF',
-    structuredOutputs: true,
-  }),
+  model: google('gemini-2.5-flash-lite'),
   agents: {
     ragAgent,
     researchAgent,
     reportAgent,
+    assistant,
   },
   workflows: {
     researchWorkflow,
@@ -55,3 +46,4 @@ export const complexResearchNetwork = new NewAgentNetwork({
   },
   memory,
 });
+

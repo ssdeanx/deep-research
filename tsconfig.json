@@ -1,14 +1,21 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
     "target": "ES2022",
     "module": "ES2022",
     "moduleResolution": "bundler",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "outDir": "dist"
+    "outDir": ".mastra",
+    "jsx": "react-jsx",
+    "paths": { "@/*": ["./src/*"] }
   },
-  "include": ["src/**/*"]
+  "include": ["src/mastra/**/*", "src/app/lib/utils.ts", "src/app/components/**/*", "src/app/hooks/**/*", "src/app/api/routes/**/*", "src/pages/**/*", "src/app/**/*", "src/components/ui/**/*", "lib/**/*", "tests/**/*", "globalSetup.ts", "eslint.config.js", "prettier.config.js", "testSetup.ts", "vitest.config.ts", "vite.config.ts", "vite-env.d.ts"],
+  "exclude": ["node_modules", ".mastra", "dist"]
 }

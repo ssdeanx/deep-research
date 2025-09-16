@@ -116,6 +116,7 @@ const mcpServer = new MCPServer({
   agents: {
     // Your agents here
     researchAgent: mastra.getAgent('researchAgent'),
+    githubAgent: mastra.getAgent('githubAgent'), // GitHub agent available through MCP
   },
   workflows: {
     // Your workflows here
@@ -124,9 +125,30 @@ const mcpServer = new MCPServer({
   tools: {
     // Your tools here
     webSearchTool: mastra.getTool('webSearch'),
+    // GitHub tools available through MCP
+    createIssue: mastra.getTool('createIssue'),
+    getRepository: mastra.getTool('getRepository'),
+    createPullRequest: mastra.getTool('createPullRequest'),
+    listPullRequests: mastra.getTool('listPullRequests'),
+    // ... and 10+ more GitHub tools
   },
 });
 ```
+
+### GitHub Tools Integration
+
+The system provides comprehensive GitHub integration through MCP with 14 specialized tools:
+
+**Available GitHub Tools:**
+- **Issues**: `createIssue`, `getIssue`, `updateIssue`, `listIssues`
+- **Repositories**: `createRepository`, `getRepository`, `updateRepository`, `deleteRepository`, `listRepositories`, `listBranches`, `createBranch`, `deleteBranch`
+- **Pull Requests**: `createPullRequest`, `getPullRequest`, `updatePullRequest`, `mergePullRequest`, `listPullRequests`, `createPullRequestComment`, `updatePullRequestComment`, `deletePullRequestComment`
+- **Users**: `getUser`, `searchUsers`
+- **Organizations**: `getOrganization`, `listOrganizationMembers`
+- **Search**: `searchRepositories`, `searchIssues`, `searchCode`
+- **Additional**: `createGist`, `listGists`, `createReaction`, `searchActivity`, `getGitData`, `listChecks`, `listActions`, `listProjects`, `listTeams`
+
+**GitHub Agent**: The `githubAgent` provides intelligent GitHub management with advanced Copilot integration for automated task delegation and code analysis.
 
 ### Tool Discovery
 

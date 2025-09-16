@@ -745,6 +745,349 @@ console.log('Performance stats:', profiler.getStats('agent-generation'));
 | `Invalid API key` | Verify environment variables, check key format |
 | `Low Eval Score` | Review agent instructions, adjust eval parameters, refine input data. |
 
+### GitHub-Specific Issues
+
+#### Issue: GitHub API rate limiting errors
+
+**Symptoms:**
+- "API rate limit exceeded" errors
+- HTTP 403 status codes from GitHub API
+- Operations failing with rate limit messages
+
+**Solutions:**
+```typescript
+// 1. Check rate limit status
+async function checkGitHubRateLimit() {
+  const octokit = new Octokit({ auth: process.env.GITHUB_API_KEY });
+
+  try {
+    const { data } = await octokit.rateLimit.get();
+    console.log('Rate limit status:', {
+      limit: data.rate.limit,
+      remaining: data.rate.remaining,
+      resetTime: new Date(data.rate.reset * 1000)
+    });
+    return data.rate;
+  } catch (error) {
+    console.error('Failed to check rate limit:', error.message);
+    return null;
+  }
+}
+
+// 2. Implement intelligent rate limit handling
+class GitHubRateLimiter {
+  private resetTime = 0;
+
+  async executeWithRateLimit<T>(operation: () => Promise<T>): Promise<T> {
+    const rateLimit = await checkGitHubRateLimit();
+
+    if (rateLimit && rateLimit.remaining < 10) {
+      const waitTime = (rateLimit.reset * 1000) - Date.now();
+      if (waitTime > 0) {
+        console.log(`Rate limit low. Waiting ${Math.ceil(waitTime / 1000)} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime + 1000));
+      }
+    }
+
+    try {
+      return await operation();
+    } catch (error: any) {
+      if (error.status === 403 && error.message.includes('rate limit')) {
+        // Wait for reset and retry
+        const resetTime = error.response?.headers?.['x-ratelimit-reset'];
+        if (resetTime) {
+          const waitTime = (parseInt(resetTime) * 1000) - Date.now();
+          await new Promise(resolve => setTimeout(resolve, waitTime + 1000));
+          return await operation();
+        }
+      }
+      throw error;
+    }
+  }
+}
+
+// Usage with GitHub tools
+const rateLimiter = new GitHubRateLimiter();
+const result = await rateLimiter.executeWithRateLimit(() =>
+  githubTools.createIssue.execute({ context: issueData })
+);
+```
+
+#### Issue: GitHub API authentication failures
+
+**Symptoms:**
+- "Bad credentials" errors
+- HTTP 401 status codes
+- Authentication token invalid messages
+
+**Solutions:**
+```typescript
+// 1. Verify GitHub token configuration
+function validateGitHubToken() {
+  const token = process.env.GITHUB_API_KEY;
+
+  if (!token) {
+    throw new Error('GITHUB_API_KEY environment variable is not set');
+  }
+
+  if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
+    console.warn('Token does not appear to be a GitHub Personal Access Token');
+  }
+
+  if (token.length < 20) {
+    throw new Error('GitHub token appears to be too short');
+  }
+
+  console.log('GitHub token format appears valid');
+  return true;
+}
+
+// 2. Test token permissions
+async function testGitHubTokenPermissions() {
+  const octokit = new Octokit({ auth: process.env.GITHUB_API_KEY });
+
+  try {
+    // Test basic authentication
+    const { data: user } = await octokit.users.getAuthenticated();
+    console.log('Authenticated as:', user.login);
+
+    // Test repository access
+    const { data: repos } = await octokit.repos.listForAuthenticatedUser({ per_page: 1 });
+    console.log('Can access repositories:', repos.length > 0);
+
+    // Test issue creation permissions
+    const testRepo = repos[0];
+    if (testRepo) {
+      try {
+        await octokit.issues.listForRepo({
+          owner: testRepo.owner.login,
+          repo: testRepo.name,
+          per_page: 1
+        });
+        console.log('Has issue access to repositories');
+      } catch (error: any) {
+        console.warn('Limited repository access:', error.message);
+      }
+    }
+
+    return true;
+  } catch (error: any) {
+    console.error('GitHub token validation failed:', error.message);
+    return false;
+  }
+}
+
+// 3. Handle token expiration
+class GitHubTokenManager {
+  private lastValidation = 0;
+  private readonly validationInterval = 5 * 60 * 1000; // 5 minutes
+
+  async getValidToken(): Promise<string> {
+    const now = Date.now();
+
+    if (now - this.lastValidation > this.validationInterval) {
+      const isValid = await testGitHubTokenPermissions();
+      if (!isValid) {
+        throw new Error('GitHub token is invalid or expired');
+      }
+      this.lastValidation = now;
+    }
+
+    return process.env.GITHUB_API_KEY!;
+  }
+}
+```
+
+#### Issue: Copilot integration not working
+
+**Symptoms:**
+- Copilot tasks not being delegated
+- Issues not assigned to @github-copilot
+- PR comments not triggering Copilot analysis
+
+**Solutions:**
+```typescript
+// 1. Verify Copilot Enterprise access
+async function checkCopilotAccess() {
+  const octokit = new Octokit({ auth: process.env.GITHUB_API_KEY });
+
+  try {
+    // Check if user has access to Copilot
+    const { data: user } = await octokit.users.getAuthenticated();
+
+    // Check organization Copilot access (if applicable)
+    const orgs = await octokit.orgs.listForUser({ username: user.login });
+
+    for (const org of orgs) {
+      try {
+        const { data: copilot } = await octokit.request('GET /orgs/{org}/copilot/billing', {
+          org: org.login
+        });
+        console.log(`Copilot access for ${org.login}:`, copilot.seat_management_setting);
+      } catch (error) {
+        console.log(`No Copilot access for ${org.login}`);
+      }
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Copilot access check failed:', error.message);
+    return false;
+  }
+}
+
+// 2. Proper issue creation for Copilot delegation
+async function createCopilotTask(owner: string, repo: string, taskDescription: string) {
+  const octokit = new Octokit({ auth: process.env.GITHUB_API_KEY });
+
+  // Create detailed issue for Copilot
+  const { data: issue } = await octokit.issues.create({
+    owner,
+    repo,
+    title: `🤖 Copilot Task: ${taskDescription.substring(0, 50)}...`,
+    body: `# Copilot Task
+
+## Description
+${taskDescription}
+
+## Requirements
+- Implement the requested feature following best practices
+- Add appropriate tests
+- Update documentation if needed
+- Ensure code quality and maintainability
+
+## Acceptance Criteria
+- Code compiles without errors
+- Tests pass
+- Feature works as described
+- Code follows project conventions
+
+---
+*This issue was created for GitHub Copilot to implement. Please review the implementation once complete.*`,
+    labels: ['copilot-task', 'enhancement']
+  });
+
+  // Assign to Copilot
+  await octokit.issues.addAssignees({
+    owner,
+    repo,
+    issue_number: issue.number,
+    assignees: ['github-copilot']
+  });
+
+  console.log(`Created Copilot task: ${issue.html_url}`);
+  return issue;
+}
+
+// 3. Copilot PR analysis
+async function requestCopilotAnalysis(owner: string, repo: string, prNumber: number, analysisRequest: string) {
+  const octokit = new Octokit({ auth: process.env.GITHUB_API_KEY });
+
+  const comment = await octokit.issues.createComment({
+    owner,
+    repo,
+    issue_number: prNumber,
+    body: `@github-copilot ${analysisRequest}
+
+Please analyze this pull request and provide detailed feedback on:
+- Code quality and best practices
+- Potential bugs or issues
+- Performance considerations
+- Security implications
+- Suggestions for improvement`
+  });
+
+  console.log(`Requested Copilot analysis: ${comment.data.html_url}`);
+  return comment.data;
+}
+```
+
+#### Issue: Repository access permissions
+
+**Symptoms:**
+- "Resource not accessible" errors
+- HTTP 404 for repositories
+- Operations failing due to insufficient permissions
+
+**Solutions:**
+```typescript
+// 1. Check repository permissions
+async function checkRepositoryPermissions(owner: string, repo: string) {
+  const octokit = new Octokit({ auth: process.env.GITHUB_API_KEY });
+
+  try {
+    // Check if repository exists and is accessible
+    const { data: repository } = await octokit.repos.get({ owner, repo });
+    console.log('Repository access: OK');
+    console.log('Repository permissions:', repository.permissions);
+
+    // Check specific permissions
+    const permissions = repository.permissions;
+    if (!permissions) {
+      console.warn('No permission information available');
+      return false;
+    }
+
+    const requiredPermissions = {
+      issues: permissions.issues || permissions.maintain || permissions.admin,
+      pull_requests: permissions.pull_requests || permissions.maintain || permissions.admin,
+      contents: permissions.contents || permissions.maintain || permissions.admin,
+      metadata: permissions.metadata || true // Usually always true
+    };
+
+    console.log('Permission check results:', requiredPermissions);
+
+    const missingPermissions = Object.entries(requiredPermissions)
+      .filter(([key, hasPermission]) => !hasPermission)
+      .map(([key]) => key);
+
+    if (missingPermissions.length > 0) {
+      console.warn('Missing permissions:', missingPermissions);
+      return false;
+    }
+
+    return true;
+  } catch (error: any) {
+    if (error.status === 404) {
+      console.error('Repository not found or not accessible');
+    } else if (error.status === 403) {
+      console.error('Access forbidden - check token permissions');
+    } else {
+      console.error('Permission check failed:', error.message);
+    }
+    return false;
+  }
+}
+
+// 2. Handle permission errors gracefully
+class GitHubPermissionHandler {
+  async executeWithPermissionCheck<T>(
+    operation: () => Promise<T>,
+    owner: string,
+    repo: string,
+    operationName: string
+  ): Promise<T> {
+    const hasPermission = await checkRepositoryPermissions(owner, repo);
+
+    if (!hasPermission) {
+      throw new Error(`Insufficient permissions for ${operationName} in ${owner}/${repo}. Please check your GitHub token permissions.`);
+    }
+
+    try {
+      return await operation();
+    } catch (error: any) {
+      if (error.status === 403) {
+        throw new Error(`Permission denied for ${operationName}. Your token may need additional scopes (repo, issues, pull_requests).`);
+      }
+      if (error.status === 404) {
+        throw new Error(`Repository ${owner}/${repo} not found or not accessible.`);
+      }
+      throw error;
+    }
+  }
+}
+```
+
 ## Getting Help
 
 If you can't resolve an issue:
