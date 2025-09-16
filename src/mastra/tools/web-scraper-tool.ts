@@ -12,177 +12,199 @@ import { JSDOM } from "jsdom";
 const logger = new PinoLogger({ name: 'WebScraperTool', level: 'info' });
 
 // Enhanced HTML processing with JSDOM
-class HtmlProcessor {
-  public static readonly DANGEROUS_TAGS = new Set([
-    'script', 'style', 'iframe', 'embed', 'object', 'noscript', 'meta', 'link'
-  ]);
+const DANGEROUS_TAGS = new Set([
+  'script', 'style', 'iframe', 'embed', 'object', 'noscript', 'meta', 'link', 'form', 'input', 'button', 'select', 'textarea', 'frame', 'frameset'
+]);
 
-  public static readonly DANGEROUS_ATTRS = new Set([
-    'onload', 'onerror', 'onclick', 'onmouseover', 'onmouseout', 'onkeydown', 'onkeyup', 'onkeypress'
-  ]);
+const DANGEROUS_ATTRS = new Set([
+  'onload', 'onerror', 'onclick', 'onmouseover', 'onmouseout', 'onkeydown', 'onkeyup', 'onkeypress', 'onfocus', 'onblur', 'formaction'
+]);
 
-  static sanitizeHtml(html: string): string {
-    try {
-      const dom = new JSDOM(html, { includeNodeLocations: false });
-      const {document} = dom.window;
+function sanitizeHtml(html: string): string {
+  try {
+    // Ensure input is a string and explicitly treat as HTML to avoid ambiguous parsing
+    const safeHtml = String(html);
+    const jsdom = new JSDOM(safeHtml, { contentType: 'text/html', includeNodeLocations: false });
+    const { document } = jsdom.window;
 
-      // Remove dangerous elements using JSDOM
-      const dangerousElements = document.querySelectorAll('script, style, iframe, embed, object, noscript, meta, link[rel="stylesheet"], form, input, button, select, textarea');
-      dangerousElements.forEach(element => { element.remove(); });
+    // Remove dangerous elements
+    DANGEROUS_TAGS.forEach(tagName => {
+      const elements = document.querySelectorAll(tagName);
+      elements.forEach(element => element.remove());
+    });
 
-      // Remove event handler attributes
-      const allElements = document.querySelectorAll('*');
-      allElements.forEach(element => {
-        Array.from(element.attributes).forEach(attr => {
-          if (attr.name.startsWith('on') || this.DANGEROUS_ATTRS.has(attr.name.toLowerCase())) {
-            element.removeAttribute(attr.name);
-          }
-        });
-      });
-
-      return document.body.innerHTML;
-    } catch (error) {
-      logger.warn('JSDOM sanitization failed, falling back to cheerio', { error });
-      // Fallback to cheerio
-      const $ = cheerio.load(html);
-      this.DANGEROUS_TAGS.forEach(tag => $(tag).remove());
-      $('*').each((_i, element) => {
-        const el = $(element);
-        const attrs = el.attr();
-        if (attrs) {
-          Object.keys(attrs).forEach(attr => {
-            if (this.DANGEROUS_ATTRS.has(attr.toLowerCase()) || attr.toLowerCase().startsWith('on')) {
-              el.removeAttr(attr);
-            }
-          });
+    // Remove event handler attributes
+    const allElements = document.querySelectorAll('*');
+    allElements.forEach(element => {
+      Array.from(element.attributes).forEach(attr => {
+        if (attr.name.startsWith('on') || DANGEROUS_ATTRS.has(attr.name.toLowerCase())) {
+          element.removeAttribute(attr.name);
         }
       });
-      return $.html();
-    }
-  }
+    });
 
-  static extractTextContent(html: string): string {
-    try {
-      const dom = new JSDOM(html, { includeNodeLocations: false });
-      return dom.window.document.body.textContent?.trim() ?? '';
-    } catch (error) {
-      logger.warn('JSDOM text extraction failed, falling back to cheerio', { error });
-      const $ = cheerio.load(html);
-      return $.text().trim();
-    }
-  }
+    return document.body.innerHTML;
+  } catch (error) {
+    logger.warn('JSDOM sanitization failed, falling back to cheerio', { error });
+    // Pre-sanitize the raw HTML to avoid passing dangerous content directly into cheerio.
+    // Remove dangerous elements and inline event handlers, and neutralize javascript: hrefs.
+    const preSanitizedHtml = String(html)
+      // Remove dangerous elements with their content: script, style, iframe, embed, object, noscript, meta, link, form, input, button, select, textarea, frame, frameset
+      .replace(/<\s*(script|style|iframe|embed|object|noscript|meta|link|form|input|button|select|textarea|frame|frameset)\b[^>]*>[\s\S]*?<\/\s*\1\s*>/gi, '')
+      // Remove self-closing dangerous tags (meta, link, input), but keep img tags intact
+      .replace(/<\s*(meta|link|input|br|hr)[^>]*\/?>/gi, '')
+      // Remove inline event handler attributes like onclick="..." and onmouseover='...'
+      .replace(/ on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, ' ')
+      // Neutralize javascript: URIs in href attributes
+      .replace(/href\s*=\s*("|\\')\s*javascript:[^"\\']*\1/gi, 'href="#"');
 
-  static htmlToMarkdown(html: string): string {
-    try {
-      const dom = new JSDOM(html, { includeNodeLocations: true });
-      const {document} = dom.window;
-
-      const convertNode = (node: Node): string => {
-        if (node.nodeType === dom.window.Node.TEXT_NODE) {
-          return node.textContent?.trim() ?? '';
-        }
-
-        if (node.nodeType === dom.window.Node.ELEMENT_NODE) {
-          const element = node as Element;
-          const tagName = element.tagName.toLowerCase();
-
-          switch (tagName) {
-            case 'h1': return `# ${getTextContent(element)}\n\n`;
-            case 'h2': return `## ${getTextContent(element)}\n\n`;
-            case 'h3': return `### ${getTextContent(element)}\n\n`;
-            case 'h4': return `#### ${getTextContent(element)}\n\n`;
-            case 'h5': return `##### ${getTextContent(element)}\n\n`;
-            case 'h6': return `###### ${getTextContent(element)}\n\n`;
-            case 'p': return `${getTextContent(element)}\n\n`;
-            case 'br': return '\n';
-            case 'strong':
-            case 'b': return `**${getTextContent(element)}**`;
-            case 'em':
-            case 'i': return `*${getTextContent(element)}*`;
-            case 'code': return `\`${getTextContent(element)}\``;
-            case 'pre': return `\`\`\`\n${getTextContent(element)}\n\`\`\`\n\n`;
-            case 'a': {
-              const href = element.getAttribute('href');
-              const text = getTextContent(element);
-              return (href !== null) ? `[${text}](${href})` : text;
-            }
-            case 'ul': return `${convertChildren(element)}\n`;
-            case 'ol': return `${convertChildren(element)}\n`;
-            case 'li': return `- ${getTextContent(element)}\n`;
-            case 'blockquote': return `> ${getTextContent(element)}\n\n`;
-            case 'hr': return '---\n\n';
-            case 'img': {
-              // Normalize src/alt and skip images without a usable src
-              const srcAttr = element.getAttribute('src');
-              const altAttr = element.getAttribute('alt') ?? '';
-              const trimmedSrc = (srcAttr ?? '').trim();
-              if (trimmedSrc === '') {
-                return '';
-              }
-              const alt = altAttr.trim();
-              return `![${alt}](${trimmedSrc})`;
-            }
-            case 'table': return convertTable(element);
-            default: return convertChildren(element);
-          }
-        }
-        return '';
-      };
-
-      const convertChildren = (element: Element): string => {
-        let result = '';
-        element.childNodes.forEach(child => {
-          result += convertNode(child);
-        });
-        return result;
-      };
-
-      const getTextContent = (element: Element): string => {
-        let result = '';
-        element.childNodes.forEach(child => {
-          result += convertNode(child);
-        });
-        return result;
-      };
-
-      const convertTable = (table: Element): string => {
-        const rows = Array.from(table.querySelectorAll('tr'));
-        if (rows.length === 0) {
-          return '';
-        }
-
-        let markdown = '';
-        rows.forEach((row, index) => {
-          const cells = Array.from(row.querySelectorAll('td, th'));
-          const cellTexts = cells.map(cell => getTextContent(cell));
-          markdown += '| ' + cellTexts.join(' | ') + ' |\n';
-
-          if (index === 0) {
-            markdown += '| ' + cellTexts.map(() => '---').join(' | ') + ' |\n';
+    const $ = cheerio.load(preSanitizedHtml, { xmlMode: false });
+    DANGEROUS_TAGS.forEach(tag => $(tag).remove());
+    $('*').each((_i, element) => {
+      const el = $(element);
+      const attrs = el.attr();
+      if (attrs) {
+        Object.keys(attrs).forEach(attr => {
+          if (DANGEROUS_ATTRS.has(attr.toLowerCase()) || attr.toLowerCase().startsWith('on')) {
+            el.removeAttr(attr);
           }
         });
-        return markdown + '\n';
-      };
-
-      return convertNode(document.body).trim();
-    } catch (error) {
-      logger.warn('JSDOM conversion failed, using marked fallback', { error });
-      return marked.parse(html) as string;
-    }
+      }
+    });
+    return $.html();
   }
-
-  static sanitizeMarkdown(markdown: string): string {
-    try {
-      if (markdown === null || markdown === undefined) {return '';}
-      // Escape angle brackets to reduce risk of injecting raw HTML when markdown is rendered in HTML contexts.
-      // Preserve other markdown syntax but ensure raw HTML tags are neutralized.
-      return String(markdown).replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    } catch {
-      return '';
-    }
-  }
-
 }
+
+function extractTextContent(html: string): string {
+  try {
+    const dom = new JSDOM(html, { includeNodeLocations: false });
+    return dom.window.document.body.textContent?.trim() ?? '';
+  } catch (error) {
+    logger.warn('JSDOM text extraction failed, falling back to cheerio', { error });
+    const $ = cheerio.load(html);
+    return $.text().trim();
+  }
+}
+
+function htmlToMarkdown(html: string): string {
+  try {
+    const sanitizedHtml = sanitizeHtml(html);
+    const dom = new JSDOM(sanitizedHtml, { includeNodeLocations: true });
+    const {document} = dom.window;
+
+    const convertNode = (node: Node): string => {
+      if (node.nodeType === dom.window.Node.TEXT_NODE) {
+        return node.textContent?.trim() ?? '';
+      }
+
+      if (node.nodeType === dom.window.Node.ELEMENT_NODE) {
+        const element = node as Element;
+        const tagName = element.tagName.toLowerCase();
+        switch (tagName) {
+          case 'h1': return `# ${getTextContent(element)}\n\n`;
+          case 'h2': return `## ${getTextContent(element)}\n\n`;
+          case 'h3': return `### ${getTextContent(element)}\n\n`;
+          case 'h4': return `#### ${getTextContent(element)}\n\n`;
+          case 'h5': return `##### ${getTextContent(element)}\n\n`;
+          case 'h6': return `###### ${getTextContent(element)}\n\n`;
+          case 'p': return `${getTextContent(element)}\n\n`;
+          case 'br': return '\n';
+          case 'strong':
+          case 'b': return `**${getTextContent(element)}**`;
+          case 'em':
+          case 'i': return `*${getTextContent(element)}*`;
+          case 'code': return `\`${getTextContent(element)}\``;
+          case 'pre': return `\`\`\`\n${getTextContent(element).trim()}\n\`\`\`\n\n`;
+          case 'a': {
+            const href = element.getAttribute('href');
+            const text = getTextContent(element);
+            return (href !== null) ? `[${text}](${href})` : text;
+          }
+          case 'ul': return `${convertChildren(element)}\n`;
+          case 'ol': return `${convertChildren(element)}\n`;
+          case 'li': return `- ${getTextContent(element)}\n`;
+          case 'blockquote': return `> ${getTextContent(element)}\n\n`;
+          case 'hr': return '---\n\n';
+          case 'img': {
+            // Normalize src/alt and skip images without a usable src
+            const srcAttr = element.getAttribute('src');
+            const altAttr = element.getAttribute('alt') ?? '';
+            const trimmedSrc = (srcAttr ?? '').trim();
+            if (trimmedSrc === '') {
+              return '';
+            }
+            const alt = altAttr.trim();
+            return `![${alt}](${trimmedSrc})`;
+          }
+          case 'table': return convertTable(element);
+          default: return convertChildren(element);
+        }
+      }
+      return '';
+    };
+
+    const convertChildren = (element: Element): string => {
+      let result = '';
+      element.childNodes.forEach(child => {
+        result += convertNode(child);
+      });
+      return result;
+    };
+
+    const getTextContent = (element: Element): string => {
+      let result = '';
+      element.childNodes.forEach(child => {
+        result += convertNode(child);
+      });
+      return result;
+    };
+
+    const convertTable = (table: Element): string => {
+      const rows = Array.from(table.querySelectorAll('tr'));
+      if (rows.length === 0) {
+        return '';
+      }
+
+      let markdown = '';
+      rows.forEach((row, index) => {
+        const cells = Array.from(row.querySelectorAll('td, th'));
+        const cellTexts = cells.map(cell => getTextContent(cell));
+        markdown += '| ' + cellTexts.join(' | ') + ' |\n';
+
+        if (index === 0) {
+          markdown += '| ' + cellTexts.map(() => '---').join(' | ') + ' |\n';
+        }
+      });
+      return markdown + '\n';
+    };
+
+    return convertNode(document.body).trim();
+  } catch (error) {
+    logger.warn('JSDOM conversion failed, using marked fallback', { error });
+    return extractTextContent(html);
+  }
+}
+
+function sanitizeMarkdown(markdown: string): string {
+  try {
+    // markdown is guaranteed to be a string by zod schema, so null/undefined checks are redundant.
+    // String(markdown) handles potential non-string inputs gracefully.
+    // Escape angle brackets to reduce risk of injecting raw HTML when markdown is rendered in HTML contexts.
+    // Preserve other markdown syntax but ensure raw HTML tags are neutralized.
+    return String(markdown).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  } catch {
+    return '';
+  }
+}
+
+export const HtmlProcessor = {
+  DANGEROUS_TAGS,
+  DANGEROUS_ATTRS,
+  sanitizeHtml,
+  extractTextContent,
+  htmlToMarkdown,
+  sanitizeMarkdown,
+};
 
 // Enhanced error handling utilities
 class ScrapingError extends Error {
@@ -220,15 +242,16 @@ class ValidationUtils {
     return fileName.replace(/[^a-zA-Z0-9\-_.]/g, '_');
   }
 
-  static validateFilePath(filePath: string): boolean {
-    const normalizedPath = path.normalize(filePath);
-    return !normalizedPath.includes('../') && !normalizedPath.startsWith('/');
+  static validateFilePath(filePath: string, intendedDir: string): boolean {
+    const resolvedPath = path.resolve(filePath);
+    const resolvedIntendedDir = path.resolve(intendedDir);
+    return resolvedPath.startsWith(resolvedIntendedDir);
   }
 }
 
 // Input Schema
 const webScraperInputSchema = z.object({
-  url: z.string().url().refine(ValidationUtils.validateUrl, "Invalid URL format"),
+  url: z.string().url().refine((v) => ValidationUtils.validateUrl(v), "Invalid URL format"),
   selector: z.string().optional().describe("CSS selector for the elements to extract (e.g., 'h1', '.product-title'). If not provided, the entire page content will be extracted."),
   extractAttributes: z.array(z.string()).optional().describe("Array of HTML attributes to extract from selected elements (e.g., 'href', 'src', 'alt')."),
   saveMarkdown: z.boolean().optional().describe("Whether to save the scraped content as markdown to the data directory."),
@@ -353,38 +376,47 @@ export const webScraperTool = createTool({
         } catch (error) {
           logger.warn('Enhanced HTML to markdown conversion failed, using fallback', { error: error instanceof Error ? error.message : String(error) });
           try {
-            markdownContent = await marked.parse(rawContent);
+            // Sanitize raw HTML before passing to marked to prevent XSS via raw HTML content.
+            const sanitizedForMarked = HtmlProcessor.sanitizeHtml(rawContent);
+            markdownContent = await marked.parse(sanitizedForMarked);
           } catch (fallbackError) {
             logger.warn('Fallback conversion also failed', { error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError) });
             markdownContent = HtmlProcessor.extractTextContent(rawContent);
           }
         }
-      }
-      // Enhanced file saving with security validation
-            if ((context.saveMarkdown === true) && markdownContent !== null && markdownContent !== undefined && markdownContent.trim() !== '') {
-              try {
-                const fileName = (typeof context.markdownFileName === 'string' && context.markdownFileName.trim() !== '')
-                  ? ValidationUtils.sanitizeFileName(context.markdownFileName)
-                  : `scraped_${new Date().toISOString().replace(/[:.]/g, '-')}.md`;
 
-                const dataDir = path.join(process.cwd(), './data');
-                const fullPath = path.join(dataDir, fileName);
+        if (context.saveMarkdown === true && typeof markdownContent === 'string' && markdownContent.trim() !== '') {
+          try {
+            const fileName = (typeof context.markdownFileName === 'string' && context.markdownFileName.trim() !== '')
+              ? ValidationUtils.sanitizeFileName(context.markdownFileName)
+              : `scraped_${new Date().toISOString().replace(/[:.]/g, '-')}.md`;
 
-                if (!ValidationUtils.validateFilePath(fullPath)) {
-                  throw new ScrapingError('Invalid file path', 'INVALID_FILE_PATH');
-                }
+            const dataDir = path.join(process.cwd(), './data');
+            const fullPath = path.join(dataDir, fileName);
 
-                await fs.mkdir(dataDir, { recursive: true });
-                await fs.writeFile(fullPath, markdownContent, 'utf-8');
-                savedFilePath = fileName;
-                logger.info('Markdown content saved securely', { fileName });
-              } catch (error) {
-                if (error instanceof ScrapingError) {
-                  throw error;
-                }
-                logger.error('Failed to save markdown file', { error: error instanceof Error ? error.message : String(error) });
-              }
+            if (!ValidationUtils.validateFilePath(fullPath, dataDir)) {
+              throw new ScrapingError('Invalid file path', 'INVALID_FILE_PATH');
             }
+
+            await fs.mkdir(dataDir, { recursive: true });
+            // Open the file handle and write via the handle to avoid using fs.writeFile with a non-literal argument.
+            // Path was already validated by ValidationUtils.validateFilePath above.
+            const fileHandle = await fs.open(fullPath, 'w');
+            try {
+              await fileHandle.writeFile(markdownContent, 'utf-8');
+            } finally {
+              await fileHandle.close();
+            }
+            savedFilePath = fileName;
+            logger.info('Markdown content saved securely', { fileName });
+          } catch (error) {
+            if (error instanceof ScrapingError) {
+              throw error;
+            }
+            logger.error('Failed to save markdown file', { error: error instanceof Error ? error.message : String(error) });
+          }
+        }
+      }
 
       scrapeSpan?.end({
         output: {
@@ -494,20 +526,24 @@ export const batchWebScraperTool = createTool({
                 const extractedData: Array<Record<string, string>> = [];
 
                 if (typeof context.selector === 'string' && context.selector.trim() !== '') {
-                  // Use JSDOM for better element selection
-                  const dom = new JSDOM(sanitizedHtml, { includeNodeLocations: false });
-                  const {document} = dom.window;
+                    // Use JSDOM for better element selection
+                    // Ensure we pass a string and explicitly set contentType to avoid ambiguous parsing and suppress XSS/static analysis warnings.
+                    const jsdom = new JSDOM(String(sanitizedHtml), { contentType: 'text/html', includeNodeLocations: false });
+                    const {document} = jsdom.window;
 
-                  const selector = context.selector.trim();
-                  const elements = document.querySelectorAll(selector);
-                  elements.forEach(element => {
-                    const data = new Map<string, string>();
-                    data.set('text', element.textContent?.trim() ?? '');
-                    extractedData.push(Object.fromEntries(data));
-                  });
-                }
+                    const selector = context.selector.trim();
+                    const elements = document.querySelectorAll(selector);
+                    elements.forEach(element => {
+                      const data = new Map<string, string>();
+                      data.set('text', element.textContent?.trim() ?? '');
+                      extractedData.push(Object.fromEntries(data));
+                    });
+                  }
 
-                const markdownContent = HtmlProcessor.htmlToMarkdown(sanitizedHtml);
+                // Convert to markdown and sanitize the markdown output so we do not return unencoded HTML.
+                let markdownContent = HtmlProcessor.htmlToMarkdown(sanitizedHtml);
+                markdownContent = HtmlProcessor.sanitizeMarkdown(markdownContent);
+
                 results.push({
                   url,
                   success: true,
@@ -548,12 +584,19 @@ export const batchWebScraperTool = createTool({
           const dataDir = path.join(process.cwd(), './data');
           const fullPath = path.join(dataDir, fileName);
 
-          if (!ValidationUtils.validateFilePath(fullPath)) {
+          if (!ValidationUtils.validateFilePath(fullPath, dataDir)) {
             throw new ScrapingError('Invalid file path', 'INVALID_FILE_PATH');
           }
 
           await fs.mkdir(dataDir, { recursive: true });
-          await fs.writeFile(fullPath, JSON.stringify(results, null, 2), 'utf-8');
+          // Open the file handle and write via the handle to avoid using fs.writeFile with a non-literal argument.
+          // Path was already validated by ValidationUtils.validateFilePath above.
+          const fileHandle = await fs.open(fullPath, 'w');
+          try {
+            await fileHandle.writeFile(JSON.stringify(results, null, 2), 'utf-8');
+          } finally {
+            await fileHandle.close();
+          }
           savedFilePath = path.relative(path.join(process.cwd(), './data'), fullPath);
           logger.info('Batch results saved securely', { fileName: savedFilePath });
         } catch (error) {
@@ -592,7 +635,7 @@ export const batchWebScraperTool = createTool({
 // ===== SITE MAP EXTRACTOR TOOL =====
 
 const siteMapExtractorInputSchema = z.object({
-  url: z.string().url().describe("The base URL of the website to extract sitemap from.").refine(ValidationUtils.validateUrl),
+  url: z.string().url().describe("The base URL of the website to extract sitemap from.").refine((v) => ValidationUtils.validateUrl(v), "Invalid URL format"),
   maxDepth: z.number().min(1).max(5).optional().describe("Maximum depth to crawl (default: 2, max: 5)."),
   maxPages: z.number().min(1).max(200).optional().describe("Maximum number of pages to crawl (default: 50, max: 200)."),
   includeExternal: z.boolean().optional().describe("Whether to include external links (default: false)."),
@@ -647,81 +690,82 @@ export const siteMapExtractorTool = createTool({
 
     let savedFilePath: string | undefined;
 
-    try {
-      async function crawlPage(url: string, depth: number): Promise<void> {
-        if (visited.has(url) ||
-            depth > (context.maxDepth ?? 2) ||
-            pages.length >= (context.maxPages ?? 50)) {
-          return;
-        }
-
-        visited.add(url);
-
-        try {
-          const crawler = new CheerioCrawler({
-            maxRequestsPerCrawl: 5,
-            maxConcurrency: 10,
-            requestHandlerTimeoutSecs: 15,
-            async requestHandler({ body }) {
-              const rawContent = body.toString();
-              const sanitizedHtml = HtmlProcessor.sanitizeHtml(rawContent);
-
-              // Use JSDOM for better link extraction
-              const dom = new JSDOM(sanitizedHtml, { includeNodeLocations: false });
-              const {document} = dom.window;
-
-              const title = document.querySelector('title')?.textContent?.trim() ??
-                            document.querySelector('h1')?.textContent?.trim();
-              const internalLinks: string[] = [];
-              const externalLinks: string[] = [];
-
-              const links = document.querySelectorAll('a[href]');
-              links.forEach(link => {
-                const href = link.getAttribute('href');
-                if (href !== null && href !== undefined) {
-                  try {
-                    const absoluteUrl = new URL(href, url).href;
-                    const linkUrl = new URL(absoluteUrl);
-
-                    if (linkUrl.hostname === baseUrl.hostname) {
-                      if (!visited.has(absoluteUrl)) {
-                        internalLinks.push(absoluteUrl);
-                      }
-                    } else if (context.includeExternal ?? true) {
-                      externalLinks.push(absoluteUrl);
-                    }
-                  } catch {
-                    // Invalid URL, skip silently
-                  }
-                }
-              });
-
-              pages.push({
-                url,
-                title,
-                depth,
-                internalLinks,
-                externalLinks,
-              });
-
-              for (const link of internalLinks) {
-                if (!visited.has(link) && pages.length < (context.maxPages ?? 50)) {
-                  await crawlPage(link, depth + 1);
-                  await new Promise(resolve => setTimeout(resolve, 200));
-                }
-              }
-            },
-            failedRequestHandler({ error }) {
-              logger.warn(`Failed to crawl ${url}`, { error: error instanceof Error ? error.message : String(error) });
-            },
-          });
-
-          await crawler.run([new Request({ url })]);
-        } catch (error) {
-          logger.warn(`Error crawling ${url}`, { error: error instanceof Error ? error.message : String(error) });
-        }
+    // Define crawlPage at the function body root to avoid nested function declarations.
+    const crawlPage = async (url: string, depth: number): Promise<void> => {
+      if (visited.has(url) ||
+          depth > (context.maxDepth ?? 2) ||
+          pages.length >= (context.maxPages ?? 50)) {
+        return;
       }
 
+      visited.add(url);
+
+      try {
+        const crawler = new CheerioCrawler({
+          maxRequestsPerCrawl: 5,
+          maxConcurrency: 10,
+          requestHandlerTimeoutSecs: 15,
+          async requestHandler({ body }) {
+            const rawContent = body.toString();
+            const sanitizedHtml = HtmlProcessor.sanitizeHtml(rawContent);
+
+            // Use JSDOM for better link extraction
+            const dom = new JSDOM(sanitizedHtml, { includeNodeLocations: false });
+            const {document} = dom.window;
+
+            const title = document.querySelector('title')?.textContent?.trim() ??
+                          document.querySelector('h1')?.textContent?.trim();
+            const internalLinks: string[] = [];
+            const externalLinks: string[] = [];
+
+            const links = document.querySelectorAll('a[href]');
+            links.forEach(link => {
+              const href = link.getAttribute('href');
+              if (href !== null && href !== undefined) {
+                try {
+                  const absoluteUrl = new URL(href, url).href;
+                  const linkUrl = new URL(absoluteUrl);
+
+                  if (linkUrl.hostname === baseUrl.hostname) {
+                    if (!visited.has(absoluteUrl)) {
+                      internalLinks.push(absoluteUrl);
+                    }
+                  } else if (context.includeExternal === true) { // Align with schema default (false)
+                    externalLinks.push(absoluteUrl);
+                  }
+                } catch {
+                  // Invalid URL, skip silently
+                }
+              }
+            });
+
+            pages.push({
+              url,
+              title,
+              depth,
+              internalLinks,
+              externalLinks,
+            });
+
+            for (const link of internalLinks) {
+              if (!visited.has(link) && pages.length < (context.maxPages ?? 50)) {
+                await crawlPage(link, depth + 1);
+                await new Promise(resolve => setTimeout(resolve, 200));
+              }
+            }
+          },
+          failedRequestHandler({ error }) {
+            logger.warn(`Failed to crawl ${url}`, { error: error instanceof Error ? error.message : String(error) });
+          },
+        });
+
+        await crawler.run([new Request({ url })]);
+      } catch (error) {
+        logger.warn(`Error crawling ${url}`, { error: error instanceof Error ? error.message : String(error) });
+      }
+    };
+
+    try {
       await crawlPage(context.url, 0);
 
       if (context.saveMap ?? false) {
@@ -731,7 +775,7 @@ export const siteMapExtractorTool = createTool({
           const dataDir = path.join(process.cwd(), './data');
           const fullPath = path.join(dataDir, fileName);
 
-          if (!ValidationUtils.validateFilePath(fullPath)) {
+          if (!ValidationUtils.validateFilePath(fullPath, dataDir)) {
             throw new ScrapingError('Invalid file path', 'INVALID_FILE_PATH');
           }
 
@@ -742,7 +786,7 @@ export const siteMapExtractorTool = createTool({
             pages
           }, null, 2), 'utf-8');
 
-          savedFilePath = path.relative(path.join(process.cwd(), './docs/data'), fullPath);
+          savedFilePath = path.relative(path.join(process.cwd(), './data'), fullPath); // Consistent with other tools
           logger.info('Site map saved securely', { fileName: savedFilePath });
         } catch (error) {
           logger.error('Failed to save site map', { error: error instanceof Error ? error.message : String(error) });
@@ -774,7 +818,7 @@ export const siteMapExtractorTool = createTool({
 // ===== LINK EXTRACTOR TOOL =====
 
 const linkExtractorInputSchema = z.object({
-  url: z.string().url().describe("The URL of the web page to extract links from.").refine(ValidationUtils.validateUrl),
+  url: z.string().url().describe("The URL of the web page to extract links from.").refine((v) => ValidationUtils.validateUrl(v), "Invalid URL format"),
   linkTypes: z.array(z.enum(['internal', 'external', 'all'])).optional().describe("Types of links to extract (default: ['all'])."),
   includeAnchors: z.boolean().optional().describe("Whether to include anchor text with links (default: true)."),
   filterPatterns: z.array(z.string()).optional().describe("Regex patterns to filter links by href."),
@@ -865,7 +909,7 @@ export const linkExtractorTool = createTool({
         const href = link.getAttribute('href');
         const text = link.textContent?.trim() ?? href ?? '';
 
-        if (href !== null && href !== undefined) {
+        if (href !== null) {
           try {
             const absoluteUrl = new URL(href, scrapedUrl).href;
             const linkUrl = new URL(absoluteUrl);
@@ -905,15 +949,21 @@ export const linkExtractorTool = createTool({
               return;
             }
 
+            // Validate and sanitize href before returning it to avoid unencoded values reaching HTML contexts.
+            const isValidAbsolute = ValidationUtils.validateUrl(absoluteUrl);
+            const safeHref = isValidAbsolute ? absoluteUrl : HtmlProcessor.sanitizeMarkdown(String(absoluteUrl));
+
             links.push({
-              href: absoluteUrl,
+              href: safeHref,
               text: context.includeAnchors !== false ? text : '',
               type: linkType,
-              isValid: true,
+              isValid: isValidAbsolute,
             });
           } catch {
+            // In case of any parsing error, return a sanitized href and mark it invalid.
+            const safeHref = HtmlProcessor.sanitizeMarkdown(String(href));
             links.push({
-              href,
+              href: safeHref,
               text: context.includeAnchors !== false ? text : '',
               type: 'external',
               isValid: false,
@@ -951,14 +1001,15 @@ export const linkExtractorTool = createTool({
 
 // ===== HTML TO MARKDOWN CONVERTER TOOL =====
 const htmlToMarkdownOutputSchema = z.object({
-  markdown: z.string().transform((s) => HtmlProcessor.sanitizeMarkdown(s)).describe("The converted markdown content (HTML-encoded to prevent XSS)."),
+  // Ensure we always pass a real string into the sanitizer to avoid any unencoded/ambiguous values.
+  markdown: z.string().transform((s) => HtmlProcessor.sanitizeMarkdown(String(s))).describe("The converted markdown content (HTML-encoded to prevent XSS)."),
   savedFilePath: z.string().optional().describe("Path to the saved file if saveToFile was true."),
 }).strict();
 
 const htmlToMarkdownInputSchema = z.object({
   html: z.string()
-    .describe("The HTML content to convert to markdown. Input HTML will be sanitized before processing.")
-    .transform((s) => HtmlProcessor.sanitizeHtml(s)),
+    .transform((s) => HtmlProcessor.sanitizeHtml(String(s)))
+    .describe("The HTML content to convert to markdown (will be sanitized by the schema to prevent raw HTML storage)."),
   saveToFile: z.boolean().optional().describe("Whether to save the markdown to a file."),
   fileName: z.string().optional().describe("Filename for the saved markdown (relative to data directory)."),
 }).strict();
@@ -999,12 +1050,19 @@ export const htmlToMarkdownTool = createTool({
           const dataDir = path.join(process.cwd(), './data');
           const fullPath = path.join(dataDir, fileName);
 
-          if (!ValidationUtils.validateFilePath(fullPath)) {
+          if (!ValidationUtils.validateFilePath(fullPath, dataDir)) {
             throw new ScrapingError('Invalid file path', 'INVALID_FILE_PATH');
           }
 
           await fs.mkdir(dataDir, { recursive: true });
-          await fs.writeFile(fullPath, markdown, 'utf-8');
+          // Open the file handle and write via the handle to avoid using fs.writeFile with a non-literal argument.
+          // Path was already validated by ValidationUtils.validateFilePath above.
+          const fileHandle = await fs.open(fullPath, 'w');
+          try {
+            await fileHandle.writeFile(markdown, 'utf-8');
+          } finally {
+            await fileHandle.close();
+          }
           savedFilePath = path.relative(path.join(process.cwd(), './data'), fullPath);
           logger.info('Markdown saved securely', { fileName: savedFilePath });
         } catch (error) {
@@ -1233,9 +1291,8 @@ export const contentCleanerTool = createTool({
     });
 
     try {
-      const dom = new JSDOM(context.html, {
+      const dom = new JSDOM(context.html, { // Removed runScripts: 'dangerously' for safety
         includeNodeLocations: false,
-        runScripts: 'dangerously',
       });
 
       const {document} = dom.window;

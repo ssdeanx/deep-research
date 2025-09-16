@@ -1,7 +1,6 @@
 import { Agent } from "@mastra/core/agent";
 import { GeminiLiveVoice } from "@mastra/voice-google-gemini-live";
-import { playAudio, getMicrophoneStream } from "@mastra/node-audio"
-;
+import { playAudio, getMicrophoneStream } from "@mastra/node-audio";
 import { google } from '@ai-sdk/google';
 
 const agent = new Agent({
@@ -10,8 +9,8 @@ const agent = new Agent({
  // Model used for text generation; voice provider handles realtime audio
  model: google('gemini-2.5-flash'),
  voice: new GeminiLiveVoice({
- apiKey: process.env.GOOGLE_API_KEY,
- model: 'gemini-2.5-flash',
+ apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+ model: 'gemini-live-2.5-flash-preview-native-audio',
  speaker: 'Puck',
  debug: true,
  // Vertex AI option:
@@ -24,7 +23,7 @@ const agent = new Agent({
 
 await agent.voice.connect();
 
-agent.voice.on('speaker', ({ audio }) => {
+agent.voice.on('speaker', (audio) => {
  playAudio(audio);
 });
 
@@ -32,7 +31,7 @@ agent.voice.on('writing', ({ role, text }) => {
  console.log(`${role}: ${text}`);
 });
 
-await agent.voice.speak('How can I help you today?');
+await agent.voice.speak('Hello, how can I help you today?');
 
 const micStream = getMicrophoneStream();
 await agent.voice.send(micStream);

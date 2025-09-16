@@ -11,7 +11,7 @@ Storage in Mastra  Mastra Docs.md
 .specstory/history/2025-08-24_13-53Z-node-js-application-setup-and-architecture-overview.md
 .specstory/history/2025-08-31_15-11Z-graph-rag-implementation-in-research-assistant-project.md
 .specstory/history/2025-08-31_15-23Z-#list-projects.md
-.specstory/history/2025-08-31_15-29Z-#list-projects.md
+.specstory/history/*.md
 .gitignore
 .specstory/history/2025-08-31_15-16Z-follow-instructions-in-\[archon-prompt-md](file-home-sam-00-mastra-deep-research-github-prompts-archon-prompt-md).md
 .specstory/history/2025-09-05_15-31Z-i-want-you-to-check-my-actual-project-&-its-current-state-looks-for-ways-to-improve-my-#file-readme-md-with-tech-badges-also-i-want-you-to-look-at-my-documentation-&-make-sure-its-up-to-date-&-in-s.md
@@ -39,3 +39,5 @@ Storage in Mastra  Mastra Docs.md
 .specstory/history/2025-09-13_12-51Z-fix-cannot-find-name-savetofile.md
 .specstory/history/2025-09-13_13-02Z-fix-\[security-do-s]-found-non-literal-argument-to-regexp-constructor,-\[security-do-s]-found-regexp-with-non-literal-argument.md
 .specstory/history/2025-09-13_12-58Z-fix-property-currentspan-does-not-exist-on-type-{}.md
+.specstory/history/2025-09-16_02-12Z-fix-\[best-practice]-unexpected-class-with-only-static-properties.md
+.specstory/history/2025-09-16_02-12Z-fix-\[security-xss]-non-html-variable-dom-is-used-to-store-raw-html.md
