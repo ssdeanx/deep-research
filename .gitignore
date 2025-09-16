@@ -41,3 +41,6 @@ Storage in Mastra  Mastra Docs.md
 .specstory/history/2025-09-13_12-58Z-fix-property-currentspan-does-not-exist-on-type-{}.md
 .specstory/history/2025-09-16_02-12Z-fix-\[best-practice]-unexpected-class-with-only-static-properties.md
 .specstory/history/2025-09-16_02-12Z-fix-\[security-xss]-non-html-variable-dom-is-used-to-store-raw-html.md
+
+.gemini/
+gha-creds-*.json
