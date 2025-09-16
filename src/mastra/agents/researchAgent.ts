@@ -45,6 +45,7 @@ export const researchAgent = new Agent({
   - learnings: Array of key learnings extracted from results
   - completedQueries: Array tracking what has been searched
   - phase: Current phase of research ("initial" or "follow-up")
+  - runtimeConfig: Applied runtime configuration settings
 
   **Error Handling:**
   - If all searches fail, use your knowledge to provide basic information
@@ -65,5 +66,5 @@ export const researchAgent = new Agent({
    evaluateResultTool,
    extractLearningsTool,
  },
- memory,
+ memory
 });
