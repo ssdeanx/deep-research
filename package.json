@@ -146,7 +146,7 @@
     "crypto-browserify": "^3.12.1",
     "eslint": "^9.35.0",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-jsdoc": "^57.2.1",
+    "eslint-plugin-jsdoc": "^58.1.0",
     "eslint-plugin-tsdoc": "^0.4.0",
     "mastra": "^0.12.3",
     "prettier": "^3.6.2",
@@ -156,7 +156,7 @@
     "vitest": "^3.2.4"
   },
   "overrides": {
-    "jsondiffpatch": "0.0.10",
+    "jsondiffpatch": "0.7.3",
     "zod": "^4.1.8"
   }
 }
