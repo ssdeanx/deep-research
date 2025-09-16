@@ -8,11 +8,342 @@ const logger = new PinoLogger({ level: 'info' });
 
 const listWorkflowRunsOutputSchema = z.object({
   status: z.enum(['success', 'error']),
-  data: z.array(z.object({
-    id: z.number(),
-    name: z.string(),
-    status: z.enum(['queued', 'in_progress', 'completed', 'cancelled'])
-  })).optional(),
+  data: z.object({
+    total_count: z.number(),
+    workflow_runs: z.array(z.object({
+      id: z.number(),
+      name: z.string(),
+      node_id: z.string(),
+      head_branch: z.string(),
+      head_sha: z.string(),
+      path: z.string(),
+      run_number: z.number(),
+      event: z.string(),
+      display_title: z.string(),
+      status: z.enum(['queued', 'in_progress', 'completed', 'cancelled', 'skipped', 'neutral', 'timed_out', 'action_required', 'stale', 'pending']),
+      conclusion: z.nullable(z.enum(['success', 'failure', 'neutral', 'cancelled', 'timed_out', 'action_required', 'skipped', 'stale'])),
+      workflow_id: z.number(),
+      url: z.string(),
+      html_url: z.string(),
+      pull_requests: z.array(z.object({
+        id: z.number(),
+        number: z.number(),
+        state: z.enum(['open', 'closed']),
+        locked: z.boolean(),
+        title: z.string(),
+        body: z.string().optional(),
+        created_at: z.string(),
+        updated_at: z.string(),
+        closed_at: z.string().optional(),
+        merged_at: z.string().optional(),
+        merge_commit_sha: z.string().optional(),
+        assignee: z.object({
+          login: z.string(),
+          id: z.number()
+        }).optional(),
+        assignees: z.array(z.object({
+          login: z.string(),
+          id: z.number()
+        })),
+        requested_reviewers: z.array(z.object({
+          login: z.string(),
+          id: z.number()
+        })),
+        requested_teams: z.array(z.object({
+          name: z.string(),
+          id: z.number()
+        })),
+        labels: z.array(z.object({
+          id: z.number(),
+          name: z.string()
+        })),
+        milestone: z.object({
+          id: z.number(),
+          title: z.string()
+        }).optional(),
+        head: z.object({
+          label: z.string(),
+          ref: z.string(),
+          sha: z.string(),
+          user: z.object({
+            login: z.string(),
+            id: z.number()
+          })
+        }),
+        base: z.object({
+          label: z.string(),
+          ref: z.string(),
+          sha: z.string(),
+          user: z.object({
+            login: z.string(),
+            id: z.number()
+          })
+        }),
+        author_association: z.enum(['OWNER', 'COLLABORATOR', 'CONTRIBUTOR', 'FIRST_TIME_CONTRIBUTOR', 'FIRST_TIMER', 'MEMBER', 'NONE', 'OUTSIDE_COLLABORATOR']),
+        auto_merge: z.null(),
+        draft: z.boolean(),
+        merged: z.boolean().optional(),
+        mergeable: z.boolean().optional(),
+        rebaseable: z.boolean().optional(),
+        mergeable_state: z.enum(['unknown', 'behind', 'has_hooks', 'blocker']),
+        merged_by: z.object({
+          login: z.string(),
+          id: z.number()
+        }).optional(),
+        comments: z.number(),
+        review_comments: z.number(),
+        maintainer_can_modify: z.boolean(),
+        commits: z.number(),
+        additions: z.number(),
+        deletions: z.number(),
+        changed_files: z.number().optional()
+      })),
+      created_at: z.string(),
+      updated_at: z.string(),
+      actor: z.object({
+        login: z.string(),
+        id: z.number(),
+        node_id: z.string(),
+        avatar_url: z.string(),
+        gravatar_id: z.string().optional(),
+        url: z.string(),
+        html_url: z.string(),
+        followers_url: z.string(),
+        following_url: z.string(),
+        gists_url: z.string(),
+        starred_url: z.string(),
+        subscriptions_url: z.string(),
+        organizations_url: z.string(),
+        repos_url: z.string(),
+        events_url: z.string(),
+        received_events_url: z.string(),
+        type: z.string(),
+        site_admin: z.boolean()
+      }),
+      run_attempt: z.number(),
+      run_started_at: z.string(),
+      triggering_actor: z.object({
+        login: z.string(),
+        id: z.number(),
+        node_id: z.string(),
+        avatar_url: z.string(),
+        gravatar_id: z.string().optional(),
+        url: z.string(),
+        html_url: z.string(),
+        type: z.string(),
+        site_admin: z.boolean()
+      }),
+      head_commit: z.object({
+        id: z.string(),
+        tree_id: z.string(),
+        message: z.string(),
+        timestamp: z.string(),
+        author: z.object({
+          name: z.string(),
+          email: z.string()
+        }),
+        committer: z.object({
+          name: z.string(),
+          email: z.string()
+        })
+      }),
+      repository: z.object({
+        id: z.number(),
+        node_id: z.string(),
+        name: z.string(),
+        full_name: z.string(),
+        private: z.boolean(),
+        owner: z.object({
+          login: z.string(),
+          id: z.number(),
+          node_id: z.string(),
+          avatar_url: z.string(),
+          gravatar_id: z.string(),
+          url: z.string(),
+          html_url: z.string(),
+          followers_url: z.string(),
+          following_url: z.string(),
+          gists_url: z.string(),
+          starred_url: z.string(),
+          subscriptions_url: z.string(),
+          organizations_url: z.string(),
+          repos_url: z.string(),
+          events_url: z.string(),
+          received_events_url: z.string(),
+          type: z.string(),
+          site_admin: z.boolean()
+        }),
+        html_url: z.string(),
+        description: z.string(),
+        fork: z.boolean(),
+        url: z.string(),
+        forks_url: z.string(),
+        keys_url: z.string(),
+        collaborators_url: z.string(),
+        teams_url: z.string(),
+        hooks_url: z.string(),
+        issue_events_url: z.string(),
+        events_url: z.string(),
+        assignees_url: z.string(),
+        branches_url: z.string(),
+        tags_url: z.string(),
+        blobs_url: z.string(),
+        git_tags_url: z.string(),
+        git_refs_url: z.string(),
+        trees_url: z.string(),
+        statuses_url: z.string(),
+        languages_url: z.string(),
+        stargazers_url: z.string(),
+        contributors_url: z.string(),
+        subscribers_url: z.string(),
+        subscription_url: z.string(),
+        commits_url: z.string(),
+        git_commits_url: z.string(),
+        comments_url: z.string(),
+        issues_url: z.string(),
+        pulls_url: z.string(),
+        milestones_url: z.string(),
+        notifications_url: z.string(),
+        labels_url: z.string(),
+        releases_url: z.string(),
+        deployments_url: z.string(),
+        downloads_url: z.string(),
+        archive_url: z.string(),
+        compare_url: z.string(),
+        contents_url: z.string(),
+        merges_url: z.string(),
+        clone_url: z.string(),
+        mirror_url: z.string(),
+        svn_url: z.string(),
+        homepage: z.string(),
+        language: z.string().optional(),
+        forks_count: z.number(),
+        stargazers_count: z.number(),
+        watchers_count: z.number(),
+        size: z.number(),
+        default_branch: z.string(),
+        open_issues_count: z.number(),
+        is_template: z.boolean(),
+        topics: z.array(z.string()),
+        has_issues: z.boolean(),
+        has_projects: z.boolean(),
+        has_wiki: z.boolean(),
+        has_pages: z.boolean(),
+        has_downloads: z.boolean(),
+        archived: z.boolean(),
+        disabled: z.boolean(),
+        visibility: z.string(),
+        permissions: z.object({
+          admin: z.boolean(),
+          maintain: z.boolean(),
+          push: z.boolean(),
+          triage: z.boolean(),
+          pull: z.boolean()
+        }).optional()
+      }),
+      head_repository: z.object({
+        id: z.number(),
+        node_id: z.string(),
+        name: z.string(),
+        full_name: z.string(),
+        private: z.boolean(),
+        owner: z.object({
+          login: z.string(),
+          id: z.number(),
+          node_id: z.string(),
+          avatar_url: z.string(),
+          gravatar_id: z.string(),
+          url: z.string(),
+          html_url: z.string(),
+          type: z.string(),
+          site_admin: z.boolean()
+        }),
+        html_url: z.string(),
+        description: z.string(),
+        fork: z.boolean(),
+        url: z.string(),
+        forks_url: z.string(),
+        permissions: z.object({
+          admin: z.boolean(),
+          push: z.boolean(),
+          pull: z.boolean()
+        }),
+        organization: z.object({
+          login: z.string(),
+          id: z.number(),
+          node_id: z.string(),
+          avatar_url: z.string(),
+          gravatar_id: z.string(),
+          url: z.string(),
+          html_url: z.string(),
+          type: z.string(),
+          site_admin: z.boolean()
+        }).optional(),
+        parent: z.object({
+          id: z.number(),
+          node_id: z.string(),
+          name: z.string(),
+          full_name: z.string(),
+          private: z.boolean()
+        }).optional(),
+        source: z.object({
+          id: z.number(),
+          node_id: z.string(),
+          name: z.string(),
+          full_name: z.string(),
+          private: z.boolean()
+        }).optional(),
+        license: z.object({
+          key: z.string(),
+          name: z.string(),
+          spdx_id: z.string(),
+          url: z.string().optional(),
+          node_id: z.string()
+        }).optional(),
+        code_of_conduct: z.object({
+          url: z.string(),
+          key: z.string(),
+          name: z.string(),
+          body: z.string()
+        }).optional(),
+        features: z.object({
+          issues: z.boolean(),
+          wiki: z.boolean(),
+          discussions_in_collaborators_only: z.boolean(),
+          fuzzymatcher: z.boolean(),
+          copilot: z.boolean(),
+          copilot_code_completions: z.boolean(),
+          copilot_business: z.boolean(),
+          interactions: z.boolean(),
+          security: z.boolean(),
+          dependabot: z.boolean(),
+          pages: z.boolean(),
+          code_scanning: z.boolean(),
+          secret_scanning: z.boolean(),
+          secret_scanning_push_protection: z.boolean()
+        }).optional(),
+        allow_forking: z.boolean(),
+        is_template: z.boolean(),
+        web_commit_signoff_required: z.boolean(),
+        workflows: z.object({
+          default_workflow_permissions: z.enum(['read', 'write']),
+          can_approve_pull_request_reviews: z.boolean()
+        }).optional(),
+        delete_branch_on_merge: z.boolean(),
+        subscribers_count: z.number(),
+        network_count: z.number()
+      }),
+      jobs_url: z.string(),
+      logs_url: z.string(),
+      check_suite_url: z.string(),
+      artifacts_url: z.string(),
+      cancel_url: z.string(),
+      rerun_url: z.string(),
+      workflow_url: z.string(),
+      check_suite_id: z.number().optional(),
+      check_suite_node_id: z.string().optional()
+    }))
+  }),
   errorMessage: z.string().optional().describe('Error in listing workflow runs')
 }).strict();
 
@@ -54,7 +385,7 @@ export const listWorkflowRuns = createTool({
         output: { workflow_runs_count: runs.data.workflow_runs?.length || 0 },
         metadata: { operation: 'list_workflow_runs' }
       });
-      return listWorkflowRunsOutputSchema.parse({ status: 'success', data: runs.data.workflow_runs });
+      return listWorkflowRunsOutputSchema.parse({ status: 'success', data: runs.data });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error listing workflow runs');
@@ -73,10 +404,336 @@ const getWorkflowRunOutputSchema = z.object({
   status: z.enum(['success', 'error']),
   data: z.object({
     id: z.number(),
-    status: z.string(),
-    conclusion: z.string().nullable(),
+    name: z.string(),
+    node_id: z.string(),
+    head_branch: z.string(),
+    head_sha: z.string(),
+    path: z.string(),
     run_number: z.number(),
-    created_at: z.string()
+    event: z.string(),
+    display_title: z.string(),
+    status: z.enum(['queued', 'in_progress', 'completed', 'cancelled', 'skipped', 'neutral', 'timed_out', 'action_required', 'stale', 'pending']),
+    conclusion: z.nullable(z.enum(['success', 'failure', 'neutral', 'cancelled', 'timed_out', 'action_required', 'skipped', 'stale'])),
+    workflow_id: z.number(),
+    url: z.string(),
+    html_url: z.string(),
+    pull_requests: z.array(z.object({
+      id: z.number(),
+      number: z.number(),
+      state: z.enum(['open', 'closed']),
+      locked: z.boolean(),
+      title: z.string(),
+      body: z.string().optional(),
+      created_at: z.string(),
+      updated_at: z.string(),
+      closed_at: z.string().optional(),
+      merged_at: z.string().optional(),
+      merge_commit_sha: z.string().optional(),
+      assignee: z.object({
+        login: z.string(),
+        id: z.number()
+      }).optional(),
+      assignees: z.array(z.object({
+        login: z.string(),
+        id: z.number()
+      })),
+      requested_reviewers: z.array(z.object({
+        login: z.string(),
+        id: z.number()
+      })),
+      requested_teams: z.array(z.object({
+        name: z.string(),
+        id: z.number()
+      })),
+      labels: z.array(z.object({
+        id: z.number(),
+        name: z.string()
+      })),
+      milestone: z.object({
+        id: z.number(),
+        title: z.string()
+      }).optional(),
+      head: z.object({
+        label: z.string(),
+        ref: z.string(),
+        sha: z.string(),
+        user: z.object({
+          login: z.string(),
+          id: z.number()
+        })
+      }),
+      base: z.object({
+        label: z.string(),
+        ref: z.string(),
+        sha: z.string(),
+        user: z.object({
+          login: z.string(),
+          id: z.number()
+        })
+      }),
+      author_association: z.enum(['OWNER', 'COLLABORATOR', 'CONTRIBUTOR', 'FIRST_TIME_CONTRIBUTOR', 'FIRST_TIMER', 'MEMBER', 'NONE', 'OUTSIDE_COLLABORATOR']),
+      auto_merge: z.null(),
+      draft: z.boolean(),
+      merged: z.boolean().optional(),
+      mergeable: z.boolean().optional(),
+      rebaseable: z.boolean().optional(),
+      mergeable_state: z.enum(['unknown', 'behind', 'has_hooks', 'blocker']),
+      merged_by: z.object({
+        login: z.string(),
+        id: z.number()
+      }).optional(),
+      comments: z.number(),
+      review_comments: z.number(),
+      maintainer_can_modify: z.boolean(),
+      commits: z.number(),
+      additions: z.number(),
+      deletions: z.number(),
+      changed_files: z.number().optional()
+    })),
+    created_at: z.string(),
+    updated_at: z.string(),
+    actor: z.object({
+      login: z.string(),
+      id: z.number(),
+      node_id: z.string(),
+      avatar_url: z.string(),
+      gravatar_id: z.string().optional(),
+      url: z.string(),
+      html_url: z.string(),
+      followers_url: z.string(),
+      following_url: z.string(),
+      gists_url: z.string(),
+      starred_url: z.string(),
+      subscriptions_url: z.string(),
+      organizations_url: z.string(),
+      repos_url: z.string(),
+      events_url: z.string(),
+      received_events_url: z.string(),
+      type: z.string(),
+      site_admin: z.boolean()
+    }),
+    run_attempt: z.number(),
+    run_started_at: z.string(),
+    triggering_actor: z.object({
+      login: z.string(),
+      id: z.number(),
+      node_id: z.string(),
+      avatar_url: z.string(),
+      gravatar_id: z.string().optional(),
+      url: z.string(),
+      html_url: z.string(),
+      type: z.string(),
+      site_admin: z.boolean()
+    }),
+    head_commit: z.object({
+      id: z.string(),
+      tree_id: z.string(),
+      message: z.string(),
+      timestamp: z.string(),
+      author: z.object({
+        name: z.string(),
+        email: z.string()
+      }),
+      committer: z.object({
+        name: z.string(),
+        email: z.string()
+      })
+    }),
+    repository: z.object({
+      id: z.number(),
+      node_id: z.string(),
+      name: z.string(),
+      full_name: z.string(),
+      private: z.boolean(),
+      owner: z.object({
+        login: z.string(),
+        id: z.number(),
+        node_id: z.string(),
+        avatar_url: z.string(),
+        gravatar_id: z.string(),
+        url: z.string(),
+        html_url: z.string(),
+        followers_url: z.string(),
+        following_url: z.string(),
+        gists_url: z.string(),
+        starred_url: z.string(),
+        subscriptions_url: z.string(),
+        organizations_url: z.string(),
+        repos_url: z.string(),
+        events_url: z.string(),
+        received_events_url: z.string(),
+        type: z.string(),
+        site_admin: z.boolean()
+      }),
+      html_url: z.string(),
+      description: z.string(),
+      fork: z.boolean(),
+      url: z.string(),
+      forks_url: z.string(),
+      keys_url: z.string(),
+      collaborators_url: z.string(),
+      teams_url: z.string(),
+      hooks_url: z.string(),
+      issue_events_url: z.string(),
+      events_url: z.string(),
+      assignees_url: z.string(),
+      branches_url: z.string(),
+      tags_url: z.string(),
+      blobs_url: z.string(),
+      git_tags_url: z.string(),
+      git_refs_url: z.string(),
+      trees_url: z.string(),
+      statuses_url: z.string(),
+      languages_url: z.string(),
+      stargazers_url: z.string(),
+      contributors_url: z.string(),
+      subscribers_url: z.string(),
+      subscription_url: z.string(),
+      commits_url: z.string(),
+      git_commits_url: z.string(),
+      comments_url: z.string(),
+      issues_url: z.string(),
+      pulls_url: z.string(),
+      milestones_url: z.string(),
+      notifications_url: z.string(),
+      labels_url: z.string(),
+      releases_url: z.string(),
+      deployments_url: z.string(),
+      downloads_url: z.string(),
+      archive_url: z.string(),
+      compare_url: z.string(),
+      contents_url: z.string(),
+      merges_url: z.string(),
+      clone_url: z.string(),
+      mirror_url: z.string(),
+      svn_url: z.string(),
+      homepage: z.string(),
+      language: z.string().optional(),
+      forks_count: z.number(),
+      stargazers_count: z.number(),
+      watchers_count: z.number(),
+      size: z.number(),
+      default_branch: z.string(),
+      open_issues_count: z.number(),
+      is_template: z.boolean(),
+      topics: z.array(z.string()),
+      has_issues: z.boolean(),
+      has_projects: z.boolean(),
+      has_wiki: z.boolean(),
+      has_pages: z.boolean(),
+      has_downloads: z.boolean(),
+      archived: z.boolean(),
+      disabled: z.boolean(),
+      visibility: z.string(),
+      permissions: z.object({
+        admin: z.boolean(),
+        maintain: z.boolean(),
+        push: z.boolean(),
+        triage: z.boolean(),
+        pull: z.boolean()
+      }).optional()
+    }),
+    head_repository: z.object({
+      id: z.number(),
+      node_id: z.string(),
+      name: z.string(),
+      full_name: z.string(),
+      private: z.boolean(),
+      owner: z.object({
+        login: z.string(),
+        id: z.number(),
+        node_id: z.string(),
+        avatar_url: z.string(),
+        gravatar_id: z.string(),
+        url: z.string(),
+        html_url: z.string(),
+        type: z.string(),
+        site_admin: z.boolean()
+      }),
+      html_url: z.string(),
+      description: z.string(),
+      fork: z.boolean(),
+      url: z.string(),
+      forks_url: z.string(),
+      permissions: z.object({
+        admin: z.boolean(),
+        push: z.boolean(),
+        pull: z.boolean()
+      }),
+      organization: z.object({
+        login: z.string(),
+        id: z.number(),
+        node_id: z.string(),
+        avatar_url: z.string(),
+        gravatar_id: z.string(),
+        url: z.string(),
+        html_url: z.string(),
+        type: z.string(),
+        site_admin: z.boolean()
+      }).optional(),
+      parent: z.object({
+        id: z.number(),
+        node_id: z.string(),
+        name: z.string(),
+        full_name: z.string(),
+        private: z.boolean()
+      }).optional(),
+      source: z.object({
+        id: z.number(),
+        node_id: z.string(),
+        name: z.string(),
+        full_name: z.string(),
+        private: z.boolean()
+      }).optional(),
+      license: z.object({
+        key: z.string(),
+        name: z.string(),
+        spdx_id: z.string(),
+        url: z.string().optional(),
+        node_id: z.string()
+      }).optional(),
+      code_of_conduct: z.object({
+        url: z.string(),
+        key: z.string(),
+        name: z.string(),
+        body: z.string()
+      }).optional(),
+      features: z.object({
+        issues: z.boolean(),
+        wiki: z.boolean(),
+        discussions_in_collaborators_only: z.boolean(),
+        fuzzymatcher: z.boolean(),
+        copilot: z.boolean(),
+        copilot_code_completions: z.boolean(),
+        copilot_business: z.boolean(),
+        interactions: z.boolean(),
+        security: z.boolean(),
+        dependabot: z.boolean(),
+        pages: z.boolean(),
+        code_scanning: z.boolean(),
+        secret_scanning: z.boolean(),
+        secret_scanning_push_protection: z.boolean()
+      }).optional(),
+      allow_forking: z.boolean(),
+      is_template: z.boolean(),
+      web_commit_signoff_required: z.boolean(),
+      workflows: z.object({
+        default_workflow_permissions: z.enum(['read', 'write']),
+        can_approve_pull_request_reviews: z.boolean()
+      }).optional(),
+      delete_branch_on_merge: z.boolean(),
+      subscribers_count: z.number(),
+      network_count: z.number()
+    }),
+    jobs_url: z.string(),
+    logs_url: z.string(),
+    check_suite_url: z.string(),
+    artifacts_url: z.string(),
+    cancel_url: z.string(),
+    rerun_url: z.string(),
+    workflow_url: z.string(),
+    check_suite_id: z.number().optional(),
+    check_suite_node_id: z.string().optional()
   }).optional(),
   errorMessage: z.string().optional().describe('Error getting workflow run details')
 }).strict();
@@ -122,7 +779,7 @@ export const getWorkflowRun = createTool({
 
 const cancelWorkflowRunOutputSchema = z.object({
   status: z.enum(['success', 'error']),
-  data: z.object({ success: z.boolean() }),
+  data: z.object({}),
   errorMessage: z.string().optional().describe('Error in cancelling workflow run')
 }).strict();
 
@@ -150,7 +807,7 @@ export const cancelWorkflowRun = createTool({
         output: { success: true },
         metadata: { operation: 'cancel_workflow_run' }
       });
-      return cancelWorkflowRunOutputSchema.parse({ status: 'success', data: { success: true } });
+      return cancelWorkflowRunOutputSchema.parse({ status: 'success', data: {} });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.info('Error cancelling workflow run');
@@ -160,14 +817,346 @@ export const cancelWorkflowRun = createTool({
           operation: 'cancel_workflow_run'
         }
       });
-      return cancelWorkflowRunOutputSchema.parse({ status: 'error', data: { success: false }, errorMessage });
+      return cancelWorkflowRunOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
 
 const rerunWorkflowRunOutputSchema = z.object({
   status: z.enum(['success', 'error']),
-  data: z.object({ success: z.boolean() }),
+  data: z.object({
+    id: z.number(),
+    name: z.string(),
+    node_id: z.string(),
+    head_branch: z.string(),
+    head_sha: z.string(),
+    path: z.string(),
+    run_number: z.number(),
+    event: z.string(),
+    display_title: z.string(),
+    status: z.enum(['queued', 'in_progress', 'completed', 'cancelled', 'skipped', 'neutral', 'timed_out', 'action_required', 'stale', 'pending']),
+    conclusion: z.nullable(z.enum(['success', 'failure', 'neutral', 'cancelled', 'timed_out', 'action_required', 'skipped', 'stale'])),
+    workflow_id: z.number(),
+    url: z.string(),
+    html_url: z.string(),
+    pull_requests: z.array(z.object({
+      id: z.number(),
+      number: z.number(),
+      state: z.enum(['open', 'closed']),
+      locked: z.boolean(),
+      title: z.string(),
+      body: z.string().optional(),
+      created_at: z.string(),
+      updated_at: z.string(),
+      closed_at: z.string().optional(),
+      merged_at: z.string().optional(),
+      merge_commit_sha: z.string().optional(),
+      assignee: z.object({
+        login: z.string(),
+        id: z.number()
+      }).optional(),
+      assignees: z.array(z.object({
+        login: z.string(),
+        id: z.number()
+      })),
+      requested_reviewers: z.array(z.object({
+        login: z.string(),
+        id: z.number()
+      })),
+      requested_teams: z.array(z.object({
+        name: z.string(),
+        id: z.number()
+      })),
+      labels: z.array(z.object({
+        id: z.number(),
+        name: z.string()
+      })),
+      milestone: z.object({
+        id: z.number(),
+        title: z.string()
+      }).optional(),
+      head: z.object({
+        label: z.string(),
+        ref: z.string(),
+        sha: z.string(),
+        user: z.object({
+          login: z.string(),
+          id: z.number()
+        })
+      }),
+      base: z.object({
+        label: z.string(),
+        ref: z.string(),
+        sha: z.string(),
+        user: z.object({
+          login: z.string(),
+          id: z.number()
+        })
+      }),
+      author_association: z.enum(['OWNER', 'COLLABORATOR', 'CONTRIBUTOR', 'FIRST_TIME_CONTRIBUTOR', 'FIRST_TIMER', 'MEMBER', 'NONE', 'OUTSIDE_COLLABORATOR']),
+      auto_merge: z.null(),
+      draft: z.boolean(),
+      merged: z.boolean().optional(),
+      mergeable: z.boolean().optional(),
+      rebaseable: z.boolean().optional(),
+      mergeable_state: z.enum(['unknown', 'behind', 'has_hooks', 'blocker']),
+      merged_by: z.object({
+        login: z.string(),
+        id: z.number()
+      }).optional(),
+      comments: z.number(),
+      review_comments: z.number(),
+      maintainer_can_modify: z.boolean(),
+      commits: z.number(),
+      additions: z.number(),
+      deletions: z.number(),
+      changed_files: z.number().optional()
+    })),
+    created_at: z.string(),
+    updated_at: z.string(),
+    actor: z.object({
+      login: z.string(),
+      id: z.number(),
+      node_id: z.string(),
+      avatar_url: z.string(),
+      gravatar_id: z.string().optional(),
+      url: z.string(),
+      html_url: z.string(),
+      followers_url: z.string(),
+      following_url: z.string(),
+      gists_url: z.string(),
+      starred_url: z.string(),
+      subscriptions_url: z.string(),
+      organizations_url: z.string(),
+      repos_url: z.string(),
+      events_url: z.string(),
+      received_events_url: z.string(),
+      type: z.string(),
+      site_admin: z.boolean()
+    }),
+    run_attempt: z.number(),
+    run_started_at: z.string(),
+    triggering_actor: z.object({
+      login: z.string(),
+      id: z.number(),
+      node_id: z.string(),
+      avatar_url: z.string(),
+      gravatar_id: z.string().optional(),
+      url: z.string(),
+      html_url: z.string(),
+      type: z.string(),
+      site_admin: z.boolean()
+    }),
+    head_commit: z.object({
+      id: z.string(),
+      tree_id: z.string(),
+      message: z.string(),
+      timestamp: z.string(),
+      author: z.object({
+        name: z.string(),
+        email: z.string()
+      }),
+      committer: z.object({
+        name: z.string(),
+        email: z.string()
+      })
+    }),
+    repository: z.object({
+      id: z.number(),
+      node_id: z.string(),
+      name: z.string(),
+      full_name: z.string(),
+      private: z.boolean(),
+      owner: z.object({
+        login: z.string(),
+        id: z.number(),
+        node_id: z.string(),
+        avatar_url: z.string(),
+        gravatar_id: z.string(),
+        url: z.string(),
+        html_url: z.string(),
+        followers_url: z.string(),
+        following_url: z.string(),
+        gists_url: z.string(),
+        starred_url: z.string(),
+        subscriptions_url: z.string(),
+        organizations_url: z.string(),
+        repos_url: z.string(),
+        events_url: z.string(),
+        received_events_url: z.string(),
+        type: z.string(),
+        site_admin: z.boolean()
+      }),
+      html_url: z.string(),
+      description: z.string(),
+      fork: z.boolean(),
+      url: z.string(),
+      forks_url: z.string(),
+      keys_url: z.string(),
+      collaborators_url: z.string(),
+      teams_url: z.string(),
+      hooks_url: z.string(),
+      issue_events_url: z.string(),
+      events_url: z.string(),
+      assignees_url: z.string(),
+      branches_url: z.string(),
+      tags_url: z.string(),
+      blobs_url: z.string(),
+      git_tags_url: z.string(),
+      git_refs_url: z.string(),
+      trees_url: z.string(),
+      statuses_url: z.string(),
+      languages_url: z.string(),
+      stargazers_url: z.string(),
+      contributors_url: z.string(),
+      subscribers_url: z.string(),
+      subscription_url: z.string(),
+      commits_url: z.string(),
+      git_commits_url: z.string(),
+      comments_url: z.string(),
+      issues_url: z.string(),
+      pulls_url: z.string(),
+      milestones_url: z.string(),
+      notifications_url: z.string(),
+      labels_url: z.string(),
+      releases_url: z.string(),
+      deployments_url: z.string(),
+      downloads_url: z.string(),
+      archive_url: z.string(),
+      compare_url: z.string(),
+      contents_url: z.string(),
+      merges_url: z.string(),
+      clone_url: z.string(),
+      mirror_url: z.string(),
+      svn_url: z.string(),
+      homepage: z.string(),
+      language: z.string().optional(),
+      forks_count: z.number(),
+      stargazers_count: z.number(),
+      watchers_count: z.number(),
+      size: z.number(),
+      default_branch: z.string(),
+      open_issues_count: z.number(),
+      is_template: z.boolean(),
+      topics: z.array(z.string()),
+      has_issues: z.boolean(),
+      has_projects: z.boolean(),
+      has_wiki: z.boolean(),
+      has_pages: z.boolean(),
+      has_downloads: z.boolean(),
+      archived: z.boolean(),
+      disabled: z.boolean(),
+      visibility: z.string(),
+      permissions: z.object({
+        admin: z.boolean(),
+        maintain: z.boolean(),
+        push: z.boolean(),
+        triage: z.boolean(),
+        pull: z.boolean()
+      }).optional()
+    }),
+    head_repository: z.object({
+      id: z.number(),
+      node_id: z.string(),
+      name: z.string(),
+      full_name: z.string(),
+      private: z.boolean(),
+      owner: z.object({
+        login: z.string(),
+        id: z.number(),
+        node_id: z.string(),
+        avatar_url: z.string(),
+        gravatar_id: z.string(),
+        url: z.string(),
+        html_url: z.string(),
+        type: z.string(),
+        site_admin: z.boolean()
+      }),
+      html_url: z.string(),
+      description: z.string(),
+      fork: z.boolean(),
+      url: z.string(),
+      forks_url: z.string(),
+      permissions: z.object({
+        admin: z.boolean(),
+        push: z.boolean(),
+        pull: z.boolean()
+      }),
+      organization: z.object({
+        login: z.string(),
+        id: z.number(),
+        node_id: z.string(),
+        avatar_url: z.string(),
+        gravatar_id: z.string(),
+        url: z.string(),
+        html_url: z.string(),
+        type: z.string(),
+        site_admin: z.boolean()
+      }).optional(),
+      parent: z.object({
+        id: z.number(),
+        node_id: z.string(),
+        name: z.string(),
+        full_name: z.string(),
+        private: z.boolean()
+      }).optional(),
+      source: z.object({
+        id: z.number(),
+        node_id: z.string(),
+        name: z.string(),
+        full_name: z.string(),
+        private: z.boolean()
+      }).optional(),
+      license: z.object({
+        key: z.string(),
+        name: z.string(),
+        spdx_id: z.string(),
+        url: z.string().optional(),
+        node_id: z.string()
+      }).optional(),
+      code_of_conduct: z.object({
+        url: z.string(),
+        key: z.string(),
+        name: z.string(),
+        body: z.string()
+      }).optional(),
+      features: z.object({
+        issues: z.boolean(),
+        wiki: z.boolean(),
+        discussions_in_collaborators_only: z.boolean(),
+        fuzzymatcher: z.boolean(),
+        copilot: z.boolean(),
+        copilot_code_completions: z.boolean(),
+        copilot_business: z.boolean(),
+        interactions: z.boolean(),
+        security: z.boolean(),
+        dependabot: z.boolean(),
+        pages: z.boolean(),
+        code_scanning: z.boolean(),
+        secret_scanning: z.boolean(),
+        secret_scanning_push_protection: z.boolean()
+      }).optional(),
+      allow_forking: z.boolean(),
+      is_template: z.boolean(),
+      web_commit_signoff_required: z.boolean(),
+      workflows: z.object({
+        default_workflow_permissions: z.enum(['read', 'write']),
+        can_approve_pull_request_reviews: z.boolean()
+      }).optional(),
+      delete_branch_on_merge: z.boolean(),
+      subscribers_count: z.number(),
+      network_count: z.number()
+    }),
+    jobs_url: z.string(),
+    logs_url: z.string(),
+    check_suite_url: z.string(),
+    artifacts_url: z.string(),
+    cancel_url: z.string(),
+    rerun_url: z.string(),
+    workflow_url: z.string(),
+    check_suite_id: z.number().optional(),
+    check_suite_node_id: z.string().optional()
+  }),
   errorMessage: z.string().optional().describe('Error rerunning workflow run')
 }).strict();
 
@@ -205,7 +1194,7 @@ export const rerunWorkflowRun = createTool({
           operation: 'rerun_workflow_run'
         }
       });
-      return rerunWorkflowRunOutputSchema.parse({ status: 'error', data: { success: false }, errorMessage });
+      return rerunWorkflowRunOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
@@ -214,8 +1203,8 @@ const listJobsForWorkflowRunOutputSchema = z.object({
   status: z.enum(['success', 'error']),
   data: z.array(z.object({
     id: z.number(),
-    status: z.string(),
-    conclusion: z.string().nullable(),
+    status: z.enum(['queued', 'in_progress', 'completed', 'cancelled', 'skipped', 'neutral', 'timed_out', 'action_required', 'stale', 'pending']),
+    conclusion: z.enum(['success', 'failure', 'neutral', 'cancelled', 'timed_out', 'action_required', 'skipped', 'stale']).nullable(),
     started_at: z.string().optional()
   })).optional(),
   errorMessage: z.string().optional().describe('Error listing jobs for workflow run')
@@ -264,8 +1253,8 @@ const getJobForWorkflowRunOutputSchema = z.object({
   status: z.enum(['success', 'error']),
   data: z.object({
     id: z.number(),
-    status: z.string(),
-    conclusion: z.string().nullable(),
+    status: z.enum(['queued', 'in_progress', 'completed', 'cancelled', 'skipped', 'neutral', 'timed_out', 'action_required', 'stale', 'pending']),
+    conclusion: z.enum(['success', 'failure', 'neutral', 'cancelled', 'timed_out', 'action_required', 'skipped', 'stale']).nullable(),
     completed_at: z.string().optional()
   }).optional(),
   errorMessage: z.string().optional().describe('Error getting job details')

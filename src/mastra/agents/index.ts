@@ -6,6 +6,8 @@ import { githubAgent } from './githubAgent';
 import { monitorAgent } from './monitorAgent';
 import { planningAgent } from './planningAgent';
 import { qualityAssuranceAgent } from './qualityAssuranceAgent';
+import { assistant } from './assistant';
+import { learningExtractionAgent } from './learningExtractionAgent';
 
 export { researchAgent,
     reportAgent,
@@ -15,4 +17,6 @@ export { researchAgent,
     monitorAgent,
     planningAgent,
     qualityAssuranceAgent,
+    assistant,
+    learningExtractionAgent,
 }

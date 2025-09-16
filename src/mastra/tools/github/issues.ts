@@ -4,11 +4,57 @@ import { octokit } from './octokit';
 import { PinoLogger } from "@mastra/loggers";
 import { AISpanType } from '@mastra/core/ai-tracing';
 
+const UserSchema = z.object({
+  login: z.string(),
+  id: z.number(),
+  node_id: z.string(),
+  avatar_url: z.string().url(),
+  gravatar_id: z.string(),
+  url: z.string().url(),
+  html_url: z.string().url(),
+  followers_url: z.string().url(),
+  following_url: z.string().url(),
+  gists_url: z.string().url(),
+  starred_url: z.string().url(),
+  subscriptions_url: z.string().url(),
+  organizations_url: z.string().url(),
+  repos_url: z.string().url(),
+  events_url: z.string().url(),
+  received_events_url: z.string().url(),
+  type: z.string(),
+  site_admin: z.boolean()
+});
+
+const CommentSchema = z.object({
+  id: z.number(),
+  node_id: z.string(),
+  url: z.string().url(),
+  html_url: z.string().url(),
+  body: z.string().nullable(),
+  user: UserSchema,
+  created_at: z.string().datetime(),
+  updated_at: z.string().datetime(),
+  author_association: z.enum(['OWNER', 'COLLABORATOR', 'CONTRIBUTOR', 'MANNEQUIN', 'NONE', 'MEMBER']),
+  reactions: z.object({
+    url: z.string().url()
+  }),
+  issue_url: z.string().url()
+});
+
 const logger = new PinoLogger({ level: 'info' });
 
 const createIssueOutputSchema = z.object({
   status: z.enum(['success', 'error']),
-  data: z.any().optional(),
+  data: z.object({
+    id: z.number(),
+    number: z.number(),
+    title: z.string(),
+    state: z.string(),
+    body: z.string().optional(),
+    user: z.object({ login: z.string() }),
+    created_at: z.string(),
+    html_url: z.string()
+  }).partial().optional(),
   errorMessage: z.string().optional().describe('Error creating issue')
 }).strict();
 
@@ -54,7 +100,16 @@ export const createIssue = createTool({
 
 const getIssueOutputSchema = z.object({
   status: z.enum(['success', 'error']),
-  data: z.any().optional(),
+  data: z.object({
+    id: z.number(),
+    number: z.number(),
+    title: z.string(),
+    state: z.string(),
+    body: z.string().optional(),
+    user: z.object({ login: z.string() }),
+    created_at: z.string(),
+    html_url: z.string()
+  }).partial().optional(),
   errorMessage: z.string().optional().describe('Error getting issue')
 }).strict();
 
@@ -99,7 +154,16 @@ export const getIssue = createTool({
 
 const updateIssueOutputSchema = z.object({
   status: z.enum(['success', 'error']),
-  data: z.any().optional(),
+  data: z.object({
+    id: z.number(),
+    number: z.number(),
+    title: z.string(),
+    state: z.string(),
+    body: z.string().optional(),
+    user: z.object({ login: z.string() }),
+    updated_at: z.string(),
+    html_url: z.string()
+  }).partial().optional(),
   errorMessage: z.string().optional().describe('Error updating issue')
 }).strict();
 
@@ -147,7 +211,16 @@ export const updateIssue = createTool({
 
 const listIssuesOutputSchema = z.object({
   status: z.enum(['success', 'error']),
-  data: z.array(z.any()).optional(),
+  data: z.array(z.object({
+    id: z.number(),
+    number: z.number(),
+    title: z.string(),
+    state: z.string(),
+    body: z.string().optional(),
+    user: z.object({ login: z.string() }),
+    created_at: z.string(),
+    html_url: z.string()
+  }).partial()).optional(),
   errorMessage: z.string().optional().describe('Error listing issues')
 }).strict();
 
@@ -192,7 +265,16 @@ export const listIssues = createTool({
 
 const closeIssueOutputSchema = z.object({
   status: z.enum(['success', 'error']),
-  data: z.any().optional(),
+  data: z.object({
+    id: z.number(),
+    number: z.number(),
+    title: z.string(),
+    state: z.string(),
+    body: z.string().optional(),
+    user: z.object({ login: z.string() }),
+    closed_at: z.string().optional(),
+    html_url: z.string()
+  }).partial().optional(),
   errorMessage: z.string().optional().describe('Error closing issue')
 }).strict();
 
@@ -239,7 +321,7 @@ export const closeIssue = createTool({
 });
 const listCommentsOutputSchema = z.object({
   status: z.enum(['success', 'error']),
-  data: z.array(z.any()).optional(),
+  data: z.array(CommentSchema).optional(),
   errorMessage: z.string().optional().describe('Error listing comments')
 }).strict();
 
@@ -287,7 +369,7 @@ export const listComments = createTool({
 });
 const createCommentOutputSchema = z.object({
   status: z.enum(['success', 'error']),
-  data: z.any().optional(),
+  data: CommentSchema.optional(),
   errorMessage: z.string().optional().describe('Error creating comment')
 }).strict();
 

@@ -6,11 +6,135 @@ import { AISpanType } from '@mastra/core/ai-tracing';
 
 const logger = new PinoLogger({ level: 'info' });
 
+const EventActorSchema = z.object({
+  id: z.number(),
+  login: z.string(),
+  display_login: z.string(),
+  gravatar_id: z.string(),
+  url: z.string().url(),
+  avatar_url: z.string().url()
+});
+
+const EventRepoSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  url: z.string().url()
+});
+
+const EventSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  actor: EventActorSchema,
+  repo: EventRepoSchema,
+  payload: z.object({}).strict(),
+  public: z.boolean(),
+  created_at: z.string().datetime()
+});
+
+const NotificationSchema = z.object({
+  id: z.string(),
+  thread_id: z.number(),
+  repository: z.object({
+    id: z.number(),
+    node_id: z.string(),
+    name: z.string(),
+    full_name: z.string(),
+    private: z.boolean()
+  }),
+  reason: z.enum(['subscribed', 'mention', 'review_requested', 'ci_activity', 'review_request_removed', 'review_dismissed', 'review_re_request', 'repo', 'assigned', 'comment', 'team_mention', 'security_and_maintenance']),
+  subject: z.object({
+    title: z.string(),
+    url: z.string().url(),
+    type: z.enum(['Issue', 'PullRequest', 'Release', 'RepositoryAdvisory', 'RepositoryVulnerabilityAlert', 'Discussion']),
+    latest_comment_url: z.string().url().optional()
+  }),
+  url: z.string().url(),
+  updated_at: z.string().datetime(),
+  last_read_at: z.string().datetime().optional(),
+  unsubscribe_url: z.string().url(),
+  subscription_url: z.string().url()
+});
+
 const listRepoEventsOutputSchema = z.object({
   status: z.enum(['success', 'error']),
-  data: z.array(z.any()).optional(),
+  data: z.array(EventSchema).optional(),
   errorMessage: z.string().optional().describe('Error message for failed repository events listing')
 }).strict();
+
+const listPublicEventsOutputSchema = z.object({
+  status: z.union([z.literal('success'), z.literal('error')]),
+  data: z.array(EventSchema).optional(),
+  errorMessage: z.string().optional().describe('Error for public events retrieval')
+}).strict();
+
+const listRepoNotificationsOutputSchema = z.object({
+  status: z.union([z.literal('success'), z.literal('error')]),
+  data: z.array(NotificationSchema).optional(),
+  errorMessage: z.string().optional().describe('Details on notification listing failure')
+}).strict();
+
+const markRepoNotificationsAsReadOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({ success: z.literal(true) }),
+  errorMessage: z.string().optional().describe('Failure in marking notifications read')
+}).strict();
+
+const getRepoSubscriptionOutputSchema = z.object({
+  status: z.union([z.literal('success'), z.literal('error')]),
+  data: z.object({
+    subscribed: z.boolean(),
+    ignored: z.boolean(),
+    reason: z.string().nullable(),
+    created_at: z.string().datetime().optional(),
+    url: z.string().url().optional(),
+    repository_url: z.string().url().optional()
+  }),
+  errorMessage: z.string().optional().describe('Subscription retrieval error')
+}).strict();
+
+const setRepoSubscriptionOutputSchema = z.object({
+  status: z.union([z.literal('success'), z.literal('error')]),
+  data: z.object({
+    subscribed: z.boolean(),
+    ignored: z.boolean(),
+    created_at: z.string().datetime().optional(),
+    reason: z.string().nullable().optional(),
+    url: z.string().url().optional(),
+    repository_url: z.string().url().optional()
+  }),
+  errorMessage: z.string().optional().describe('Error updating subscription')
+}).strict();
+
+const deleteRepoSubscriptionOutputSchema = z.object({
+  status: z.enum(['success', 'error']),
+  data: z.object({ success: z.boolean() }),
+  errorMessage: z.string().optional().describe('Details on subscription deletion failure')
+}).strict();
+
+const EventActorSchema = z.object({
+  id: z.number(),
+  login: z.string(),
+  display_login: z.string(),
+  gravatar_id: z.string(),
+  url: z.string().url(),
+  avatar_url: z.string().url()
+});
+
+const EventRepoSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  url: z.string().url()
+});
+
+const EventSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  actor: EventActorSchema,
+  repo: EventRepoSchema,
+  payload: z.object({}).strict(),
+  public: z.boolean(),
+  created_at: z.string().datetime()
+});
 
 export const listRepoEvents = createTool({
   id: 'listRepoEvents',
@@ -19,7 +143,11 @@ export const listRepoEvents = createTool({
     owner: z.string(),
     repo: z.string(),
   }),
-  outputSchema: listRepoEventsOutputSchema,
+  outputSchema: z.object({
+    status: z.enum(['success', 'error']),
+    data: z.array(EventSchema).optional(),
+    errorMessage: z.string().optional()
+  }).strict(),
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -50,11 +178,6 @@ export const listRepoEvents = createTool({
   },
 });
 
-const listPublicEventsOutputSchema = z.object({
-  status: z.union([z.literal('success'), z.literal('error')]),
-  data: z.array(z.record(z.string(), z.unknown())).optional(),
-  errorMessage: z.string().optional().describe('Error for public events retrieval')
-}).strict();
 
 export const listPublicEvents = createTool({
   id: 'listPublicEvents',
@@ -63,7 +186,11 @@ export const listPublicEvents = createTool({
     per_page: z.number().optional(),
     page: z.number().optional(),
   }),
-  outputSchema: listPublicEventsOutputSchema,
+  outputSchema: z.object({
+    status: z.union([z.literal('success'), z.literal('error')]),
+    data: z.array(EventSchema).optional(),
+    errorMessage: z.string().optional()
+  }).strict(),
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -94,11 +221,30 @@ export const listPublicEvents = createTool({
   },
 });
 
-const listRepoNotificationsOutputSchema = z.object({
-  status: z.union([z.literal('success'), z.literal('error')]),
-  data: z.array(z.object({ id: z.string(), reason: z.string() })).optional(),
-  errorMessage: z.string().optional().describe('Details on notification listing failure')
-}).strict();
+
+const NotificationSchema = z.object({
+  id: z.string(),
+  thread_id: z.number(),
+  repository: z.object({
+    id: z.number(),
+    node_id: z.string(),
+    name: z.string(),
+    full_name: z.string(),
+    private: z.boolean()
+  }),
+  reason: z.enum(['subscribed', 'mention', 'review_requested', 'ci_activity', 'review_request_removed', 'review_dismissed', 'review_re_request', 'repo', 'assigned', 'comment', 'team_mention', 'security_and_maintenance']),
+  subject: z.object({
+    title: z.string(),
+    url: z.string().url(),
+    type: z.enum(['Issue', 'PullRequest', 'Release', 'RepositoryAdvisory', 'RepositoryVulnerabilityAlert', 'Discussion']),
+    latest_comment_url: z.string().url().optional()
+  }),
+  url: z.string().url(),
+  updated_at: z.string().datetime(),
+  last_read_at: z.string().datetime().optional(),
+  unsubscribe_url: z.string().url(),
+  subscription_url: z.string().url()
+});
 
 export const listRepoNotifications = createTool({
   id: 'listRepoNotifications',
@@ -111,7 +257,11 @@ export const listRepoNotifications = createTool({
     since: z.string().optional(),
     before: z.string().optional(),
   }),
-  outputSchema: listRepoNotificationsOutputSchema,
+  outputSchema: z.object({
+    status: z.union([z.literal('success'), z.literal('error')]),
+    data: z.array(NotificationSchema).optional(),
+    errorMessage: z.string().optional()
+  }).strict(),
   execute: async ({ context, tracingContext }) => {
     const spanName = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.GENERIC,
@@ -149,12 +299,6 @@ export const listRepoNotifications = createTool({
   },
 });
 
-const markRepoNotificationsAsReadOutputSchema = z.object({
-  status: z.enum(['success', 'error']),
-  data: z.object({ success: z.literal(true) }),
-  errorMessage: z.string().optional().describe('Failure in marking notifications read')
-}).strict();
-
 export const markRepoNotificationsAsRead = createTool({
   id: 'markRepoNotificationsAsRead',
   description: 'Marks notifications as read for a repository.',
@@ -189,22 +333,11 @@ export const markRepoNotificationsAsRead = createTool({
           operation: 'mark_repo_notifications_as_read'
         }
       });
-      return markRepoNotificationsAsReadOutputSchema.parse({ status: 'error', data: { success: false }, errorMessage });
+      return markRepoNotificationsAsReadOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
 
-const getRepoSubscriptionOutputSchema = z.object({
-  status: z.union([z.literal('success'), z.literal('error')]),
-  data: z.object({
-    subscribed: z.boolean(),
-    ignored: z.boolean(),
-    reason: z.string().nullable(),
-    created_at: z.string().optional(),
-    url: z.string().optional()
-  }).passthrough(),
-  errorMessage: z.string().optional().describe('Subscription retrieval error')
-}).strict();
 
 export const getRepoSubscription = createTool({
   id: 'getRepoSubscription',
@@ -244,14 +377,7 @@ export const getRepoSubscription = createTool({
   },
 });
 
-const setRepoSubscriptionOutputSchema = z.object({
-  status: z.union([z.literal('success'), z.literal('error')]),
-  data: z.object({
-    subscribed: z.boolean(),
-    ignored: z.boolean()
-  }).passthrough(),
-  errorMessage: z.string().optional().describe('Error updating subscription')
-}).strict();
+
 
 export const setRepoSubscription = createTool({
   id: 'setRepoSubscription',
@@ -298,11 +424,7 @@ export const setRepoSubscription = createTool({
   },
 });
 
-const deleteRepoSubscriptionOutputSchema = z.object({
-  status: z.enum(['success', 'error']),
-  data: z.object({ success: z.boolean() }),
-  errorMessage: z.string().optional().describe('Details on subscription deletion failure')
-}).strict();
+
 
 export const deleteRepoSubscription = createTool({
   id: 'deleteRepoSubscription',
@@ -337,7 +459,7 @@ export const deleteRepoSubscription = createTool({
           operation: 'delete_repo_subscription'
         }
       });
-      return deleteRepoSubscriptionOutputSchema.parse({ status: 'error', data: { success: false }, errorMessage });
+      return deleteRepoSubscriptionOutputSchema.parse({ status: 'error', data: null, errorMessage });
     }
   },
 });
