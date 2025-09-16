@@ -23,7 +23,7 @@ import { editorAgent } from "./agents/editorAgent";
 import { assistant } from './agents/assistant';
 import { LangfuseExporter } from '@mastra/langfuse';
 import { SamplingStrategyType } from '@mastra/core/ai-tracing';
-import { voiceAgent } from './agents/v';
+//import { voiceAgent } from './agents/v';
 //import { server } from './mcp/server';
 const logger = new PinoLogger({ level: 'info' });
 
@@ -49,7 +49,6 @@ export const mastra = new Mastra({
     copywriterAgent,
     editorAgent,
     assistant,
-    voiceAgent,
   },
   workflows: { generateReportWorkflow, researchWorkflow, comprehensiveResearchWorkflow, githubPlanningWorkflow, githubQualityWorkflow },
   vnext_networks: {
