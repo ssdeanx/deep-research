@@ -1,11 +1,18 @@
 import { Agent } from "@mastra/core/agent";
+import { createResearchMemory } from '../config/libsql-storage';
 import { GeminiLiveVoice } from "@mastra/voice-google-gemini-live";
 import { playAudio, getMicrophoneStream } from "@mastra/node-audio";
 import { google } from '@ai-sdk/google';
+import { PinoLogger } from "@mastra/loggers";
 
-const agent = new Agent({
- name: 'Agent',
+const logger = new PinoLogger({ level: 'info' });
+
+logger.info("Initializing Voice Agent...");
+
+export const voiceAgent = new Agent({
+ name: 'Voice Agent',
  instructions: 'You are a helpful assistant with real - time voice capabilities.',
+ memory: createResearchMemory(),
  // Model used for text generation; voice provider handles realtime audio
  model: google('gemini-2.5-flash'),
  voice: new GeminiLiveVoice({
@@ -21,17 +28,17 @@ const agent = new Agent({
  }),
 });
 
-await agent.voice.connect();
+await voiceAgent.voice.connect();
 
-agent.voice.on('speaker', (audio) => {
+voiceAgent.voice.on('speaker', (audio) => {
  playAudio(audio);
 });
 
-agent.voice.on('writing', ({ role, text }) => {
- console.log(`${role}: ${text}`);
+voiceAgent.voice.on('writing', ({ role, text }) => {
+ logger.info(`${role}: ${text}`);
 });
 
-await agent.voice.speak('Hello, how can I help you today?');
+await voiceAgent.voice.speak('Hello, how can I help you today?');
 
 const micStream = getMicrophoneStream();
-await agent.voice.send(micStream);
+await voiceAgent.voice.send(micStream);
