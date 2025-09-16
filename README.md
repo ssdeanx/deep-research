@@ -3,7 +3,7 @@
 <div align="center">
   <a href="https://github.com/ssdeanx/deep-research" target="_blank" rel="noopener noreferrer">
     <!-- Custom SVG Project Logo -->
-    <img src="https://raw.githubusercontent.com/ssdeanx/deep-research/main/docs/assets/logo.svg" alt="Project Logo" width="120" />
+    <img src="docs/deep_research_logo.png" alt="Project Logo" width="120" />
   </a>
   <h1>Deep Research Assistant + Graph RAG with Mastra 🚀🧠</h1>
 
