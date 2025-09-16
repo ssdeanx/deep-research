@@ -20,9 +20,11 @@ import { webScraperTool,
   htmlToMarkdownTool,
   contentCleanerTool
 } from "../tools/web-scraper-tool";
+import { FileTransport } from "@mastra/loggers/file";
 //import { webSearchTool } from '../tools/webSearchTool';
-
-const logger = new PinoLogger({ level: 'info' });
+const logger = new PinoLogger({ level: 'info', transports: {
+    file: new FileTransport({ path: "../../mastra.log" })
+  } });
 
 logger.info('Initializing OpenRouter Assistant Agent...');
 

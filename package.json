@@ -114,6 +114,7 @@
     "marked": "^16.3.0",
     "next-themes": "^0.4.6",
     "octokit": "^5.0.3",
+    "pino-pretty": "^13.1.1",
     "prop-types": "^15.8.1",
     "react": "^19.1.1",
     "react-day-picker": "^9.10.0",
@@ -155,10 +156,7 @@
     "vitest": "^3.2.4"
   },
   "overrides": {
-    
     "jsondiffpatch": "0.0.10",
     "zod": "^4.1.8"
-
   }
-
 }

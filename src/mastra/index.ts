@@ -25,49 +25,57 @@ import { LangfuseExporter } from '@mastra/langfuse';
 import { SamplingStrategyType } from '@mastra/core/ai-tracing';
 //import { voiceAgent } from './agents/v';
 //import { server } from './mcp/server';
-const logger = new PinoLogger({ level: 'info' });
+import { FileTransport } from "@mastra/loggers/file";
+
+export const logger = new PinoLogger({
+  level: 'info',
+  transports: {
+    file: new FileTransport({ path: "../../mastra.log" })
+  }
+});
 
 logger.info('Starting Mastra application')
 
 export const mastra = new Mastra({
-  storage: new LibSQLStore({
-    url: 'file:./mastra.db',
-    initialBackoffMs: 50
-  }),
-  agents: {
-    researchAgent,
-    reportAgent,
-    evaluationAgent,
-    learningExtractionAgent,
-    webSummarizationAgent,
-    ragAgent,
-    githubAgent,
-    monitorAgent,
-    planningAgent,
-    qualityAssuranceAgent,
-    publisherAgent,
-    copywriterAgent,
-    editorAgent,
-    assistant,
-  },
-  workflows: { generateReportWorkflow, researchWorkflow, comprehensiveResearchWorkflow, githubPlanningWorkflow, githubQualityWorkflow },
-  vnext_networks: {
-    complexResearchNetwork,
-  },
-  observability: {
-    configs: {
-      langfuse: {
-        serviceName: process.env.SERVICE_NAME ?? 'mastra',
-        sampling: { type: SamplingStrategyType.ALWAYS },
-        exporters: [
-          new LangfuseExporter({
-            publicKey: process.env.LANGFUSE_PUBLIC_KEY,
-            secretKey: process.env.LANGFUSE_SECRET_KEY,
-            baseUrl: process.env.LANGFUSE_BASE_URL, // Optional
-            realtime: process.env.NODE_ENV === 'development',
-          }),
-        ],
-      },
-    },
-  },
-});
+   storage: new LibSQLStore({
+     url: 'file:./mastra.db',
+     initialBackoffMs: 50
+   }),
+   agents: {
+     researchAgent,
+     reportAgent,
+     evaluationAgent,
+     learningExtractionAgent,
+     webSummarizationAgent,
+     ragAgent,
+     githubAgent,
+     monitorAgent,
+     planningAgent,
+     qualityAssuranceAgent,
+     publisherAgent,
+     copywriterAgent,
+     editorAgent,
+     assistant,
+   },
+   workflows: { generateReportWorkflow, researchWorkflow, comprehensiveResearchWorkflow, githubPlanningWorkflow, githubQualityWorkflow },
+   vnext_networks: {
+     complexResearchNetwork,
+   },
+   observability: {
+     configs: {
+       langfuse: {
+         serviceName: process.env.SERVICE_NAME ?? 'mastra',
+         sampling: { type: SamplingStrategyType.ALWAYS },
+         exporters: [
+           new LangfuseExporter({
+             publicKey: process.env.LANGFUSE_PUBLIC_KEY,
+             secretKey: process.env.LANGFUSE_SECRET_KEY,
+             baseUrl: process.env.LANGFUSE_BASE_URL, // Optional
+             realtime: process.env.NODE_ENV === 'development',
+           }),
+         ],
+       },
+     },
+   },
+   logger // Use the configured logger instance
+ });

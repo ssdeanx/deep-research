@@ -21,6 +21,7 @@ import {
 import type { RegisteredLogger } from "@mastra/core/logger";
 import z from "zod";
 import { google } from "@ai-sdk/google";
+import { FileTransport } from "@mastra/loggers/file";
 
 export interface TracingSpanInput {
   type: AISpanType;
@@ -58,7 +59,11 @@ export interface Message {
   threadId?: string;
 }
 
-const logger = new PinoLogger({ name: 'libsql-storage', level: 'info' });
+const logger = new PinoLogger({ name: 'libsql-storage', level: 'info',
+  transports: {
+      file: new FileTransport({ path: "../../mastra.log" })
+    }
+ });
 
 /**
  * Complete LibSQL Storage Configuration for Mastra Deep Research Agent
