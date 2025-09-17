@@ -1,0 +1,31 @@
+{
+  "maxAgents": 10,
+  "memoryPath": "./gemini-memory.json",
+  "authMethod": "google-account",
+  "modes": {
+    "architect": {
+      "temperature": 0.7,
+      "maxTokens": 8000
+    },
+    "coder": {
+      "temperature": 0.3,
+      "maxTokens": 8000
+    },
+    "tester": {
+      "temperature": 0.2,
+      "maxTokens": 3000
+    },
+    "debugger": {
+      "temperature": 0.1,
+      "maxTokens": 2000
+    },
+    "security": {
+      "temperature": 0.2,
+      "maxTokens": 3000
+    },
+    "documentation": {
+      "temperature": 0.5,
+      "maxTokens": 4000
+    }
+  }
+}
