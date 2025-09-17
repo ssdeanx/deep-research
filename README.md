@@ -1,5 +1,7 @@
 # Deep Research Assistant + Graph RAG with Mastra 🚀🧠
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/626c3891df574ed2beb399c25384271c)](https://app.codacy.com/gh/ssdeanx/deep-research?utm_source=github.com&utm_medium=referral&utm_content=ssdeanx/deep-research&utm_campaign=Badge_Grade)
+
 <div align="center">
   <a href="https://github.com/ssdeanx/deep-research" target="_blank" rel="noopener noreferrer">
     <!-- Custom SVG Project Logo -->
