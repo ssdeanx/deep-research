@@ -97,6 +97,7 @@
     "@vitest/runner": "^3.2.4",
     "@vitest/utils": "^3.2.4",
     "ai": "^5.0.44",
+    "ai-sdk-provider-gemini-cli": "^1.1.1",
     "cheerio": "^1.1.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -157,6 +158,6 @@
   },
   "overrides": {
     "jsondiffpatch": "0.7.3",
-    "zod": "^4.1.8"
+    "zod": "^4.1.9"
   }
 }

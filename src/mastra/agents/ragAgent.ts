@@ -20,12 +20,18 @@ import { createResearchMemory } from '../config/libsql-storage';
 import { ContentSimilarityMetric, CompletenessMetric, TextualDifferenceMetric, KeywordCoverageMetric, ToneConsistencyMetric } from "@mastra/evals/nlp";
 import { PinoLogger } from "@mastra/loggers";
 import { google } from '@ai-sdk/google';
+import { createGeminiProvider } from 'ai-sdk-provider-gemini-cli';
 
 const logger = new PinoLogger({ level: 'info' });
 
 logger.info("Initializing RAG Agent...");
 
 const memory = createResearchMemory();
+
+// Create provider with OAuth authentication
+const gemini = createGeminiProvider({
+  authType: 'oauth',
+});
 
 export const ragAgent = new Agent({
   name: 'RAG Agent',
@@ -69,7 +75,7 @@ Remember: Your knowledge comes from both your training data and the information 
     keywordCoverage: new KeywordCoverageMetric(), // Keywords will be provided at runtime for evaluation
     toneConsistency: new ToneConsistencyMetric(),
   },
-  model: google('gemini-2.5-flash',),
+  model: gemini('gemini-2.5-flash',),
   tools: {
 //    vectorQueryTool,
 //    chunkerTool,
@@ -84,9 +90,9 @@ Remember: Your knowledge comes from both your training data and the information 
     listDataDirTool,
     evaluateResultTool,
     extractLearningsTool,
-    graphRAGUpsertTool,
-    graphRAGTool,
-    graphRAGQueryTool,
+//    graphRAGUpsertTool,
+//    graphRAGTool,
+//    graphRAGQueryTool,
 //    rerankTool,
     weatherTool,
     webScraperTool,
