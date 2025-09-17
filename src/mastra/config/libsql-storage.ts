@@ -63,7 +63,7 @@ const logger = new PinoLogger({ name: 'libsql-storage', level: 'debug',
 //  transports: {
 //      file: new FileTransport({ path: "../../../mastra.log" })
 //    }
- });
+});
 
 /**
  * Complete LibSQL Storage Configuration for Mastra Deep Research Agent

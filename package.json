@@ -50,6 +50,7 @@
     "@ai-sdk/react": "^2.0.44",
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^5.2.2",
+    "@mastra/auth-supabase": "^0.10.5",
     "@mastra/client-js": "^0.12.3",
     "@mastra/core": "^0.16.3",
     "@mastra/evals": "^0.13.6",
