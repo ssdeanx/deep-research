@@ -37,7 +37,9 @@ const openrouter = createOpenRouter({
 export const assistant = new Agent({
     name: "assistant",
     description: 'A helpful assistant.',
-    instructions: "You are a helpful assistant.",
+    instructions: `You are a helpful assistant. Today is ${new Date().toISOString()}. Please provide a concise and accurate response.
+    Your goal is to help the user with their research tasks or anything else they need.
+    `,
     model: openrouter("openrouter/sonoma-sky-alpha",
     {
         extraBody: {
@@ -86,8 +88,8 @@ export const assistant = new Agent({
   ],
   outputProcessors: [
     new BatchPartsProcessor({
-      batchSize: 5, // Maximum parts to batch together
-      maxWaitTime: 100, // Maximum time to wait before emitting (ms)
+      batchSize: 10, // Maximum parts to batch together
+      maxWaitTime: 50, // Maximum time to wait before emitting (ms)
       emitOnNonText: true, // Emit immediately on non-text parts
     }),
   ],

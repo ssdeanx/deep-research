@@ -1,5 +1,4 @@
 import { Agent } from "@mastra/core/agent";
-import { MCPServer } from "@mastra/mcp";
 import { MCPClient } from "@mastra/mcp";
 import { google } from '@ai-sdk/google';
 import { createResearchMemory } from '../config/libsql-storage';
@@ -7,36 +6,45 @@ import { PinoLogger } from "@mastra/loggers";
 
 const logger = new PinoLogger({ level: 'info' });
 
-logger.info('Initializing MCP Agent...');
-
-const memory = createResearchMemory();
-
-const myAgent = new Agent({
-  name: "My Agent",
-  description: "An agent that can use tools from an http MCP server",
-  instructions: "You can use remote calculation tools.",
+// Create the agent first, without any tools
+const mcpAgent = new Agent({
+  name: "Multi-tool Agent",
+  instructions: "You help users check stocks and weather.",
   model: google("gemini-2.5-flash"),
-  memory,
-  tools: async () => {
-    // Tools resolve when needed, not during initialization
-    const mcpClient = new MCPClient({
-      servers: {
-        myServer: {
-          url: new URL("http://localhost:4111/api/mcp/mcpServer/mcp"),
+  memory: createResearchMemory()
+});
+
+// Later, configure MCP with user-specific settings
+const mcp = new MCPClient({
+  servers: {
+    stockPrice: {
+      command: "npx",
+      args: ["tsx", "stock-price.ts"],
+      env: {
+        API_KEY: "user-123-api-key",
+      },
+      timeout: 20000, // Server-specific timeout
+    },
+    weather: {
+      url: new URL("http://localhost:8080/sse"),
+      requestInit: {
+        headers: {
+          Authorization: `Bearer user-123-token`,
         },
       },
-    });
-    return await mcpClient.getTools();
+    },
   },
 });
 
-// This works because tools resolve after server startup
-export const mcpServer = new MCPServer({
-  name: "My MCP Server",
-  agents: {
-    myAgent
-  },
-  tools: myAgent.tools,
-  version: '1.0.0',
-});
+// Pass all toolsets to stream() or generate() using the mcpAgent
+const response = await mcpAgent.stream(
+  "How is AAPL doing and what is the weather?",
+  {
+    toolsets: await mcp.getToolsets(),
+  });
+
+// Cast to AsyncIterable to satisfy TypeScript that the result is async-iterable
+for await (const part of response as unknown as AsyncIterable<{ content: string }>) {
+  logger.info(part.content);
+}
 
