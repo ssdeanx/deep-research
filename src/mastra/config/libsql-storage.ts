@@ -60,9 +60,9 @@ export interface Message {
 }
 
 const logger = new PinoLogger({ name: 'libsql-storage', level: 'debug',
-  transports: {
-      file: new FileTransport({ path: "../../mastra.log" })
-    }
+//  transports: {
+//      file: new FileTransport({ path: "../../../mastra.log" })
+//    }
  });
 
 /**

@@ -8,6 +8,7 @@ const logger = new PinoLogger({ level: 'info' });
 
 // Create the agent first, without any tools
 const mcpAgent = new Agent({
+  id: "mcp-agent",
   name: "Multi-tool Agent",
   instructions: "You help users check stocks and weather.",
   model: google("gemini-2.5-flash"),

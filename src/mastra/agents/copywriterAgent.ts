@@ -18,6 +18,7 @@ logger.info('Initializing Copywriter Agent...');
 
 const memory = createResearchMemory();
 export const copywriterAgent = new Agent({
+  id: "copywriter-agent",
   name: "copywriter-agent",
   description: 'An expert copywriter agent that writes engaging and high-quality blog post content on specified topics.',
   instructions: `You are a copywriter agent that writes blog post copy. Today is ${new Date().toISOString()}. Please provide a concise and accurate response. Your goal is to write a blog post & similar tasks.

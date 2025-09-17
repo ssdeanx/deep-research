@@ -48,6 +48,8 @@
     **Beyond Basic Search: Intelligent, Autonomous Research & Reporting**
     <br />
     An cutting-edge, human-in-the-loop AI system designed for advanced deep research, leveraging Mastra's powerful orchestration, agent, and network capabilities. Inspired by lotus wisdom—embracing purity of intent, enlightenment through insight, and adaptive growth—this project fosters ethical AI development, harmonious collaboration, and continuous evolution toward enlightened knowledge discovery.
+
+
   </p>
 
 ---
@@ -1179,3 +1181,6 @@ This project is licensed under the ISC License - see the [LICENSE](LICENSE) file
 ---
 
 *Built with ❤️ using Mastra, Google AI, and modern web technologies. Inspired by the pursuit of enlightened knowledge discovery through ethical AI development.*
+
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/094a68c5f3c54bb19365248633a72065)](https://app.codacy.com/gh/ssdeanx/deep-research/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
+[![wakatime](https://wakatime.com/badge/user/7a2fb9a0-188b-4568-887f-7645f9249e62/project/dec55886-262f-452d-a735-c7e1f6b7a055.svg)](https://wakatime.com/badge/user/7a2fb9a0-188b-4568-887f-7645f9249e62/project/dec55886-262f-452d-a735-c7e1f6b7a055)

@@ -81,3 +81,4 @@ mastra.log
 *mastra.log
 src/index.js
 .gemini-flow/config.json
+.kilocode/mcp.json

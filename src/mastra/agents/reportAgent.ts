@@ -12,6 +12,7 @@ logger.info("Initializing Report Agent...");
 
 const memory = createResearchMemory();
 export const reportAgent = new Agent({
+  id: 'report-agent',
   name: 'Report Agent',
   description: 'An expert researcher agent that generates comprehensive reports based on research data.',
   instructions: `You are an expert researcher. Today is ${new Date().toISOString()}. Follow these instructions when responding:

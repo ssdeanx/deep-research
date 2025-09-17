@@ -28,10 +28,10 @@ import { SamplingStrategyType } from '@mastra/core/ai-tracing';
 import { FileTransport } from "@mastra/loggers/file";
 
 export const logger = new PinoLogger({
-  level: 'info',
-  transports: {
-    file: new FileTransport({ path: "../../mastra.log" })
-  }
+  level: 'warn',
+//  transports: {
+//    file: new FileTransport({ path: "../../mastra.log" })
+//  }
 });
 
 logger.info('Starting Mastra application')

@@ -12,6 +12,7 @@ logger.info('Initializing MCP Agent...');
 const memory = createResearchMemory();
 
 const myAgent = new Agent({
+  id: 'my-agent',
   name: "My Agent",
   description: "An agent that can use tools from an http MCP server",
   instructions: "You can use remote calculation tools.",

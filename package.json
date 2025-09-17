@@ -59,6 +59,7 @@
     "@mastra/mcp": "^0.12.0",
     "@mastra/memory": "^0.15.1",
     "@mastra/node-audio": "^0.1.6",
+    "@mastra/pg": "^0.15.2",
     "@mastra/rag": "^1.2.4",
     "@mastra/schema-compat": "^0.11.3",
     "@mastra/voice-google": "^0.11.4",

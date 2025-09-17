@@ -11,9 +11,9 @@ describe("Agents", () => {
     expect(result.score).toBe(1);
   });
 
-  it("assistant should validate tone consistency", async () => {
+  it("assistant should validate tone consistency",  async () => {
     const metric = new ToneConsistencyMetric();
-    const result = await evaluate(assistant, "Hello, world!", metric);
+    const result =  await evaluate(assistant, "Hello, world!", metric);
 
     expect(result.score).toBe(1);
   });

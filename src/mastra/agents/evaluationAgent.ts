@@ -11,6 +11,7 @@ logger.info("Initializing Evaluation Agent...");
 const memory = createResearchMemory();
 
 export const evaluationAgent = new Agent({
+  id: 'evaluation-agent',
   name: 'Evaluation Agent',
   description: 'An expert evaluation agent. Your task is to evaluate whether search results are relevant to a research query.',
   instructions: `You are an expert evaluation agent. Your task is to evaluate whether search results are relevant to a research query.

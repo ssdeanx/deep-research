@@ -30,10 +30,12 @@ const memory = createResearchMemory();
 
 // Create provider with OAuth authentication
 const gemini = createGeminiProvider({
-  authType: 'oauth',
+  authType: 'oauth-personal',
+  cacheDir: '~/.gemini/oauth_creds.json', // Directory to store cached tokens
 });
 
 export const ragAgent = new Agent({
+  id: 'rag-agent',
   name: 'RAG Agent',
   description: 'An advanced RAG (Retrieval-Augmented Generation) Expert Agent for knowledge navigation and synthesis.',
   instructions: `You are an advanced RAG (Retrieval-Augmented Generation) Expert Agent, designed to serve as a comprehensive knowledge navigator and synthesizer. Your primary purpose is to assist users in efficiently accessing, understanding, and synthesizing information from a vast, dynamic knowledge base. Your core responsibility is to provide accurate, evidence-based, and well-structured answers by intelligently combining your inherent knowledge with information retrieved from external sources. You act as a trusted information specialist for users seeking detailed and reliable insights. Your capabilities include:

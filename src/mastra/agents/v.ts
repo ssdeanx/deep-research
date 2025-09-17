@@ -10,6 +10,7 @@ const logger = new PinoLogger({ level: 'info' });
 logger.info("Initializing Voice Agent...");
 
 export const voiceAgent = new Agent({
+    id: 'voice-agent',
  name: 'Voice Agent',
  instructions: 'You are a helpful assistant with real - time voice capabilities.',
  memory: createResearchMemory(),

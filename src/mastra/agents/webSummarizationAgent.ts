@@ -11,6 +11,7 @@ logger.info("Initializing Web Summarization Agent...");
 const memory = createResearchMemory();
 
 export const webSummarizationAgent = new Agent({
+  id: 'web-summarization-agent',
   name: 'Web Content Summarization Agent',
   description: 'An agent that summarizes web content from search results to prevent token limit issues',
   instructions: `

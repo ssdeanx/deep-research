@@ -22,9 +22,8 @@ import { webScraperTool,
 } from "../tools/web-scraper-tool";
 import { FileTransport } from "@mastra/loggers/file";
 //import { webSearchTool } from '../tools/webSearchTool';
-const logger = new PinoLogger({ level: 'info', transports: {
-    file: new FileTransport({ path: "../../mastra.log" })
-  } });
+const logger = new PinoLogger({ level: 'info',
+   });
 
 logger.info('Initializing OpenRouter Assistant Agent...');
 
@@ -35,6 +34,7 @@ const openrouter = createOpenRouter({
 })
 
 export const assistant = new Agent({
+    id: "assistant",
     name: "assistant",
     description: 'A helpful assistant.',
     instructions: `You are a helpful assistant. Today is ${new Date().toISOString()}. Please provide a concise and accurate response.

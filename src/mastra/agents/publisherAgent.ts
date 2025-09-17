@@ -23,6 +23,7 @@ logger.info('Initializing Publisher Agent...');
 
 const memory = createResearchMemory();
 export const publisherAgent = new Agent({
+  id: "publisher-agent",
   name: "publisherAgent",
   description: "An agent that publishes blog posts by writing and editing content.",
   instructions:
