@@ -5,6 +5,7 @@ dist
 .env.development
 .env
 *.db
+
 *.db-*
 Example Upsert Embeddings  RAG  Mastra Docs.md
 Storage in Mastra  Mastra Docs.md
@@ -44,3 +45,7 @@ Storage in Mastra  Mastra Docs.md
 
 .gemini/
 gha-creds-*.json
+
+mastra.log
+
+*mastra.log

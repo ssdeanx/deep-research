@@ -59,7 +59,7 @@ export interface Message {
   threadId?: string;
 }
 
-const logger = new PinoLogger({ name: 'libsql-storage', level: 'info',
+const logger = new PinoLogger({ name: 'libsql-storage', level: 'debug',
   transports: {
       file: new FileTransport({ path: "../../mastra.log" })
     }
@@ -81,17 +81,6 @@ export const STORAGE_CONFIG = {
   }
 } as const;
 
-const userProfileSchema = z.object({
- name: z.string().optional(),
- location: z.string().optional(),
- timezone: z.string().optional(),
- preferences: z.object({
- communicationStyle: z.string().optional(),
- projectGoal: z.string().optional(),
- deadlines: z.array(z.string()).optional(),
- }).optional(),
-});
-
 /**
  * LibSQL Storage Configuration
  */
@@ -106,7 +95,7 @@ export const createLibSQLStore = (tracingContext?: { context?: any; runtimeConte
     name: 'libsql_store_init',
     input: {
       databaseUrl: databaseUrl.replace(/authToken=[^&]*/, 'authToken=***'), // Mask auth token
-      hasAuthToken: !(process.env.DATABASE_AUTH_TOKEN === null)
+      hasAuthToken: !!process.env.DATABASE_AUTH_TOKEN
     }
   } as TracingSpanInput);
 
