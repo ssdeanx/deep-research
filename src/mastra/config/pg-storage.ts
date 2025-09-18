@@ -1,7 +1,7 @@
 import { Memory } from "@mastra/memory";
 import { PgVector, PostgresStore } from '@mastra/pg';
 import { google } from "@ai-sdk/google";
-import { MDocument } from "@mastra/rag";
+import { createVectorQueryTool, MDocument, createGraphRAGTool } from "@mastra/rag";
 import { embedMany } from "ai";
 import type { UIMessage } from 'ai';
 import { PinoLogger } from "@mastra/loggers";
@@ -15,22 +15,41 @@ const logger = new PinoLogger({ name: 'libsql-storage', level: 'debug',
 
 logger.info("PG Storage config loaded");
 
-const host = process.env.PG_HOST ?? `localhost`;
-const port = process.env.PG_PORT ? parseInt(process.env.PG_PORT) : 5432;
-const user = process.env.PG_USER ?? `postgres`;
-const database = process.env.PG_DATABASE ?? `postgres`;
-const password = process.env.PG_PASSWORD ?? `password`;
-const connectionString = process.env.PG_CONNECTION_STRING ?? `postgresql://${user}:${password}@${host}:${port}`;
+//const host = process.env.PG_HOST ?? `localhost`;
+//const port = process.env.PG_PORT ? parseInt(process.env.PG_PORT) : 5432;
+//const user = process.env.PG_USER ?? `postgres`;
+//const database = process.env.PG_DATABASE ?? `postgres`;
+//const password = process.env.PG_PASSWORD ?? `password`;
+//const connectionString = process.env.PG_CONNECTION_STRING ?? `postgresql://${user}:${password}@${host}:${port}`;
 
-const doc = MDocument.fromText("Your text content...");
+const doc = MDocument.fromText("Your text content...", { metadata: { source: 'pg-storage.ts', type: 'example', version: '1.0' } });
 
 const chunks = await doc.chunk();
 
 const { embeddings } = await embedMany({
   values: chunks.map(chunk => chunk.text),
   model: google.textEmbedding('gemini-embedding-001'),
+  maxParallelCalls: 10,
+  maxRetries: 3,
+  abortSignal: new AbortController().signal,
+  experimental_telemetry: {
+    isEnabled: true,
+    recordInputs: true,
+    recordOutputs: true,
+    functionId: 'embedMany',
+    metadata: {
+      type: 'chunking',
+      source: 'pg-storage.ts',
+      function: 'embedMany',
+      model: 'gemini-embedding-001',
+      usage: 'internal',
+      purpose: 'embedding chunks for storage',
+      timestamp: new Date().toISOString()},
+    tracer: undefined
+    }
 });
-const store2 = new PostgresStore({ connectionString });
+
+//const store2 = new PostgresStore({ connectionString });
 
 const store = new PostgresStore({
     connectionString: process.env.SUPABASE ?? "postgresql://user:password@localhost:5432/mydb",
@@ -63,12 +82,19 @@ await store.createIndex({
 await store.createIndex({
   name: 'idx_messages_composite',
   table: 'mastra_messages',
-  columns: ['thread_id', 'createdAt DESC']
+  columns: ['thread_id', 'createdAt DESC'],
+  unique: true,
+  method: 'gist',
+  storage: { fillfactor: 90 },
+  concurrent: true,
+  opclass: 'timestamp_ops'
 });
 
 await pgVector.createIndex({
   indexName: "agentMemoryIndex",
-  dimension: 1536,
+  dimension: 3072,
+  metric: 'cosine', // or 'euclidean', 'dotproduct'
+  buildIndex: true,
 });
 
 // Store embeddings with rich metadata for better organization and filtering
@@ -92,7 +118,9 @@ await pgVector.upsert({
     language: (chunk as any).metadata?.language ?? null,
     author: (chunk as any).metadata?.author ?? null,
     confidenceScore: (chunk as any).metadata?.score ?? null,
+    sparseVector: (chunk as any).metadata?.sparseVector ?? null,
   })),
+//  sparseVectors:  // Optional sparse vectors
 });
 
 export const agentMemory = new Memory({
@@ -139,3 +167,30 @@ export const agentMemory = new Memory({
     }
   },
 );
+
+// Graph-based RAG tool for complex relational queries
+export const graphQueryTool = createGraphRAGTool({
+  vectorStoreName: "pgVector",
+  indexName: "agentMemoryIndex",
+  model: google.textEmbedding("gemini-embedding-001"),
+  graphOptions: {
+    threshold: 0.7,
+  },
+  enableFilter: true,
+});
+
+// pgVector with performance tuning
+export const pgVectorQueryTool = createVectorQueryTool({
+  vectorStoreName: "pgVector",
+  indexName: "agentMemoryIndex",
+  model: google.textEmbedding("gemini-embedding-001"),
+  databaseConfig: {
+    pgvector: {
+      minScore: 0.7,    // Filter low-quality results
+      ef: 200,          // HNSW search parameter
+      probes: 10        // IVFFlat probe parameter
+    }
+  },
+  enableFilter: true,
+  description: "Search for semantically similar content in the pgVector store using embeddings. Supports filtering, ranking, and context retrieval."
+});
