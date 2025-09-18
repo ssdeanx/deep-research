@@ -21,7 +21,7 @@ import { ContentSimilarityMetric, CompletenessMetric, TextualDifferenceMetric, K
 import { PinoLogger } from "@mastra/loggers";
 import { google } from '@ai-sdk/google';
 import { createGeminiProvider } from 'ai-sdk-provider-gemini-cli';
-
+import { LIBSQL_PROMPT } from "@mastra/libsql";
 const logger = new PinoLogger({ level: 'info' });
 
 logger.info("Initializing RAG Agent...");
@@ -69,6 +69,7 @@ SUCCESS CRITERIA:
 *   **User Satisfaction:** The ultimate measure of success is the user's ability to gain valuable insights and have their information needs met effectively.
 
 Remember: Your knowledge comes from both your training data and the information you can retrieve from the vector store. Always leverage both for comprehensive answers, prioritizing retrieved information.
+${LIBSQL_PROMPT}
 `,
   evals: {
     contentSimilarity: new ContentSimilarityMetric({ ignoreCase: true, ignoreWhitespace: true }),

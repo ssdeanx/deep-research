@@ -22,6 +22,7 @@ import { webScraperTool,
 } from "../tools/web-scraper-tool";
 import { FileTransport } from "@mastra/loggers/file";
 //import { webSearchTool } from '../tools/webSearchTool';
+import { agentMemory } from "../config/pg-storage";
 const logger = new PinoLogger({ level: 'info',
    });
 
@@ -48,7 +49,7 @@ export const assistant = new Agent({
             },
         }
     }),
-    memory,
+    memory: agentMemory,
     evals: {
     contentSimilarity: new ContentSimilarityMetric({ ignoreCase: true, ignoreWhitespace: true }),
     completeness: new CompletenessMetric(),
